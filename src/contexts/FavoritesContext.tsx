@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -37,6 +37,7 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
   
   // Cache TTL: 30 seconds to avoid unnecessary re-fetches
   const CACHE_TTL = 30000;
+  const lastRefreshRef = useRef<number>(0);
 
   // Helper function to map database format to EmissionFactor
   const mapDbToEmissionFactor = useCallback((data: any, itemId: string): EmissionFactor => {
@@ -64,20 +65,19 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
     if (!user || !canUseFavorites()) {
       setFavorites([]);
       setLastRefresh(0);
+      lastRefreshRef.current = 0;
       return;
     }
 
     // Check cache TTL unless force refresh
     const now = Date.now();
-    if (!forceRefresh && lastRefresh && (now - lastRefresh) < CACHE_TTL) {
+    if (!forceRefresh && lastRefreshRef.current && (now - lastRefreshRef.current) < CACHE_TTL) {
       return; // Use cached data
     }
 
     try {
       setLoading(true);
       
-      // Single optimized query to get favorites with emission factors data
-      // This reduces the complexity by using stored item_data primarily
       const { data: favoritesData, error: favError } = await supabase
         .from('favorites')
         .select('item_id, item_data, created_at')
@@ -90,10 +90,10 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
       if (!favoritesData || favoritesData.length === 0) {
         setFavorites([]);
         setLastRefresh(now);
+        lastRefreshRef.current = now;
         return;
       }
 
-      // Process favorites data efficiently
       const processedFavorites = favoritesData
         .map(fav => {
           if (!fav.item_data) return null;
@@ -103,13 +103,13 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
 
       setFavorites(processedFavorites);
       setLastRefresh(now);
+      lastRefreshRef.current = now;
     } catch (error) {
       console.error('Error fetching favorites:', error);
-      // Don't clear favorites on error to maintain UX
     } finally {
       setLoading(false);
     }
-  }, [user, canUseFavorites, mapDbToEmissionFactor, lastRefresh, CACHE_TTL]);
+  }, [user, canUseFavorites, mapDbToEmissionFactor]);
 
   const addToFavorites = useCallback(async (item: EmissionFactor) => {
     if (!user || !canUseFavorites()) return;

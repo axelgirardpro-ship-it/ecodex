@@ -1,144 +1,90 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { InstantSearch } from 'react-instantsearch';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { useQuotas } from '@/hooks/useQuotas';
-import { toast } from 'sonner';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { INDEX_PRIVATE, INDEX_PUBLIC } from '@/config/search';
+import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair } from '@/lib/algolia/searchClient';
 
-// Client Algolia avec nettoyage exhaustif des paramètres
 const ALGOLIA_APPLICATION_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const ALGOLIA_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
 const rawSearchClient = algoliasearch(ALGOLIA_APPLICATION_ID, ALGOLIA_SEARCH_API_KEY);
 
-// Liste des paramètres valides Algolia
-const VALID_ALGOLIA_PARAMS = [
-  'query', 'queryType', 'typoTolerance', 'minWordSizefor1Typo', 'minWordSizefor2Typos',
-  'allowTyposOnNumericTokens', 'ignorePlurals', 'disableTypoToleranceOnAttributes',
-  'attributesToIndex', 'attributesToRetrieve', 'unretrievableAttributes', 'optionalWords',
-  'attributesToHighlight', 'attributesToSnippet', 'highlightPreTag', 'highlightPostTag',
-  'snippetEllipsisText', 'restrictHighlightAndSnippetArrays', 'hitsPerPage', 'page',
-  'offset', 'length', 'minProximity', 'getRankingInfo', 'clickAnalytics', 'analytics',
-  'analyticsTags', 'synonyms', 'replaceSynonymsInHighlight', 'minProximity', 'responseFields',
-  'maxValuesPerFacet', 'sortFacetValuesBy', 'facets', 'maxFacetHits', 'attributesToRetrieve',
-  'facetFilters', 'filters', 'numericFilters', 'tagFilters', 'sumOrFiltersScores',
-  'restrictSearchableAttributes', 'facetingAfterDistinct', 'aroundLatLng', 'aroundLatLngViaIP',
-  'aroundRadius', 'aroundPrecision', 'minimumAroundRadius', 'insideBoundingBox', 'insidePolygon',
-  'naturalLanguages', 'ruleContexts', 'personalizationImpact', 'userToken', 'enablePersonalization',
-  'distinct', 'attributeForDistinct', 'customRanking', 'ranking', 'relevancyStrictness',
-  // Paramètres pour la recherche dans les facettes
-  'facetQuery', 'searchForFacetValues'
-];
-
-// Wrapper pour nettoyer agressivement les paramètres
-const searchClient = {
+const cleaningClient = {
   ...rawSearchClient,
   search: (requests: any[]) => {
-    console.log('🔍 Original search requests:', requests);
-    
-    const cleanedRequests = requests.map((request, index) => {
-      if (!request.params) {
-        return request;
-      }
-      
-      const originalParams = { ...request.params };
-      const cleanedParams: any = {};
-      
-      // Ne garder que les paramètres valides Algolia
-      Object.keys(originalParams).forEach(key => {
-        if (VALID_ALGOLIA_PARAMS.includes(key)) {
-          cleanedParams[key] = originalParams[key];
-        } else {
-          console.log(`❌ Removing invalid parameter from request ${index}:`, key, '=', originalParams[key]);
-        }
-      });
-      
-      const cleanedRequest = {
-        ...request,
-        params: cleanedParams
-      };
-      
-      // Retirer uniquement les numericFilters concernant FE pour éviter le conflit "managed vs advanced"
-      const paramsAny: any = (cleanedRequest as any).params || {};
-      const nf = paramsAny.numericFilters;
-      if (Array.isArray(nf)) {
-        const hasFE = (s: string) => /\bFE\b/.test(s);
-        const cleanedNumericFilters = nf
-          .map((group: any) => {
-            if (Array.isArray(group)) {
-              const sub = group.filter((item: any) => typeof item === 'string' ? !hasFE(item) : true);
-              return sub;
-            }
-            return typeof group === 'string' ? (hasFE(group) ? null : group) : group;
-          })
-          .filter((g: any) => g && (!Array.isArray(g) || g.length > 0));
-
-        if (cleanedNumericFilters.length !== nf.length) {
-          console.log(`🧹 Removed FE numericFilters from request ${index}:`, nf, '=>', cleanedNumericFilters);
-        }
-        if (cleanedNumericFilters.length > 0) {
-          paramsAny.numericFilters = cleanedNumericFilters;
-        } else {
-          delete paramsAny.numericFilters;
-        }
-      }
-
-      console.log(`✅ Cleaned request ${index}:`, cleanedRequest);
-      const nfAfter = (cleanedRequest as any)?.params?.numericFilters;
-      if (nfAfter) {
-        console.log(`🧮 numericFilters for request ${index} (after FE cleanup):`, nfAfter);
-      }
-      const filtersStr = (cleanedRequest as any)?.params?.filters;
-      if (typeof filtersStr === 'string' && filtersStr.includes('FE')) {
-        console.log(`ℹ️ filters string includes FE for request ${index}:`, filtersStr);
-      }
-      return cleanedRequest;
+    const cleaned = (requests || []).map((r) => {
+      const params = Object.fromEntries(
+        Object.entries(r.params || {}).filter(([k]) => VALID_ALGOLIA_PARAMS.includes(k))
+      );
+      return { ...r, params };
     });
-    
-    console.log('🚀 Final cleaned requests sent to Algolia:', cleanedRequests);
-    
-    return rawSearchClient.search(cleanedRequests);
+    return rawSearchClient.search(cleaned);
   }
 };
 
-// Context pour partager les quotas
 const QuotaContext = createContext<ReturnType<typeof useQuotas> | null>(null);
-
 export const useQuotaContext = () => {
-  const context = useContext(QuotaContext);
-  if (!context) {
-    throw new Error('useQuotaContext must be used within SearchProvider');
-  }
-  return context;
+  const ctx = useContext(QuotaContext);
+  if (!ctx) throw new Error('useQuotaContext must be used within SearchProvider');
+  return ctx;
 };
 
-interface SearchProviderProps {
-  children: React.ReactNode;
-}
+interface SearchProviderProps { children: React.ReactNode; }
 
 export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
-  console.log('🔧 SearchProvider with exhaustive cleaning mounting...');
   const quotaHook = useQuotas();
-  
-  // Wrapper pour effectuer les recherches (plus de quota à vérifier)
-  const quotaAwareSearchClient = {
-    ...searchClient,
+  const { currentWorkspace } = useWorkspace();
+
+  const federatedClient = useMemo(() => ({
+    ...cleaningClient,
     search: async (requests: any[]) => {
-      try {
-        console.log('🔍 Performing search - no quota limits');
-        const result = await searchClient.search(requests);
-        return result;
-      } catch (error) {
-        console.error('Search error:', error);
-        throw error;
+      const wsId = currentWorkspace?.id;
+      const expanded: any[] = [];
+      const originsPerRequest: ('all'|'public'|'private')[] = [];
+
+      for (const r of requests || []) {
+        const baseParams = { ...(r.params || {}) };
+        const origin = resolveOrigin(baseParams);
+        originsPerRequest.push(origin);
+        const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+
+        const publicFilters = (() => {
+          const base = '(access_level:standard) OR (is_blurred:true)';
+          const ws = wsId ? ` OR (assigned_workspace_ids:${wsId})` : '';
+          return base + ws;
+        })();
+        const privateFilters = wsId ? `workspace_id:${wsId}` : 'workspace_id:_none_';
+
+        if (origin === 'public') {
+          expanded.push({ ...r, indexName: INDEX_PUBLIC, params: { ...baseParams, facetFilters: safeFacetFilters, filters: publicFilters } });
+        } else if (origin === 'private') {
+          expanded.push({ ...r, indexName: INDEX_PRIVATE, params: { ...baseParams, facetFilters: safeFacetFilters, filters: privateFilters } });
+        } else {
+          expanded.push({ ...r, indexName: INDEX_PUBLIC, params: { ...baseParams, facetFilters: safeFacetFilters, filters: publicFilters } });
+          expanded.push({ ...r, indexName: INDEX_PRIVATE, params: { ...baseParams, facetFilters: safeFacetFilters, filters: privateFilters } });
+        }
       }
+
+      const res = await cleaningClient.search(expanded);
+      const merged = [] as any[];
+      for (let i = 0, j = 0; i < (requests || []).length; i++) {
+        const origin = originsPerRequest[i];
+        if (origin === 'public' || origin === 'private') {
+          merged.push(res.results[j]); j += 1;
+        } else {
+          const publicRes = res.results[j]; j++;
+          const privateRes = res.results[j]; j++;
+          merged.push(mergeFederatedPair(publicRes, privateRes));
+        }
+      }
+      return { results: merged };
     }
-  };
-  
+  }), [currentWorkspace?.id]);
+
   return (
     <QuotaContext.Provider value={quotaHook}>
-      <InstantSearch 
-        searchClient={quotaAwareSearchClient as any} 
-        indexName="emission_factors"
-      >
+      <InstantSearch searchClient={federatedClient as any} indexName={INDEX_PUBLIC} future={{ preserveSharedStateOnUnmount: true }}>
         {children}
       </InstantSearch>
     </QuotaContext.Provider>

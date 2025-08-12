@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRefinementList, useClearRefinements, useToggleRefinement, useRange, usePagination } from 'react-instantsearch';
+import { useRefinementList, useClearRefinements, useToggleRefinement, useRange, usePagination, Configure } from 'react-instantsearch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -296,6 +296,47 @@ const FERangeInput: React.FC = () => {
   );
 };
 
+const OriginFilter: React.FC = () => {
+  const [origin, setOrigin] = React.useState<'all' | 'public' | 'private'>('all');
+
+  // On passe par ruleContexts pour ne pas polluer facetFilters
+  const ruleContexts = React.useMemo(() => {
+    if (origin === 'all') return undefined;
+    return [`origin:${origin}`];
+  }, [origin]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant={origin === 'all' ? 'default' : 'outline'}
+          onClick={() => setOrigin('all')}
+        >
+          Tous
+        </Button>
+        <Button
+          size="sm"
+          variant={origin === 'public' ? 'default' : 'outline'}
+          onClick={() => setOrigin('public')}
+        >
+          Public
+        </Button>
+        <Button
+          size="sm"
+          variant={origin === 'private' ? 'default' : 'outline'}
+          onClick={() => setOrigin('private')}
+        >
+          Privé
+        </Button>
+      </div>
+
+      {/* Paramètre virtuel pour le provider (intercepté avant Algolia) */}
+      <Configure ruleContexts={ruleContexts} />
+    </div>
+  );
+};
+
 export const SearchFilters: React.FC = () => {
   return (
     <Card className="bg-background border border-border">
@@ -316,6 +357,22 @@ export const SearchFilters: React.FC = () => {
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 mt-4">
             <RecentDataToggle />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Filtre d'origine (virtuel) */}
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-between p-0 h-auto text-indigo-950 bg-transparent hover:bg-transparent"
+            >
+              <h5 className="text-base font-semibold font-montserrat text-primary">Origine</h5>
+              <Filter className="h-4 w-4 text-indigo-950" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 mt-2">
+            <OriginFilter />
           </CollapsibleContent>
         </Collapsible>
 
