@@ -1,33 +1,41 @@
 import { useState, useEffect } from "react";
+import { liteClient as algoliasearch } from "algoliasearch/lite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+
+const ALGOLIA_APPLICATION_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
+const ALGOLIA_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
+
+const algoliaClient = algoliasearch(ALGOLIA_APPLICATION_ID, ALGOLIA_SEARCH_API_KEY);
 
 export const useSuggestions = (searchQuery: string) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
 
-  // Fetch suggestions from emission_factors based on search query
+  // Fetch suggestions from Algolia emission_factors index
   const fetchSuggestions = async (query: string) => {
-    if (!query.trim() || !currentWorkspace) return [];
+    if (!query.trim()) return [];
 
     try {
-      const { data, error } = await supabase
-        .from('emission_factors')
-        .select('"Nom"')
-        .or(`"Nom".ilike.%${query}%,"Description".ilike.%${query}%,"Secteur".ilike.%${query}%`)
-        .limit(5);
-
-      if (error) throw error;
-
-      // Get unique suggestions
-      const uniqueNames = [...new Set(data?.map(item => item["Nom"]) || [])];
-      return uniqueNames.slice(0, 5);
+      const { results } = await algoliaClient.search([
+        {
+          indexName: "emission_factors",
+          query,
+          params: {
+            hitsPerPage: 5,
+            attributesToRetrieve: ["Nom"],
+            restrictSearchableAttributes: ["Nom", "Description", "Secteur"],
+          },
+        },
+      ]);
+      
+      const hits = (results?.[0]?.hits || []) as Array<{ Nom?: string }>;
+      const names = hits.map((h) => h.Nom).filter((v): v is string => Boolean(v));
+      return Array.from(new Set(names)).slice(0, 5);
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
+      console.error('Error fetching suggestions from Algolia:', error);
       return [];
     }
   };
@@ -70,7 +78,7 @@ export const useSuggestions = (searchQuery: string) => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentWorkspace]);
+  }, [searchQuery]);
 
   // Fetch recent searches on mount
   useEffect(() => {
