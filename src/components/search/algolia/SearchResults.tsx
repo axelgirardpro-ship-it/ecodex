@@ -499,6 +499,7 @@ export const SearchResults: React.FC = () => {
               const isFav = isFavorite(hit.objectID);
               const canView = hasAccess(hit.Source);
               const shouldBlur = shouldBlurPremiumContent(hit.Source);
+              const isPrivateHit = Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
 
               return (
                 <Card key={hit.objectID} className="relative overflow-hidden bg-white border border-border hover:shadow-lg transition-shadow">
@@ -513,10 +514,17 @@ export const SearchResults: React.FC = () => {
                          />
                         <div className="flex-1">
                         <div className="flex items-start justify-between mb-3">
-                          <h3 
-                            className="text-lg font-semibold text-primary leading-tight font-montserrat"
-                            dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
-                          />
+                          <div className="flex flex-col items-start gap-1">
+                            <h3 
+                              className="text-lg font-semibold text-primary leading-tight font-montserrat"
+                              dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
+                            />
+                            {isPrivateHit && (
+                              <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
+                                FE importé
+                              </Badge>
+                            )}
+                          </div>
                            <div className="flex items-center gap-2 ml-4">
                              <Button
                                variant="ghost"

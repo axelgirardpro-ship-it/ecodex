@@ -3,8 +3,9 @@ import { useSearchBox, useStats, useHits } from 'react-instantsearch';
 import { Search, X, Clock } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useSuggestions } from '@/hooks/useSuggestions';
+import { useSuggestions, SuggestionItem } from '@/hooks/useSuggestions';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { Badge } from '@/components/ui/badge';
 
 export const SearchBox: React.FC = () => {
   const { query, refine } = useSearchBox();
@@ -97,13 +98,18 @@ export const SearchBox: React.FC = () => {
                   Suggestions
                 </div>
                 <div className="max-h-40 overflow-y-auto bg-white">
-                  {suggestions.map((suggestion, index) => (
+                  {suggestions.map((s: SuggestionItem, index) => (
                     <button 
                       key={`suggestion-${index}`} 
-                      onClick={() => handleSuggestionClick(suggestion)} 
-                      className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white font-montserrat"
+                      onClick={() => handleSuggestionClick(s.label)} 
+                      className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white font-montserrat flex items-center gap-2"
                     >
-                      {suggestion}
+                      <span className="truncate flex-1">{s.label}</span>
+                      {s.isPrivate && (
+                        <Badge variant="secondary" className="text-[10px] leading-none px-2 py-0.5">
+                          FE importé
+                        </Badge>
+                      )}
                     </button>
                   ))}
                 </div>

@@ -13,24 +13,7 @@ import { RoleGuard } from '@/components/ui/RoleGuard';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
-
-interface AlgoliaHit {
-  objectID: string;
-  Nom: string;
-  Description: string;
-  FE: number;
-  'Unité donnée d\'activité': string;
-  Source: string;
-  Secteur: string;
-  'Sous-secteur': string;
-  Localisation: string;
-  Date: number;
-  Incertitude: string;
-  Périmètre: string;
-  Contributeur: string;
-  Commentaires: string;
-  _highlightResult?: any;
-}
+import type { AlgoliaHit } from '@/types/algolia';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -39,6 +22,8 @@ interface FavorisSearchResultsProps {
   onExport?: (items: EmissionFactor[]) => void;
   onCopyToClipboard?: (items: EmissionFactor[]) => void;
   onRemoveSelectedFromFavorites?: (itemIds: string[]) => void;
+  onToggleFavorite?: (itemId: string) => void;
+  favoriteIds: string[];
 }
 
 export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
@@ -48,6 +33,8 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   onExport,
   onCopyToClipboard,
   onRemoveSelectedFromFavorites,
+  onToggleFavorite,
+  favoriteIds,
 }) => {
   const { hits: originalHits } = useHits<AlgoliaHit>();
   const [currentSort, setCurrentSort] = useState<string>('relevance');
@@ -176,6 +163,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     }
   };
 
+  const isPrivateHit = (hit: AlgoliaHit) => {
+    return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported' || (hit as any).__indexName === 'ef_private_fr';
+  };
+
   if (hits.length === 0) {
     return (
       <div className="text-center py-12">
@@ -281,10 +272,17 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                     />
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
-                        <h3 
-                          className="text-lg font-semibold text-primary leading-tight"
-                          dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
-                        />
+                        <div className="flex flex-col items-start gap-1">
+                          <h3 
+                            className="text-lg font-semibold text-primary leading-tight"
+                            dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
+                          />
+                          {isPrivateHit(hit) && (
+                            <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
+                              FE importé
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button
                             variant="ghost"

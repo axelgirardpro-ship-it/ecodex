@@ -1,67 +1,62 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
-import { ResultsTable } from "@/components/search/ResultsTable";
 import { Button } from "@/components/ui/button";
 import { EmissionFactor } from "@/types/emission-factor";
 import { Heart, HeartOff } from "lucide-react";
-import { useOptimizedFavorites } from "@/hooks/useOptimizedFavorites";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
 import { RoleGuard } from "@/components/ui/RoleGuard";
-import { FavoritesFilterPanel, FavoritesFilters } from "@/components/search/FavorisFilterPanel";
+import { useFavorites } from "@/contexts/FavoritesContext";
+import { useQuotaActions } from "@/hooks/useQuotaActions";
 
+// Import des composants Algolia
+import { FavorisSearchProvider } from "@/components/search/favoris/FavorisSearchProvider";
+import { FavorisSearchBox } from "@/components/search/favoris/FavorisSearchBox";
+import { FavorisSearchResults } from "@/components/search/favoris/FavorisSearchResults";
+import { SearchFilters } from "@/components/search/algolia/SearchFilters";
+import { FavorisSearchStats } from "@/components/search/favoris/FavorisSearchStats";
 
-const Favorites = () => {
-  const { 
-    favorites, 
-    loading, 
-    removeFromFavorites, 
-    batchRemoveFavorites,
-    filterFavorites,
-    filterOptions,
-    stats,
-    getPerformanceMetrics
-  } = useOptimizedFavorites();
+const FavoritesAlgoliaContent: React.FC = () => {
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const { favorites, loading, removeFromFavorites } = useFavorites();
   const { canExport } = usePermissions();
   const { toast } = useToast();
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [filters, setFilters] = useState<FavoritesFilters>({
-    search: '',
-    source: '',
-    localisation: '',
-    date: '',
-    importType: 'all'
-  });
+  const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
 
-  // Use optimized filtering with memoization
-  const filteredFavorites = useMemo(() => {
-    return filterFavorites(filters);
-  }, [filterFavorites, filters]);
+  // Extract favorite IDs for Algolia filtering
+  const favoriteIds = useMemo(() => {
+    return favorites.map(f => f.id);
+  }, [favorites]);
 
-  // Use optimized filter options
-  const availableSources = filterOptions.sources;
-  const availableLocations = filterOptions.locations;
-  const availableDates = filterOptions.dates;
-
-  const handleItemSelect = (id: string) => {
-    setSelectedItems(prev => 
-      prev.includes(id) 
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
+  const handleItemSelect = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
   };
 
-  const handleSelectAll = () => {
-    setSelectedItems(
-      selectedItems.length === filteredFavorites.length ? [] : filteredFavorites.map(f => f.id)
-    );
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedItems(new Set(favoriteIds));
+    } else {
+      setSelectedItems(new Set());
+    }
   };
 
   const handleToggleFavorite = async (id: string) => {
     try {
       await removeFromFavorites(id);
-      setSelectedItems(prev => prev.filter(item => item !== id));
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
       toast({
         title: "Favori supprimé",
         description: "L'élément a été retiré de vos favoris",
@@ -76,11 +71,12 @@ const Favorites = () => {
   };
   
   const handleRemoveSelectedFromFavorites = async () => {
-    const toRemove = selectedItems.slice();
+    const toRemove = Array.from(selectedItems);
     if (toRemove.length === 0) return;
+    
     try {
-      await batchRemoveFavorites(toRemove);
-      setSelectedItems([]);
+      await Promise.all(toRemove.map(id => removeFromFavorites(id)));
+      setSelectedItems(new Set());
       toast({
         title: "Favoris mis à jour",
         description: `${toRemove.length} élément${toRemove.length > 1 ? 's' : ''} retiré${toRemove.length > 1 ? 's' : ''} des favoris.`,
@@ -94,130 +90,23 @@ const Favorites = () => {
     }
   };
 
-  const handleCopyToClipboard = async () => {
-    try {
-      const selectedFavorites = filteredFavorites.filter(f => selectedItems.includes(f.id));
-      const headers = [
-        "Nom", 
-        "Description", 
-        "FE", 
-        "Unité donnée d'activité", 
-        "Source", 
-        "Secteur", 
-        "Sous-secteur", 
-        "Localisation", 
-        "Date", 
-        "Incertitude", 
-        "Périmètre", 
-        "Contributeur", 
-        "Commentaires"
-      ];
-      const tsvContent = [
-        headers.join("\t"),
-        ...selectedFavorites.map(f => [
-          f.nom || '',
-          f.description || '',
-          f.fe || '',
-          f.uniteActivite || '',
-          f.source || '',
-          f.secteur || '',
-          f.sousSecteur || '',
-          f.localisation || '',
-          f.date || '',
-          f.incertitude || '',
-          f.perimetre || '',
-          f.contributeur || '',
-          f.commentaires || ''
-        ].join("\t"))
-      ].join("\n");
-      
-      await navigator.clipboard.writeText(tsvContent);
-      
-      toast({
-        title: "Copié dans le presse-papier",
-        description: `${selectedFavorites.length} élément(s) copié(s). Vous pouvez maintenant les coller dans Excel ou Google Sheets.`,
-      });
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors de la copie dans le presse-papier",
-      });
-    }
+  const handleCopyToClipboard = async (items: EmissionFactor[]) => {
+    await quotaHandleCopyToClipboard(items);
   };
 
-  const handleExport = async () => {
-    if (!canExport) {
-      toast({
-        variant: "destructive",
-        title: "Limite d'exports atteinte",
-        description: "Veuillez upgrader votre abonnement pour continuer à exporter.",
-      });
-      return;
-    }
-
-    try {
-      
-      const selectedFavorites = filteredFavorites.filter(f => selectedItems.includes(f.id));
-      const csvContent = [
-        "Nom,FE,Unité donnée d'activité,Source,Localisation,Date",
-        ...selectedFavorites.map(f => `"${f.nom}",${f.fe},"${f.uniteActivite}","${f.source}","${f.localisation}","${f.date}"`)
-      ].join("\n");
-      
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "mes_favoris_emissions.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Export réalisé",
-        description: "Vos favoris ont été exportés avec succès !",
-      });
-    } catch (error) {
-      console.error('Error during export:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors de l'export",
-      });
-    }
+  const handleExport = async (items: EmissionFactor[]) => {
+    await quotaHandleExport(items, 'facteurs_emissions_favoris');
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <UnifiedNavbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center homepage-text">
-            <Heart className="w-8 h-8 mr-3 text-red-500" />
-            Mes favoris
-          </h1>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <p className="text-muted-foreground">
-              Retrouvez ici tous vos facteurs d'émissions carbone favoris
-            </p>
-            {!loading && favorites.length > 0 && (
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <span className="font-semibold text-foreground">{stats.total}</span> favoris
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="font-semibold text-foreground">{stats.sources}</span> sources
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="font-semibold text-foreground">{stats.locations}</span> pays
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+  // Get unique sources, locations, and dates from favorites for stats
+  const availableSources = [...new Set(favorites.map(f => f.source))].filter(Boolean);
+  const availableLocations = [...new Set(favorites.map(f => f.localisation))].filter(Boolean);
 
-        {loading ? (
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <UnifiedNavbar />
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -229,45 +118,58 @@ const Favorites = () => {
               </div>
             </div>
           </div>
-        ) : favorites.length > 0 ? (
-          <div>
-            <FavoritesFilterPanel
-              filters={filters}
-              onFiltersChange={setFilters}
-              availableSources={availableSources}
-              availableLocations={availableLocations}
-              availableDates={availableDates}
-            />
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Button
-                variant="destructive"
-                onClick={handleRemoveSelectedFromFavorites}
-                disabled={selectedItems.length === 0}
-              >
-                <HeartOff className="w-4 h-4 mr-2" />
-                Retirer des favoris ({selectedItems.length})
-              </Button>
-              <RoleGuard requirePermission="canExport">
-                <Button 
-                  onClick={handleExport}
-                  disabled={selectedItems.length === 0}
-                >
-                  Exporter la sélection ({selectedItems.length})
-                </Button>
-              </RoleGuard>
-            </div>
-            <ResultsTable
-              results={filteredFavorites.map(fav => ({ ...fav, isFavorite: true }))}
-              selectedItems={selectedItems}
-              onItemSelect={handleItemSelect}
-              onSelectAll={handleSelectAll}
-              onToggleFavorite={handleToggleFavorite}
-              onExport={handleExport}
-              onCopyToClipboard={handleCopyToClipboard}
-            />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <UnifiedNavbar />
+      
+      {/* Header Section */}
+      <section className="py-12 px-4 bg-background border-b">
+        <div className="container mx-auto">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-4 flex items-center justify-center">
+              <Heart className="w-10 h-10 mr-3 text-red-500" />
+              Mes Favoris
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              Recherchez et gérez vos facteurs d'émission favoris avec les filtres avancés
+            </p>
+            
+            {/* Search Box - Seulement si on a des favoris */}
+            {favorites.length > 0 && (
+              <div className="max-w-3xl mx-auto">
+                <FavorisSearchBox favoriteIds={favoriteIds} />
+              </div>
+            )}
+            
+            {/* Summary Stats */}
+            {favorites.length > 0 && (
+              <div className="flex justify-center items-center gap-8 mt-8 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{favorites.length}</span>
+                  <span>favoris au total</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{availableSources.length}</span>
+                  <span>sources</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{availableLocations.length}</span>
+                  <span>localisations</span>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-12">
+        </div>
+      </section>
+
+      <main className="container mx-auto px-4 py-8">
+        {favorites.length === 0 ? (
+          <div className="text-center py-16">
             <Heart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">
               Aucun favori pour le moment
@@ -281,10 +183,83 @@ const Favorites = () => {
               </Link>
             </Button>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Filters Sidebar */}
+            <aside className="lg:col-span-1">
+              <SearchFilters />
+            </aside>
+
+            {/* Results Section */}
+            <section className="lg:col-span-3">
+              <FavorisSearchStats />
+              
+              {/* Actions buttons */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={handleRemoveSelectedFromFavorites}
+                  disabled={selectedItems.size === 0}
+                >
+                  <HeartOff className="w-4 h-4 mr-2" />
+                  Retirer des favoris ({selectedItems.size})
+                </Button>
+                <RoleGuard requirePermission="canExport">
+                  <Button 
+                    onClick={() => {
+                      const selectedFavorites = favorites.filter(f => selectedItems.has(f.id));
+                      handleExport(selectedFavorites);
+                    }}
+                    disabled={selectedItems.size === 0}
+                  >
+                    Exporter la sélection ({selectedItems.size})
+                  </Button>
+                </RoleGuard>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const selectedFavorites = favorites.filter(f => selectedItems.has(f.id));
+                    handleCopyToClipboard(selectedFavorites);
+                  }}
+                  disabled={selectedItems.size === 0}
+                >
+                  Copier la sélection ({selectedItems.size})
+                </Button>
+              </div>
+              
+              <FavorisSearchResults
+                selectedItems={selectedItems}
+                onItemSelect={handleItemSelect}
+                onSelectAll={handleSelectAll}
+                onExport={handleExport}
+                onCopyToClipboard={handleCopyToClipboard}
+                onRemoveSelectedFromFavorites={async (itemIds: string[]) => {
+                  await Promise.all(itemIds.map(id => removeFromFavorites(id)));
+                  setSelectedItems(new Set());
+                }}
+                onToggleFavorite={handleToggleFavorite}
+                favoriteIds={favoriteIds}
+              />
+            </section>
+          </div>
         )}
-      </div>
-      
+      </main>
     </div>
+  );
+};
+
+const Favorites = () => {
+  const { favorites } = useFavorites();
+  
+  // Extract favorite IDs for Algolia filtering
+  const favoriteIds = useMemo(() => {
+    return favorites.map(f => f.id);
+  }, [favorites]);
+
+  return (
+    <FavorisSearchProvider favoriteIds={favoriteIds}>
+      <FavoritesAlgoliaContent />
+    </FavorisSearchProvider>
   );
 };
 

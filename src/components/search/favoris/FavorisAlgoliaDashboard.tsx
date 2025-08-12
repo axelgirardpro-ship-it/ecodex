@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FavorisSearchProvider } from './FavorisSearchProvider';
 import { FavorisSearchBox } from './FavorisSearchBox';
 import { FavorisSearchResults } from './FavorisSearchResults';
-import { FavorisSearchFilters } from './FavorisSearchFilters';
+import { SearchFilters } from '@/components/search/algolia/SearchFilters';
 import { FavorisSearchStats } from './FavorisSearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
 import { EmissionFactor } from '@/types/emission-factor';
@@ -14,7 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const FavorisAlgoliaContent: React.FC = () => {
+interface FavorisAlgoliaContentProps {
+  favoriteIds: string[];
+}
+
+const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteIds }) => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const { favorites, removeFromFavorites } = useFavorites();
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
@@ -87,7 +91,7 @@ const FavorisAlgoliaContent: React.FC = () => {
             
             {/* Search Box */}
             <div className="max-w-3xl mx-auto">
-              <FavorisSearchBox />
+              <FavorisSearchBox favoriteIds={favoriteIds} />
             </div>
             
             {/* Summary Stats */}
@@ -123,7 +127,7 @@ const FavorisAlgoliaContent: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Filters Sidebar */}
             <aside className="lg:col-span-1">
-              <FavorisSearchFilters />
+              <SearchFilters />
             </aside>
 
             {/* Results Section */}
@@ -136,6 +140,7 @@ const FavorisAlgoliaContent: React.FC = () => {
                 onExport={handleExport}
                 onCopyToClipboard={handleCopyToClipboard}
                 onRemoveSelectedFromFavorites={handleRemoveSelectedFromFavorites}
+                favoriteIds={favoriteIds}
               />
             </section>
           </div>
@@ -146,9 +151,12 @@ const FavorisAlgoliaContent: React.FC = () => {
 };
 
 export const FavorisAlgoliaDashboard: React.FC = () => {
+  const { favorites } = useFavorites();
+  const favoriteIds = useMemo(() => favorites.map(f => f.id), [favorites]);
+
   return (
-    <FavorisSearchProvider>
-      <FavorisAlgoliaContent />
+    <FavorisSearchProvider favoriteIds={favoriteIds}>
+      <FavorisAlgoliaContent favoriteIds={favoriteIds} />
     </FavorisSearchProvider>
   );
 };

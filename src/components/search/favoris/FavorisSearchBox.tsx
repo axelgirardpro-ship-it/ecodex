@@ -4,11 +4,15 @@ import { Search, X } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-export const FavorisSearchBox: React.FC = () => {
+interface FavorisSearchBoxProps {
+  favoriteIds?: string[];
+}
+
+export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds = [] }) => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
 
-  console.log('FavorisSearchBox render:', { query, nbHits });
+  console.log('FavorisSearchBox render:', { query, nbHits, favoriteIdsCount: favoriteIds?.length || 0 });
 
   const handleClear = () => {
     refine("");
@@ -36,7 +40,7 @@ export const FavorisSearchBox: React.FC = () => {
                   handleSearch();
                 }
               }}
-              placeholder="Rechercher dans vos favoris..."
+              placeholder={`Rechercher dans vos ${favoriteIds?.length || 0} favoris...`}
               className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground h-12 text-base pl-12 pr-12 rounded-lg"
             />
             {query && (
