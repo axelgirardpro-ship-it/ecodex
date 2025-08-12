@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* DataCarb Design System - Nouvelle charte graphique */
+    --background: 232 39% 98%; /* #f5f6fc - Blanc cassé */
+    --foreground: 251 21% 14%; /* #1C1A27 - Anthracite */
+
+    --card: 232 39% 98%;
+    --card-foreground: 251 21% 14%;
+
+    --popover: 232 39% 98%;
+    --popover-foreground: 251 21% 14%;
+
+    --primary: 235 100% 64%; /* #4B5DFF - Bleu principal */
+    --primary-foreground: 232 39% 98%;
+
+    --secondary: 252 100% 89%; /* #CEC3FF - Lavande claire */
+    --secondary-foreground: 251 21% 14%;
+
+    --muted: 252 100% 89%;
+    --muted-foreground: 251 15% 45%; /* Gris plus foncé pour meilleure lisibilité */
+
+    --accent: 170 50% 53%; /* #4ABEA1 - Vert turquoise */
+    --accent-foreground: 232 39% 98%;
+
+    --success: 170 50% 53%;
+    --success-foreground: 232 39% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 232 39% 98%;
+
+    --border: 252 100% 89%;
+    --input: 252 100% 89%;
+    --ring: 235 100% 64%;
+
+    --radius: 0.375rem;
+
+    /* Homepage helpers mapped to brand */
+    --homepage-violet: 252 100% 89%; /* Lavande claire */
+    --homepage-text: 251 21% 14%; /* Anthracite */
+    --homepage-button: 235 100% 64%; /* Bleu principal */
+    --homepage-bg: 232 39% 98%; /* #f5f6fc - Blanc cassé */
+    
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.2);
+    --shadow-premium: 0 20px 40px -15px hsl(var(--primary) / 0.3);
+    --shadow-soft: 0 2px 6px 0 hsl(0 0% 0% / 0.15);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s ease-in-out;
+    --transition-bounce: all 0.4s ease-in-out;
+
+    /* Sidebar */
+    --sidebar-background: 232 39% 98%;
+    --sidebar-foreground: 251 21% 14%;
+    --sidebar-primary: 235 100% 64%;
+    --sidebar-primary-foreground: 232 39% 98%;
+    --sidebar-accent: 252 100% 89%;
+    --sidebar-accent-foreground: 251 21% 14%;
+    --sidebar-border: 252 100% 89%;
+    --sidebar-ring: 235 100% 64%;
+  }
+
+  .dark {
+    --background: 251 21% 14%; /* #1C1A27 - Anthracite */
+    --foreground: 232 39% 98%;
+
+    --card: 251 21% 14%;
+    --card-foreground: 232 39% 98%;
+
+    --popover: 251 21% 14%;
+    --popover-foreground: 232 39% 98%;
+
+    --primary: 235 100% 64%; /* #4B5DFF - Bleu principal */
+    --primary-foreground: 232 39% 98%;
+
+    --secondary: 252 100% 89%; /* #CEC3FF - Lavande claire */
+    --secondary-foreground: 251 21% 14%;
+
+    --muted: 251 21% 20%;
+    --muted-foreground: 251 15% 75%; /* Gris plus clair pour mode sombre */
+
+    --accent: 170 50% 53%; /* #4ABEA1 - Vert turquoise */
+    --accent-foreground: 232 39% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 232 39% 98%;
+
+    --border: 251 21% 20%;
+    --input: 251 21% 20%;
+    --ring: 235 100% 64%;
+
+    /* Dark mode helpers */
+    --homepage-violet: 251 21% 20%;
+    --homepage-text: 232 39% 98%;
+    --homepage-button: 235 100% 64%;
+    --homepage-bg: 251 21% 14%;
+
+    /* Dark sidebar */
+    --sidebar-background: 251 21% 14%;
+    --sidebar-foreground: 232 39% 98%;
+    --sidebar-primary: 235 100% 64%;
+    --sidebar-primary-foreground: 232 39% 98%;
+    --sidebar-accent: 251 21% 20%;
+    --sidebar-accent-foreground: 232 39% 98%;
+    --sidebar-border: 251 21% 20%;
+    --sidebar-ring: 235 100% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1 {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 36px; /* 36px / Bold */
+    line-height: 120%;
+    color: hsl(251, 21%, 14%); /* #1C1A27 - Anthracite */
+  }
+  h2 {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 28px; /* 28px / Semi-Bold */
+    line-height: 120%;
+    color: hsl(251, 21%, 14%); /* #1C1A27 - Anthracite */
+  }
+  h3 {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 22px; /* 22px / Semi-Bold */
+    line-height: 130%;
+    color: hsl(251, 21%, 14%); /* #1C1A27 - Anthracite */
+  }
+  p {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500; /* Augmentation du font-weight pour meilleure lisibilité */
+    font-size: 16px;
+    line-height: 150%;
+    color: hsl(var(--foreground));
+  }
+  small, .caption {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500; /* Augmentation du font-weight pour meilleure lisibilité */
+    font-size: 14px;
+    line-height: 140%;
+    color: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  .homepage-violet-bg {
+    background-color: hsl(var(--homepage-violet));
+  }
+  
+  .homepage-text {
+    color: hsl(var(--homepage-text));
+  }
+  
+  .homepage-button {
+    background-color: hsl(var(--homepage-button));
+    color: hsl(var(--homepage-bg));
+  }
+  
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  .shadow-premium {
+    box-shadow: var(--shadow-premium);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+  
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-sm border border-white/20;
+  }
+  
+  .card-hover {
+    @apply transition-smooth hover:shadow-elegant hover:-translate-y-1;
+  }
+  
+  .text-break-all {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  
+  .text-break-words {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  
+  /* Algolia search highlighting */
+  mark, .ais-Highlight-highlighted {
+    background-color: hsl(263 76% 92%); /* Light purple */
+    color: hsl(263 76% 25%); /* Dark purple text */
+    padding: 1px 2px;
+    border-radius: 2px;
+  }
+  
+  .dark mark, .dark .ais-Highlight-highlighted {
+    background-color: hsl(263 76% 25%); /* Dark purple for dark mode */
+    color: hsl(263 76% 90%); /* Light purple text for dark mode */
+  }
+
+  /* Logo color utilities */
+  .logo-primary,
+  .logo-primary img {
+    filter:
+      brightness(0)
+      saturate(100%)
+      sepia(100%)
+      hue-rotate(217deg)
+      brightness(0.55)
+      contrast(1.1);
+  }
+
+  .dark .logo-primary,
+  .dark .logo-primary img {
+    filter:
+      brightness(0)
+      saturate(100%)
+      sepia(100%)
+      hue-rotate(217deg)
+      brightness(0.8)
+      contrast(1.2);
+  }
+}

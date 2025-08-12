@@ -1,0 +1,62 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchBox, useStats } from 'react-instantsearch';
+import { Search, X } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
+export const FavorisSearchBox: React.FC = () => {
+  const { query, refine } = useSearchBox();
+  const { nbHits } = useStats();
+
+  console.log('FavorisSearchBox render:', { query, nbHits });
+
+  const handleClear = () => {
+    refine("");
+  };
+
+  const handleSearch = () => {
+    // Pas d'enregistrement d'historique sur la page favoris
+  };
+
+  return (
+    <div className="space-y-4">{/* Dropdown removed for favoris page */}
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                console.log('Favoris search input change:', e.target.value);
+                refine(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              placeholder="Rechercher dans vos favoris..."
+              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground h-12 text-base pl-12 pr-12 rounded-lg"
+            />
+            {query && (
+              <button 
+                onClick={handleClear} 
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <Button 
+            variant="default"
+            onClick={handleSearch}
+            className="h-12 px-6 rounded-lg"
+          >
+            Rechercher
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
