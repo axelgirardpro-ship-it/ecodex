@@ -1,16 +1,39 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect, useState } from 'react';
 import { InstantSearch } from 'react-instantsearch';
 import { liteClient as algoliasearch, SearchResponse } from 'algoliasearch/lite';
 import { useQuotas } from '@/hooks/useQuotas';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { INDEX_PRIVATE, INDEX_PUBLIC } from '@/config/search';
 import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair, buildFavoriteIdsFilter, buildPublicFilters, buildPrivateFilters, favoriteIdsKey } from '@/lib/algolia/searchClient';
+import { USE_SECURED_KEYS } from '@/config/featureFlags';
 
-const ALGOLIA_APPLICATION_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
-const ALGOLIA_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
-const rawSearchClient = algoliasearch(ALGOLIA_APPLICATION_ID, ALGOLIA_SEARCH_API_KEY);
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
+const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
 
-const cleaningClient = {
+function useAlgoliaClient() {
+  const [client, setClient] = useState<any>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      if (USE_SECURED_KEYS) {
+        try {
+          const res = await fetch('/functions/v1/algolia-secure-key', { headers: { Authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` } });
+          if (res.ok) {
+            const { appId, searchApiKey } = await res.json();
+            if (!cancelled) setClient(algoliasearch(appId, searchApiKey));
+            return;
+          }
+        } catch {}
+      }
+      if (!cancelled) setClient(algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY));
+    }
+    init();
+    return () => { cancelled = true; };
+  }, []);
+  return client;
+}
+
+const cleaningWrapper = (rawSearchClient: any) => ({
   ...rawSearchClient,
   search: (requests: any[]) => {
     const cleaned = (requests || []).map((r) => ({
@@ -19,7 +42,7 @@ const cleaningClient = {
     }));
     return rawSearchClient.search(cleaned);
   }
-};
+});
 
 const FavorisQuotaContext = createContext<ReturnType<typeof useQuotas> | null>(null);
 export const useFavorisQuotaContext = () => {
@@ -36,8 +59,11 @@ interface FavorisSearchProviderProps {
 export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ children, favoriteIds = [] }) => {
   const quotaHook = useQuotas();
   const { currentWorkspace } = useWorkspace();
+  const baseClient = useAlgoliaClient();
 
   const searchClient = useMemo(() => {
+    if (!baseClient) return null;
+    const cleaningClient = cleaningWrapper(baseClient);
     const idsKey = favoriteIdsKey(favoriteIds);
     return {
       ...cleaningClient,
@@ -80,7 +106,9 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
         return { results: merged };
       }
     };
-  }, [currentWorkspace?.id, favoriteIdsKey(favoriteIds)]);
+  }, [baseClient, currentWorkspace?.id, favoriteIdsKey(favoriteIds)]);
+
+  if (!searchClient) return null;
 
   return (
     <FavorisQuotaContext.Provider value={quotaHook}>
