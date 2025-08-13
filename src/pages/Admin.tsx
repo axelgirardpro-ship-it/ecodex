@@ -26,6 +26,7 @@ import { EmissionFactorAccessManager } from "@/components/admin/EmissionFactorAc
 import { SourceWorkspaceAssignments } from "@/components/admin/SourceWorkspaceAssignments";
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
+import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -233,7 +234,12 @@ const Admin = () => {
           
           <EmissionFactorAccessManager />
           <SourceWorkspaceAssignments />
-          
+
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>
+            <AdminImportsPanel />
+          </div>
+
           {/* Supra Admin Creation */}
           <div>
             <h2 className="text-2xl font-bold mb-4">Gestion des Comptes Admin</h2>
