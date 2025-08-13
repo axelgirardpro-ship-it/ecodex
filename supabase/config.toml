@@ -21,8 +21,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv6"
-port = 54323
+ip_version = "IPv6"
 max_header_length = 4096
 
 [studio]
@@ -39,13 +38,13 @@ pop3_port = 54326
 
 [storage]
 enabled = true
-port = 54325
 file_size_limit = "50MiB"
-image_transformation = true
+
+[storage.image_transformation]
+enabled = true
 
 [auth]
 enabled = true
-port = 54326
 site_url = "https://0815560b-83d3-424c-9aae-2424e8359352.lovableproject.com"
 additional_redirect_urls = ["https://0815560b-83d3-424c-9aae-2424e8359352.lovableproject.com"]
 jwt_expiry = 3600
@@ -69,15 +68,12 @@ enable_signup = false
 enable_confirmations = false
 template = "Your code is {{ .Code }}"
 
-[edge_functions]
-enabled = true
-port = 54327
+
 
 [analytics]
 enabled = false
 port = 54328
 vector_port = 54329
-gw_mode = "disabled"
 
 [functions.create-checkout]
 verify_jwt = false
