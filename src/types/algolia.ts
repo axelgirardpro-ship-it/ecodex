@@ -1,21 +1,25 @@
 export interface AlgoliaHit {
   objectID: string;
-  Nom: string;
-  Description: string;
-  FE: number;
-  "Unité donnée d'activité": string;
   Source: string;
-  Secteur: string;
-  'Sous-secteur': string;
-  Localisation: string;
-  Date: number;
-  Incertitude: string;
-  Périmètre: string;
-  Contributeur: string;
-  Commentaires: string;
-  _highlightResult?: any;
-  // Méta potentielle pour distinguer public/privé
+  Date?: number;
+  FE?: number;
+  Incertitude?: string;
+  // Multi-langues
+  Nom_fr?: string; Nom_en?: string;
+  Description_fr?: string; Description_en?: string;
+  Commentaires_fr?: string; Commentaires_en?: string;
+  Secteur_fr?: string; Secteur_en?: string;
+  'Sous-secteur_fr'?: string; 'Sous-secteur_en'?: string;
+  'Périmètre_fr'?: string; 'Périmètre_en'?: string;
+  Localisation_fr?: string; Localisation_en?: string;
+  Unite_fr?: string; Unite_en?: string;
+  // Compat: certains enregistrements historiques peuvent garder l'ancien nom FR
+  "Unité donnée d'activité"?: string;
+  // Facets/meta
+  languages?: string[];
   workspace_id?: string;
   import_type?: string;
   __indexName?: string;
+  // highlight
+  _highlightResult?: any;
 }

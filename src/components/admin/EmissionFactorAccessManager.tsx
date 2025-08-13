@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeSources } from '@/contexts/FeSourcesContext'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -25,60 +26,22 @@ interface UpdateState {
 
 export const EmissionFactorAccessManager = () => {
   const [sourceData, setSourceData] = useState<SourceAccessData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [updateStates, setUpdateStates] = useState<UpdateState>({});
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const { toast } = useToast();
 
-  const fetchSourceData = useCallback(async (force = false) => {
-    const now = Date.now();
-    
-    // Prevent redundant calls within 5 seconds unless forced
-    if (!force && now - lastFetchTime < 5000) {
-      console.log('⏱️ Skipping fetch - too recent');
-      return;
-    }
+  const { sources, refresh, loading: sourcesLoading } = useFeSources()
 
-    try {
-      console.log('🔄 EmissionFactorAccessManager: Fetching from fe_sources...');
-      setLoading(true);
-      setLastFetchTime(now);
-      
-      const { data: sources, error } = await supabase
-        .from('fe_sources')
-        .select('*')
-        .eq('is_global', true)
-        .order('source_name');
-
-      if (error) {
-        console.error('❌ Database error:', error);
-        throw error;
-      }
-
-      // Transform to SourceAccessData format
-      const finalData: SourceAccessData[] = sources?.map(source => ({
-        source: source.source_name,
-        current_tier: source.access_level as 'standard' | 'premium',
-        standard_count: source.access_level === 'standard' ? 1 : 0,
-        premium_count: source.access_level === 'premium' ? 1 : 0,
-        total_count: 1
-      })) || [];
-
-      setSourceData(finalData);
-      
-      console.log('✅ Source data updated:', finalData.length, 'global sources');
-      
-    } catch (error) {
-      console.error('💥 Error fetching source data:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les données des sources",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [lastFetchTime, toast]);
+  // Derive table data from context sources; avoid extra timers/state
+  useEffect(() => {
+    const finalData: SourceAccessData[] = (sources || []).map((source: any) => ({
+      source: source.source_name,
+      current_tier: source.access_level as 'standard' | 'premium',
+      standard_count: source.access_level === 'standard' ? 1 : 0,
+      premium_count: source.access_level === 'premium' ? 1 : 0,
+      total_count: 1,
+    })) || [];
+    setSourceData(finalData);
+  }, [sources]);
 
   const updateSourceTier = useCallback(async (source: string, newTier: 'standard' | 'premium') => {
     // Set loading state for this specific source
@@ -100,14 +63,26 @@ export const EmissionFactorAccessManager = () => {
 
       console.log(`✅ Successfully updated source ${source} to ${newTier}`);
 
+      // Rebuild projection publique puis reindexer public pour refléter le nouveau tier
+      try {
+        await supabase.rpc('rebuild_emission_factors_public_search_fr');
+      } catch (e) {
+        console.warn('Rebuild projection public failed (continuing to reindex):', e);
+      }
+      try {
+        await supabase.functions.invoke('algolia-reindex', { body: { index: 'public', applySettings: false } });
+      } catch (e) {
+        console.warn('Algolia reindex public failed:', e);
+      }
+
       // Mark as successful
       setUpdateStates(prev => ({
         ...prev,
         [source]: { loading: false, success: true }
       }));
 
-      // Refresh data
-      await fetchSourceData(true);
+      // Refresh sources in context; derived table will update automatically
+      await refresh();
 
       toast({
         title: "Succès",
@@ -136,11 +111,10 @@ export const EmissionFactorAccessManager = () => {
         variant: "destructive",
       });
     }
-  }, [fetchSourceData, toast]);
+  }, [toast, refresh]);
 
-  useEffect(() => {
-    fetchSourceData(true);
-  }, [fetchSourceData]);
+  // Loading reflects context state
+  const loading = sourcesLoading;
 
   const getTierBadgeVariant = (tier: string) => {
     return tier === 'premium' ? 'default' : 'secondary';
@@ -217,7 +191,7 @@ export const EmissionFactorAccessManager = () => {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => fetchSourceData(true)}
+            onClick={() => refresh()}
             className="ml-auto"
           >
             <RefreshCw className="h-3 w-3 mr-1" />

@@ -9,7 +9,7 @@ export const VALID_ALGOLIA_PARAMS = [
   'offset','length','minProximity','getRankingInfo','clickAnalytics','analytics',
   'analyticsTags','synonyms','replaceSynonymsInHighlight','responseFields',
   'maxValuesPerFacet','sortFacetValuesBy','facets','maxFacetHits','attributesToRetrieve',
-  'facetFilters','filters','numericFilters','tagFilters','sumOrFiltersScores',
+  'facetFilters','filters','numericFilters','tagFilters','sumOrFiltersScores','facetName','facetQuery',
   'restrictSearchableAttributes','facetingAfterDistinct','naturalLanguages','ruleContexts',
   'personalizationImpact','userToken','enablePersonalization',
   'distinct','attributeForDistinct','customRanking','ranking','relevancyStrictness',
@@ -71,9 +71,26 @@ export function mergeFacets(f1: any = {}, f2: any = {}) {
 }
 
 export function mergeFederatedPair(publicRes: any, privateRes: any) {
-  const merged = { ...publicRes };
-  merged.hits = [...(privateRes?.hits || []), ...(publicRes?.hits || [] )];
-  merged.nbHits = (publicRes?.nbHits || 0) + (privateRes?.nbHits || 0);
+  // Preserve base metadata from the first response (publicRes)
+  const merged: any = { ...publicRes };
+
+  // Deduplicate hits by objectID while preserving order and prioritizing the first list
+  const seenObjectIds = new Set<string>();
+  const hits: any[] = [];
+  const pushUnique = (arr?: any[]) => {
+    for (const h of arr || []) {
+      const id = String(h?.objectID ?? '');
+      if (seenObjectIds.has(id)) continue;
+      seenObjectIds.add(id);
+      hits.push(h);
+    }
+  };
+  // First array wins (prefer full over teaser when called as mergeFederatedPair(full, teaser))
+  pushUnique(publicRes?.hits);
+  pushUnique(privateRes?.hits);
+
+  merged.hits = hits;
+  merged.nbHits = hits.length;
   merged.facets = mergeFacets(publicRes?.facets, privateRes?.facets);
   merged.facets_stats = publicRes?.facets_stats || privateRes?.facets_stats || null;
   return merged;
@@ -85,10 +102,28 @@ export function buildFavoriteIdsFilter(favoriteIds?: string[]): string {
 }
 
 export function buildPublicFilters(wsId?: string, favoriteIdsFilter?: string) {
-  const base = '(access_level:standard) OR (is_blurred:true)';
+  const base = '(access_level:standard)';
   const ws = wsId ? ` OR (assigned_workspace_ids:${wsId})` : '';
   const fav = favoriteIdsFilter ? ` AND (${favoriteIdsFilter})` : '';
   return base + ws + fav;
+}
+
+export function buildPublicFiltersBySources(allowedSources: string[], favoriteIdsFilter?: string) {
+  // Group1: Autorisé sans restriction
+  // - standard
+  // - full (sera restreint par Group2)
+  const group1 = '(access_level:standard OR variant:full)';
+
+  // Group2: restreindre les FULL premium aux sources assignées
+  // On inclut standard pour ne pas bloquer ces résultats
+  const sourcesOr = (allowedSources && allowedSources.length)
+    ? `(${allowedSources.map(s => `Source:"${s.replace(/\"/g, '\\\"').replace(/"/g, '\\"')}"`).join(' OR ')})`
+    : '';
+  const group2Base = '(access_level:standard)';
+  const group2 = sourcesOr ? `${group2Base} OR ${sourcesOr}` : group2Base;
+
+  const fav = favoriteIdsFilter ? ` AND (${favoriteIdsFilter})` : '';
+  return `(${group1}) AND (${group2})${fav}`;
 }
 
 export function buildPrivateFilters(wsId?: string, favoriteIdsFilter?: string) {

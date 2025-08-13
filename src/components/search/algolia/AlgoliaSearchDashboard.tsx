@@ -1,4 +1,5 @@
 import React from 'react';
+import { Configure } from 'react-instantsearch';
 import { SearchProvider } from './SearchProvider';
 import { SearchBox } from './SearchBox';
 import { SearchResults } from './SearchResults';
@@ -33,6 +34,7 @@ const AlgoliaSearchContent: React.FC = () => {
 
           {/* Results Section */}
           <section className="lg:col-span-3">
+            <Configure hitsPerPage={36} />
             <SearchStats />
             <SearchResults />
           </section>

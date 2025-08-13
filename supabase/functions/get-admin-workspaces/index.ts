@@ -32,17 +32,9 @@ serve(async (req) => {
     }
 
     // Check if user is supra admin
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'supra_admin')
-      .is('workspace_id', null)
-      .single()
-
-    if (!roleData) {
-      return new Response('Forbidden', { status: 403, headers: corsHeaders })
-    }
+    // Check supra-admin via RPC for source of truth
+    const { data: isSupra } = await supabase.rpc('is_supra_admin', { user_uuid: user.id })
+    if (!isSupra) return new Response('Forbidden', { status: 403, headers: corsHeaders })
 
     // Get filter parameter from request body or query params
     let planFilter = 'paid'; // default to paid plans

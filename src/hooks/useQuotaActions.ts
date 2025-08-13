@@ -3,24 +3,7 @@ import { useQuotas } from '@/hooks/useQuotas';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { EmissionFactor } from '@/types/emission-factor';
-
-// Type pour les données Algolia
-interface AlgoliaHit {
-  objectID: string;
-  Nom: string;
-  Description: string;
-  FE: number;
-  'Unité donnée d\'activité': string;
-  Source: string;
-  Secteur: string;
-  'Sous-secteur': string;
-  Localisation: string;
-  Date: number;
-  Incertitude: string;
-  Périmètre: string;
-  Contributeur: string;
-  Commentaires: string;
-}
+import type { AlgoliaHit } from '@/types/algolia';
 
 export const useQuotaActions = () => {
   const { 
@@ -32,29 +15,27 @@ export const useQuotaActions = () => {
   } = useQuotas();
   const { canExport: canExportPermission } = usePermissions();
 
-  // Fonction pour mapper les hits Algolia vers EmissionFactor
   const mapHitToEmissionFactor = (hit: AlgoliaHit): EmissionFactor => ({
     id: hit.objectID,
-    nom: hit.Nom,
-    description: hit.Description,
-    fe: hit.FE,
-    uniteActivite: hit['Unité donnée d\'activité'],
+    nom: (hit as any).Nom_fr || (hit as any).Nom_en || (hit as any).Nom || '',
+    description: (hit as any).Description_fr || (hit as any).Description_en || (hit as any).Description || '',
+    fe: hit.FE as number,
+    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)["Unité donnée d'activité"] || '',
     source: hit.Source,
-    secteur: hit.Secteur,
-    sousSecteur: hit['Sous-secteur'],
-    localisation: hit.Localisation,
-    date: hit.Date,
-    incertitude: hit.Incertitude,
-    perimetre: hit.Périmètre,
-    contributeur: hit.Contributeur,
-    commentaires: hit.Commentaires,
+    secteur: (hit as any).Secteur_fr || (hit as any).Secteur_en || (hit as any).Secteur || '',
+    sousSecteur: (hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur'] || '',
+    localisation: (hit as any).Localisation_fr || (hit as any).Localisation_en || (hit as any).Localisation || '',
+    date: (hit.Date as number) || 0,
+    incertitude: hit.Incertitude as string,
+    perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
+    contributeur: (hit as any).Contributeur || '',
+    commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
   });
 
   const handleExport = useCallback(async (
     items: EmissionFactor[] | AlgoliaHit[], 
     filename: string = 'emission_factors'
   ) => {
-    // Vérifier les permissions
     if (!canExportPermission) {
       toast.error('Vous n\'avez pas les permissions pour exporter');
       return false;
@@ -65,13 +46,11 @@ export const useQuotaActions = () => {
       return false;
     }
 
-    // Vérifier les quotas - considérer le nombre d'éléments
     if (!canExportQuota) {
       toast.error('Limite d\'exports atteinte pour ce mois');
       return false;
     }
 
-    // Vérifier si le quota restant est suffisant pour le nombre d'éléments sélectionnés
     if (quotaData?.exports_limit !== null && quotaData) {
       const remainingQuota = quotaData.exports_limit - quotaData.exports_used;
       if (items.length > remainingQuota) {
@@ -81,60 +60,70 @@ export const useQuotaActions = () => {
     }
 
     try {
-      // Incrémenter le quota d'abord avec le nombre d'éléments
       await incrementExport(items.length);
 
-      // Normaliser les données - supporter les deux types
       let normalizedItems: EmissionFactor[];
       if (items.length > 0 && 'objectID' in items[0]) {
-        // Items are AlgoliaHit type
         normalizedItems = (items as AlgoliaHit[]).map(mapHitToEmissionFactor);
       } else {
-        // Items are already EmissionFactor type
         normalizedItems = items as EmissionFactor[];
       }
 
-      // Créer le CSV
       const csvHeaders = [
-        "Nom",
-        "Description", 
-        "FE",
+        'Nom',
+        'Nom_en',
+        'Description',
+        'Description_en',
+        'FE',
         "Unité donnée d'activité",
-        "Source",
-        "Secteur",
-        "Sous-secteur",
-        "Localisation",
-        "Date",
-        "Incertitude",
-        "Périmètre",
-        "Contributeur",
-        "Commentaires"
+        'Unite_en',
+        'Source',
+        'Secteur',
+        'Secteur_en',
+        'Sous-secteur',
+        'Sous-secteur_en',
+        'Localisation',
+        'Localisation_en',
+        'Date',
+        'Incertitude',
+        'Périmètre',
+        'Périmètre_en',
+        'Contributeur',
+        'Commentaires',
+        'Commentaires_en'
       ];
 
       const csvData = [
         csvHeaders,
         ...normalizedItems.map(item => [
           item.nom || '',
+          '', // Nom_en non conservé dans EmissionFactor (UI FR d'abord)
           item.description || '',
+          '', // Description_en
           item.fe?.toString() || '',
           item.uniteActivite || '',
+          '', // Unite_en
           item.source || '',
           item.secteur || '',
+          '', // Secteur_en
           item.sousSecteur || '',
+          '', // Sous-secteur_en
           item.localisation || '',
+          '', // Localisation_en
           item.date?.toString() || '',
           item.incertitude || '',
           item.perimetre || '',
+          '', // Périmètre_en
           item.contributeur || '',
-          item.commentaires || ''
+          item.commentaires || '',
+          '' // Commentaires_en
         ])
       ];
 
       const csvContent = csvData.map(row => 
-        row.map(field => `"${field.replace(/"/g, '""')}"`).join(',')
+        row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
       ).join('\n');
 
-      // Télécharger le fichier
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -157,13 +146,11 @@ export const useQuotaActions = () => {
       return false;
     }
 
-    // Vérifier les quotas
     if (!canCopyQuota) {
       toast.error('Limite de copies atteinte pour ce mois');
       return false;
     }
 
-    // Vérifier si le quota restant est suffisant pour le nombre d'éléments sélectionnés
     if (quotaData?.clipboard_copies_limit !== null && quotaData) {
       const remainingQuota = quotaData.clipboard_copies_limit - quotaData.clipboard_copies_used;
       if (items.length > remainingQuota) {
@@ -173,39 +160,25 @@ export const useQuotaActions = () => {
     }
 
     try {
-      // Incrémenter le quota d'abord avec le nombre d'éléments
       await incrementClipboardCopy(items.length);
 
-      // Normaliser les données - supporter les deux types
       let normalizedItems: EmissionFactor[];
       if (items.length > 0 && 'objectID' in items[0]) {
-        // Items are AlgoliaHit type
         normalizedItems = (items as AlgoliaHit[]).map(mapHitToEmissionFactor);
       } else {
-        // Items are already EmissionFactor type
         normalizedItems = items as EmissionFactor[];
       }
 
-      // Créer les données pour le presse-papier
       const headers = [
-        'Nom', 'Description', 'FE', 'Unité', 'Source', 'Secteur', 'Sous-secteur',
-        'Localisation', 'Date', 'Incertitude', 'Périmètre', 'Contributeur', 'Commentaires'
+        'Nom', 'Nom_en', 'Description', 'Description_en', 'FE', 'Unité donnée d\'activité', 'Unite_en', 'Source',
+        'Secteur', 'Secteur_en', 'Sous-secteur', 'Sous-secteur_en', 'Localisation', 'Localisation_en', 'Date', 'Incertitude',
+        'Périmètre', 'Périmètre_en', 'Contributeur', 'Commentaires', 'Commentaires_en'
       ];
 
       const rows = normalizedItems.map(item => [
-        item.nom || '',
-        item.description || '',
-        item.fe?.toString() || '',
-        item.uniteActivite || '',
-        item.source || '',
-        item.secteur || '',
-        item.sousSecteur || '',
-        item.localisation || '',
-        item.date?.toString() || '',
-        item.incertitude || '',
-        item.perimetre || '',
-        item.contributeur || '',
-        item.commentaires || ''
+        item.nom || '', '', item.description || '', '', item.fe?.toString() || '', item.uniteActivite || '', '', item.source || '',
+        item.secteur || '', '', item.sousSecteur || '', '', item.localisation || '', '', item.date?.toString() || '', item.incertitude || '',
+        item.perimetre || '', '', item.contributeur || '', item.commentaires || '', ''
       ]);
 
       const allData = [headers, ...rows];

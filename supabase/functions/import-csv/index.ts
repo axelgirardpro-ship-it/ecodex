@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
     const lowerHeaders = headers.map(h => h.toLowerCase())
-    const required = ['Nom','FE','Unité donnée d\'activité','Source','Périmètre','Localisation','Date']
+  const required = ['Nom','FE','Unité donnée d\'activité','Source','Périmètre','Localisation','Date']
     const missing = required.filter(r => !lowerHeaders.includes(r.toLowerCase()))
 
     const sourcesCount = new Map<string, number>()
@@ -173,6 +173,15 @@ Deno.serve(async (req) => {
           "Périmètre": row['Périmètre'] || null,
           "Contributeur": row['Contributeur'] || null,
           "Commentaires": row['Commentaires'] || null,
+          // Champs EN (optionnels)
+          "Nom_en": row['Nom_en'] || null,
+          "Description_en": row['Description_en'] || null,
+          "Commentaires_en": row['Commentaires_en'] || null,
+          "Secteur_en": row['Secteur_en'] || null,
+          "Sous-secteur_en": row['Sous-secteur_en'] || null,
+          "Périmètre_en": row['Périmètre_en'] || null,
+          "Localisation_en": row['Localisation_en'] || null,
+          "Unite_en": row['Unite_en'] || null,
         }
 
         const { error: insertError } = await supabase.from('emission_factors').insert(record)

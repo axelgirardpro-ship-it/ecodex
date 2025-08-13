@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminContacts, getAdminWorkspaces, updateUserRole, updateWorkspacePlan, deleteUser } from '@/lib/adminApi'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Shield, Building2, Edit, Trash2, UserCheck } from "lucide-react";
+import { User, Mail, Shield, Building2, Edit, Trash2, UserCheck, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useImpersonation } from "@/hooks/useImpersonation";
@@ -31,6 +32,9 @@ interface Company {
 export const ContactsTable = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
+  const [total, setTotal] = useState(0);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -46,17 +50,12 @@ export const ContactsTable = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, [selectedCompany]);
+  }, [selectedCompany, page]);
 
   const fetchCompanies = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      setCompanies(data || []);
+      const data = await getAdminWorkspaces('all')
+      setCompanies((data || []).map((w:any)=>({ id: w.id, name: w.name })))
     } catch (error) {
       console.error('Error fetching workspaces:', error);
     }
@@ -65,27 +64,9 @@ export const ContactsTable = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      
-      console.log('ContactsTable: Fetching contacts with workspaceId:', selectedCompany);
-      
-      // Use edge function to get contacts with admin privileges
-      const { data, error } = await supabase.functions.invoke('get-admin-contacts', {
-        body: { workspaceId: selectedCompany }
-      });
-
-      if (error) throw error;
-
-      console.log('ContactsTable: Raw response:', data);
-      console.log('ContactsTable: Found contacts count:', data?.data?.length || 0);
-      
-      if (data?.data) {
-        setContacts(data.data);
-        console.log('ContactsTable: Setting contacts:', data.data.map((c: Contact) => ({ 
-          email: c.email, 
-          company: c.company_name, 
-          plan: c.company_plan 
-        })));
-      }
+      const { items, total } = await getAdminContacts(selectedCompany as any, page, pageSize)
+      setContacts(items)
+      setTotal(total)
     } catch (error) {
       console.error('Error fetching contacts:', error);
     } finally {
@@ -123,20 +104,8 @@ export const ContactsTable = () => {
   const handlePlanChange = async (contact: Contact, newPlan: string) => {
     setUpdating(`plan-${contact.workspace_id}`);
     try {
-      const { data, error } = await supabase.functions.invoke('update-user-plan-role', {
-        body: { 
-          action: 'update_workspace_plan', 
-          workspaceId: contact.workspace_id, 
-          newPlan 
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Plan du workspace mis à jour",
-        description: `Plan changé vers ${newPlan}. ${data.updatedUsers} utilisateur(s) mis à jour.`,
-      });
+      const data = await updateWorkspacePlan(contact.workspace_id, newPlan as any)
+      toast({ title: "Plan du workspace mis à jour", description: `Plan changé vers ${newPlan}. ${data?.updatedUsers ?? 0} utilisateur(s) mis à jour.` })
 
       // Recharger les données
       await fetchContacts();
@@ -155,21 +124,8 @@ export const ContactsTable = () => {
   const handleRoleChange = async (contact: Contact, newRole: string) => {
     setUpdating(`role-${contact.user_id}`);
     try {
-      const { data, error } = await supabase.functions.invoke('update-user-plan-role', {
-        body: { 
-          action: 'update_user_role', 
-          userId: contact.user_id,
-          workspaceId: contact.workspace_id,
-          newRole 
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Rôle mis à jour",
-        description: `Rôle changé vers ${newRole}`,
-      });
+      await updateUserRole(contact.user_id, contact.workspace_id, newRole as any)
+      toast({ title: "Rôle mis à jour", description: `Rôle changé vers ${newRole}` })
 
       // Recharger les données
       await fetchContacts();
@@ -225,11 +181,7 @@ export const ContactsTable = () => {
 
     setDeleting(userId);
     try {
-      const { error } = await supabase.functions.invoke('delete-admin-entities', {
-        body: { type: 'user', id: userId }
-      });
-
-      if (error) throw error;
+      await deleteUser(userId)
 
       toast({
         title: "Contact supprimé",
@@ -276,9 +228,26 @@ export const ContactsTable = () => {
         <CardTitle className="flex items-center gap-2">
           <User className="h-5 w-5" />
           Contacts par Entreprise ({contacts.length})
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { fetchCompanies(); fetchContacts(); }}
+            className="ml-auto"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Actualiser
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Pagination simple */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm text-muted-foreground">Page {page} • {total} résultats</div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>Précédent</Button>
+            <Button variant="outline" size="sm" onClick={()=>setPage(p=>p+1)} disabled={(page * pageSize) >= total}>Suivant</Button>
+          </div>
+        </div>
         <div className="mb-4">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
             <SelectTrigger className="w-64">

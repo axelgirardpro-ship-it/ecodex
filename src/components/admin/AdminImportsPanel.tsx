@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupraAdmin } from '@/hooks/useSupraAdmin';
@@ -34,25 +35,31 @@ export const AdminImportsPanel: React.FC = () => {
   const [jobs, setJobs] = React.useState<ImportJob[]>([]);
   const [loadingJobs, setLoadingJobs] = React.useState(false);
 
-  // Algolia settings (Storage)
-  const [publicSettingsFile, setPublicSettingsFile] = React.useState<File | null>(null);
-  const [privateSettingsFile, setPrivateSettingsFile] = React.useState<File | null>(null);
-  const [uploadingSettings, setUploadingSettings] = React.useState(false);
   const [reindexing, setReindexing] = React.useState<null | 'public' | 'private' | 'all'>(null);
 
   const downloadTemplate = () => {
     const headers = [
-      'ID','Nom','Description','FE','Unité donnée d\'activité','Source','Secteur','Sous-secteur','Localisation','Date','Incertitude','Périmètre','Contributeur','Commentaires'
+      'ID','Nom','Nom_en','Description','Description_en','FE','Unité donnée d\'activité','Unite_en','Source','Secteur','Secteur_en','Sous-secteur','Sous-secteur_en','Localisation','Localisation_en','Date','Incertitude','Périmètre','Périmètre_en','Contributeur','Commentaires','Commentaires_en'
     ];
     const example = [
-      'BC::12345','Exemple de facteur','Lorem ipsum','12.34','kg','Base Carbone v23.6','Retail activities','Products manufacture','France','2025','','Scope 2 du producteur','',''
+      '',
+      'Transport routier de marchandises','Freight transportation',
+      '','',
+      '0.123','kgCO2e/t.km','kgCO2e/t.km',
+      'Base Carbone v23.6',
+      'Transport','Transportation',
+      'Fret','Freight',
+      'France','France',
+      '2025','',
+      'Well-to-Wheel','Well-to-Wheel',
+      '',''
     ];
     const csv = [headers.join(','), example.join(',')].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'template_import_emission_factors_fr.csv';
+    a.download = 'template_import_emission_factors_bilingue.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -80,19 +87,17 @@ export const AdminImportsPanel: React.FC = () => {
     }
   };
 
-  const analyze = async () => {
+  const analyzeThenImport = async () => {
     if (!filePath) {
       toast({ variant: 'destructive', title: 'Fichier manquant', description: 'Veuillez uploader un fichier.' });
       return;
     }
     try {
-      const res = await fetch('/functions/v1/import-csv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` },
-        body: JSON.stringify({ file_path: filePath, language: 'fr', dry_run: true }),
+      // 1) Analyse (dry run)
+      const { data, error } = await supabase.functions.invoke('import-csv', {
+        body: { file_path: filePath, language: 'fr', dry_run: true }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Analyse échouée');
+      if (error) throw error;
       const rows: MappingRow[] = (data?.sources || []).map((s: any) => ({
         name: s.name,
         count: s.count,
@@ -102,32 +107,42 @@ export const AdminImportsPanel: React.FC = () => {
       setMappingRows(rows);
       setAnalysisDone(true);
       toast({ title: 'Analyse terminée', description: `${data?.processed || 0} lignes valides; ${rows.length} sources détectées` });
+
+      // 2) Confirmation d'import
+      const total = Number(data?.processed) || rows.reduce((acc, r) => acc + (Number(r.count) || 0), 0);
+      const ok = window.confirm(`Lancer l'import maintenant ?\nSources: ${rows.length} — Lignes valides: ${total}`);
+      if (!ok) return;
+
+      // 3) Import
+      const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
+      rows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
+      const { data: importData, error: importErr } = await supabase.functions.invoke('import-csv', {
+        body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
+      });
+      if (importErr) throw importErr;
+      toast({ title: 'Import lancé', description: `Job: ${importData?.import_id || 'en file'}` });
       await loadJobs();
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erreur analyse', description: e.message || String(e) });
+      toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
     }
   };
 
-  const launchImport = async () => {
+  const launchImportWithCurrentMapping = async () => {
     if (!filePath) {
       toast({ variant: 'destructive', title: 'Fichier manquant', description: 'Veuillez uploader un fichier avant de lancer l\'import.' });
       return;
     }
     if (!analysisDone || mappingRows.length === 0) {
-      toast({ variant: 'destructive', title: 'Analyse requise', description: 'Cliquez d\'abord sur Analyser pour préparer le mapping.' });
+      toast({ variant: 'destructive', title: 'Analyse requise', description: 'Cliquez d\'abord sur Analyser puis Importer.' });
       return;
     }
     try {
       const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
       mappingRows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
-      const payload = { file_path: filePath, language: 'fr', dry_run: false, mapping };
-      const res = await fetch('/functions/v1/import-csv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` },
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.functions.invoke('import-csv', {
+        body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Import échoué');
+      if (error) throw error;
       toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });
       await loadJobs();
     } catch (e: any) {
@@ -135,42 +150,14 @@ export const AdminImportsPanel: React.FC = () => {
     }
   };
 
-  const uploadAlgoliaSettings = async (kind: 'public' | 'private') => {
-    try {
-      setUploadingSettings(true);
-      // S'assurer que le bucket existe
-      await fetch('/functions/v1/algolia-settings-setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` },
-        body: JSON.stringify({}),
-      }).catch(() => {});
-      const file = kind === 'public' ? publicSettingsFile : privateSettingsFile;
-      if (!file) {
-        toast({ variant: 'destructive', title: 'Fichier manquant', description: 'Sélectionnez un JSON de settings.' });
-        return;
-      }
-      const key = kind === 'public' ? 'ef_public_fr.json' : 'ef_private_fr.json';
-      const { error } = await supabase.storage.from('algolia_settings').upload(key, file, { upsert: true, contentType: 'application/json' });
-      if (error) throw error;
-      toast({ title: 'Settings uploadés', description: `${key}` });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erreur upload settings', description: e.message || String(e) });
-    } finally {
-      setUploadingSettings(false);
-    }
-  };
-
   const triggerReindex = async (kind: 'public' | 'private' | 'all') => {
     try {
       setReindexing(kind);
-      const res = await fetch('/functions/v1/algolia-reindex', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` },
-        body: JSON.stringify({ index: kind, applySettings: true }),
+      const { data, error } = await supabase.functions.invoke('reindex-ef-all', {
+        body: { index: kind, applySettings: true }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Reindex échoué');
-      toast({ title: 'Reindex terminé', description: JSON.stringify(data?.results || data) });
+      if (error) throw error;
+      toast({ title: 'Reindex terminé', description: JSON.stringify(data) });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur reindex', description: e.message || String(e) });
     } finally {
@@ -216,8 +203,14 @@ export const AdminImportsPanel: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Import de la base de facteurs (FR)</CardTitle>
-        <CardDescription>Upload de CSV volumineux, analyse puis lancement d\'import avec mappage par source.</CardDescription>
+        <CardTitle>Import de la base de facteurs (FR/EN)</CardTitle>
+        <CardDescription>
+          Cet outil permet d\'uploader un CSV complet (supra‑admin) puis de lancer un reindex Algolia.
+          • Étape 1: Uploader le fichier vers le Storage.
+          • Étape 2: Analyser pour détecter les sources et préparer le mapping (Standard/Premium, Global oui/non).
+          • Étape 3: Lancer l\'import.
+          • Étape 4: Reindex Algolia.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-wrap gap-2">
@@ -226,24 +219,71 @@ export const AdminImportsPanel: React.FC = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <Label>Fichier CSV</Label>
+            <div className="flex items-center gap-2">
+              <Label>Fichier CSV</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Sélectionnez le CSV complet exporté depuis la Base Carbone (ou template compatible). Les colonnes FR/EN sont supportées.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
             <div className="flex gap-2">
-              <Button onClick={handleUpload} disabled={!file || uploading}>{uploading ? `Upload... ${progress}%` : 'Uploader vers Storage'}</Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleUpload} disabled={!file || uploading}>{uploading ? `Upload... ${progress}%` : 'Uploader vers Storage'}</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Envoie le fichier sur Supabase Storage (bucket imports). Obligatoire avant analyse.</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {filePath && <span className="text-xs text-muted-foreground break-all">{filePath}</span>}
             </div>
           </div>
 
           <div className="space-y-3">
             <div className="flex gap-2">
-              <Button onClick={analyze} disabled={!filePath}>Analyser</Button>
-              <Button onClick={launchImport} disabled={!filePath || !analysisDone || mappingRows.length === 0}>Lancer l\'import</Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={analyzeThenImport} disabled={!filePath}>Analyser puis Importer</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Analyse le CSV et propose immédiatement de lancer l'import. Vous pouvez annuler pour ajuster le mapping.</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {analysisDone && mappingRows.length > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="secondary" onClick={launchImportWithCurrentMapping}>Importer avec ce mapping</Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Utilise le mapping affiché ci-dessous sans relancer l'analyse.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-3">
-          <Label>Sources détectées (après analyse)</Label>
+          <div className="flex items-center gap-2">
+            <Label>Sources détectées (après analyse)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Choisissez l\'accès par source: Standard ou Premium. Global = visible par toutes les workspaces; sinon, assignable.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           {mappingRows.length === 0 ? (
             <div className="text-sm text-muted-foreground">Aucune source détectée. Lancez l\'analyse après upload.</div>
           ) : (
@@ -300,7 +340,17 @@ export const AdminImportsPanel: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <Label>Historique des imports</Label>
+          <div className="flex items-center gap-2">
+            <Label>Historique des imports</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
+                </TooltipTrigger>
+                <TooltipContent>Liste des imports récents et leur statut.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="overflow-auto border rounded-md">
             <table className="min-w-full text-sm">
               <thead>
@@ -330,26 +380,23 @@ export const AdminImportsPanel: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <Label>Algolia — Settings & Reindex</Label>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">Uploader les settings JSON dans le bucket privé <code>algolia_settings</code>.</div>
-              <div className="flex items-center gap-2">
-                <Input type="file" accept="application/json,.json" onChange={(e) => setPublicSettingsFile(e.target.files?.[0] || null)} />
-                <Button onClick={() => uploadAlgoliaSettings('public')} disabled={uploadingSettings || !publicSettingsFile}>Uploader ef_public_fr.json</Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input type="file" accept="application/json,.json" onChange={(e) => setPrivateSettingsFile(e.target.files?.[0] || null)} />
-                <Button onClick={() => uploadAlgoliaSettings('private')} disabled={uploadingSettings || !privateSettingsFile}>Uploader ef_private_fr.json</Button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">Lancer un reindex complet via replaceAllObjects (swap atomique).</div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => triggerReindex('public')} disabled={reindexing !== null}>{reindexing === 'public' ? 'Reindex public...' : 'Reindex PUBLIC'}</Button>
-                <Button onClick={() => triggerReindex('private')} disabled={reindexing !== null}>{reindexing === 'private' ? 'Reindex privé...' : 'Reindex PRIVÉ'}</Button>
-                <Button variant="secondary" onClick={() => triggerReindex('all')} disabled={reindexing !== null}>{reindexing === 'all' ? 'Reindex tout...' : 'Reindex TOUT'}</Button>
-              </div>
+          <div className="flex items-center gap-2">
+            <Label>Algolia — Reindex</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Reconstruit la table de projection puis pousse vers l\'index unique `ef_all` via batch API. Utilisez "Reindex TOUT" après un import massif.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">Lancer un reindex complet via replaceAllObjects (swap atomique). Les settings sont lus depuis Supabase Storage (<code>algolia_settings</code>).</div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => triggerReindex('all')} disabled={reindexing !== null}>{reindexing === 'all' ? 'Reindex tout...' : 'Reindex TOUT'}</Button>
             </div>
           </div>
         </div>

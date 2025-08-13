@@ -20,19 +20,22 @@ import { useSourceLogos } from '@/hooks/useSourceLogos';
 
 interface AlgoliaHit {
   objectID: string;
-  Nom: string;
-  Description: string;
-  FE: number;
-  'Unité donnée d\'activité': string;
   Source: string;
-  Secteur: string;
-  'Sous-secteur': string;
-  Localisation: string;
-  Date: number;
-  Incertitude: string;
-  Périmètre: string;
-  Contributeur: string;
-  Commentaires: string;
+  Date?: number;
+  FE?: number;
+  Incertitude?: string;
+  Contributeur?: string;
+  scope?: 'public'|'private';
+  workspace_id?: string | null;
+  languages?: string[];
+  Nom_fr?: string; Nom_en?: string;
+  Description_fr?: string; Description_en?: string;
+  Commentaires_fr?: string; Commentaires_en?: string;
+  Secteur_fr?: string; Secteur_en?: string;
+  'Sous-secteur_fr'?: string; 'Sous-secteur_en'?: string;
+  'Périmètre_fr'?: string; 'Périmètre_en'?: string;
+  Localisation_fr?: string; Localisation_en?: string;
+  Unite_fr?: string; Unite_en?: string;
   _highlightResult?: any;
 }
 
@@ -137,19 +140,20 @@ const PaginationComponent: React.FC = () => {
       {startPage > 0 && (
         <>
           <Button
+            key="first-page"
             variant={0 === currentRefinement ? "default" : "outline"}
             size="sm"
             onClick={() => refine(0)}
           >
             1
           </Button>
-          {startPage > 1 && <span className="px-2">...</span>}
+          {startPage > 1 && <span key="left-ellipsis" className="px-2">...</span>}
         </>
       )}
 
       {pages.map((page) => (
         <Button
-          key={page}
+          key={`page-${page}`}
           variant={page === currentRefinement ? "default" : "outline"}
           size="sm"
           onClick={() => refine(page)}
@@ -160,8 +164,9 @@ const PaginationComponent: React.FC = () => {
 
       {endPage < nbPages - 1 && (
         <>
-          {endPage < nbPages - 2 && <span className="px-2">...</span>}
+          {endPage < nbPages - 2 && <span key="right-ellipsis" className="px-2">...</span>}
           <Button
+            key="last-page"
             variant={nbPages - 1 === currentRefinement ? "default" : "outline"}
             size="sm"
             onClick={() => refine(nbPages - 1)}
@@ -238,6 +243,7 @@ export const SearchResults: React.FC = () => {
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
 
   // Function to sort hits based on current sort option
+  const currentLang: 'fr' | 'en' = 'fr';
   const sortHits = React.useCallback((hits: AlgoliaHit[], sortKey: string): AlgoliaHit[] => {
     if (sortKey === 'relevance') return hits; // Keep Algolia's relevance order
     
@@ -251,10 +257,16 @@ export const SearchResults: React.FC = () => {
           return (b.Date || 0) - (a.Date || 0);
         case 'date_asc':
           return (a.Date || 0) - (b.Date || 0);
-        case 'nom_asc':
-          return (a.Nom || '').localeCompare(b.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
-        case 'nom_desc':
-          return (b.Nom || '').localeCompare(a.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
+        case 'nom_asc': {
+          const an = (currentLang==='fr' ? (a.Nom_fr||'') : (a.Nom_en||''));
+          const bn = (currentLang==='fr' ? (b.Nom_fr||'') : (b.Nom_en||''));
+          return an.localeCompare(bn, currentLang, { numeric: true, sensitivity: 'base' });
+        }
+        case 'nom_desc': {
+          const an = (currentLang==='fr' ? (a.Nom_fr||'') : (a.Nom_en||''));
+          const bn = (currentLang==='fr' ? (b.Nom_fr||'') : (b.Nom_en||''));
+          return bn.localeCompare(an, currentLang, { numeric: true, sensitivity: 'base' });
+        }
         case 'source_asc':
           return (a.Source || '').localeCompare(b.Source || '', 'fr', { numeric: true, sensitivity: 'base' });
         default:
@@ -301,10 +313,8 @@ export const SearchResults: React.FC = () => {
     });
   }, [originalHits, feStart]);
 
-  // Apply sorting to client-filtered hits
-  const hits = React.useMemo(() => {
-    return sortHits(filteredHits, currentSort);
-  }, [filteredHits, currentSort, sortHits]);
+  // Sort only (déduplication gérée au merge)
+  const hits = React.useMemo(() => sortHits(filteredHits, currentSort), [filteredHits, currentSort, sortHits]);
 
   const handleSortChange = (sortKey: string) => {
     setCurrentSort(sortKey);
@@ -320,11 +330,29 @@ export const SearchResults: React.FC = () => {
     setExpandedRows(newExpanded);
   };
 
-  const getHighlightedText = (hit: AlgoliaHit, attribute: string) => {
-    if (hit._highlightResult && hit._highlightResult[attribute] && hit._highlightResult[attribute].value) {
-      return { __html: hit._highlightResult[attribute].value };
+  const getHighlightedText = (hit: AlgoliaHit, base: string) => {
+    const candidates: string[] = (() => {
+      switch (base) {
+        case 'Nom': return ['Nom_fr','Nom_en','Nom'];
+        case 'Description': return ['Description_fr','Description_en','Description'];
+        case 'Commentaires': return ['Commentaires_fr','Commentaires_en','Commentaires'];
+        case 'Secteur': return ['Secteur_fr','Secteur_en','Secteur'];
+        case 'Sous-secteur': return ['Sous-secteur_fr','Sous-secteur_en','Sous-secteur'];
+        case 'Périmètre': return ['Périmètre_fr','Périmètre_en','Périmètre'];
+        case 'Localisation': return ['Localisation_fr','Localisation_en','Localisation'];
+        case 'Unite': return ['Unite_fr','Unite_en','Unité donnée d\'activité'];
+        case 'Source': return ['Source'];
+        default: return [base];
+      }
+    })();
+    const hl = (hit as any)._highlightResult || {};
+    for (const a of candidates) {
+      const h = hl[a];
+      if (h?.value) return { __html: h.value };
+      const v = (hit as any)[a];
+      if (v) return { __html: v };
     }
-    return { __html: hit[attribute as keyof AlgoliaHit] || '' };
+    return { __html: '' };
   };
 
   const handleItemSelect = (id: string) => {
@@ -381,19 +409,19 @@ export const SearchResults: React.FC = () => {
 
   const mapHitToEmissionFactor = (hit: AlgoliaHit) => ({
     id: hit.objectID,
-    nom: hit.Nom,
-    description: hit.Description,
+    nom: currentLang==='fr' ? (hit.Nom_fr||'') : (hit.Nom_en||''),
+    description: currentLang==='fr' ? (hit.Description_fr||'') : (hit.Description_en||''),
     fe: hit.FE,
-    uniteActivite: hit['Unité donnée d\'activité'],
+    uniteActivite: currentLang==='fr' ? (hit.Unite_fr||'') : (hit.Unite_en||''),
     source: hit.Source,
-    secteur: hit.Secteur,
-    sousSecteur: hit['Sous-secteur'],
-    localisation: hit.Localisation,
+    secteur: currentLang==='fr' ? (hit.Secteur_fr||'') : (hit.Secteur_en||''),
+    sousSecteur: currentLang==='fr' ? (hit['Sous-secteur_fr']||'') : (hit['Sous-secteur_en']||''),
+    localisation: currentLang==='fr' ? (hit.Localisation_fr||'') : (hit.Localisation_en||''),
     date: hit.Date,
     incertitude: hit.Incertitude,
-    perimetre: hit.Périmètre,
-    contributeur: hit.Contributeur,
-    commentaires: hit.Commentaires
+    perimetre: currentLang==='fr' ? (hit['Périmètre_fr']||'') : (hit['Périmètre_en']||''),
+    contributeur: hit.Contributeur || '',
+    commentaires: currentLang==='fr' ? (hit.Commentaires_fr||'') : (hit.Commentaires_en||'')
   });
 
   const handleFavoriteToggle = async (hit: AlgoliaHit) => {
@@ -556,136 +584,134 @@ export const SearchResults: React.FC = () => {
                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                           <div>
                             <span className="text-sm font-semibold text-foreground">Facteur d'émission</span>
-                            <PremiumBlur isBlurred={shouldBlur}>
+                            <PremiumBlur isBlurred={shouldBlur} showBadge>
                               <p className="text-2xl font-bold text-primary font-montserrat">{hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq</p>
                             </PremiumBlur>
                             <div className="mt-2">
-                              <span className="text-sm font-semibold text-foreground">Unité</span>
-                              <PremiumBlur isBlurred={shouldBlur}>
-                                <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unité donnée d\'activité')} />
-                              </PremiumBlur>
+                                <span className="text-sm font-semibold text-foreground">Unité</span>
+                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                  <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
+                                </PremiumBlur>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 gap-3">
-                            {hit.Périmètre && (
+                              {(hit['Périmètre_fr'] || hit['Périmètre_en']) && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">Périmètre</span>
+                                  <p className="text-sm font-light">{(hit['Périmètre_fr']||hit['Périmètre_en'])}</p>
+                                </div>
+                              )}
                               <div>
-                                <span className="text-sm font-semibold text-foreground">Périmètre</span>
-                                <PremiumBlur isBlurred={shouldBlur}>
-                                  <p className="text-sm font-light">{hit.Périmètre}</p>
-                                </PremiumBlur>
+                                <span className="text-sm font-semibold text-foreground">Source</span>
+                                <div className="flex items-center gap-2">
+                                  {getSourceLogo(hit.Source) && (
+                                    <img 
+                                      src={getSourceLogo(hit.Source)!}
+                                      alt={`Logo ${hit.Source}`}
+                                      className="w-6 h-6 object-contain flex-shrink-0"
+                                    />
+                                  )}
+                                  <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Source')} />
+                                </div>
                               </div>
-                            )}
-                             <div>
-                               <span className="text-sm font-semibold text-foreground">Source</span>
-                               <PremiumBlur isBlurred={shouldBlur}>
-                                 <div className="flex items-center gap-2">
-                                   {getSourceLogo(hit.Source) && (
-                                     <img 
-                                       src={getSourceLogo(hit.Source)!}
-                                       alt={`Logo ${hit.Source}`}
-                                       className="w-6 h-6 object-contain flex-shrink-0"
-                                     />
-                                   )}
-                                   <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Source')} />
-                                 </div>
-                              </PremiumBlur>
-                            </div>
                           </div>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {hit.Localisation && <Badge variant="outline">{hit.Localisation}</Badge>}
+                          {(hit.Localisation_fr||hit.Localisation_en) && <Badge variant="secondary">{hit.Localisation_fr||hit.Localisation_en}</Badge>}
                           {hit.Date && <Badge variant="outline">{hit.Date}</Badge>}
-                          {hit.Secteur && <Badge variant="outline">{hit.Secteur}</Badge>}
-                          {hit['Sous-secteur'] && <Badge variant="secondary">{hit['Sous-secteur']}</Badge>}
+                          {(hit.Secteur_fr||hit.Secteur_en) && <Badge variant="outline">{hit.Secteur_fr||hit.Secteur_en}</Badge>}
+                          {(hit['Sous-secteur_fr']||hit['Sous-secteur_en']) && <Badge variant="outline">{hit['Sous-secteur_fr']||hit['Sous-secteur_en']}</Badge>}
                         </div>
 
                         {isExpanded && (
                           <div className="mt-4 pt-4 border-t space-y-3">
-                             {hit.Description && (
-                               <div>
-                                 <span className="text-sm font-semibold text-indigo-950">Description</span>
-                                 <PremiumBlur isBlurred={shouldBlur}>
-                                    <div className="text-xs mt-1 text-break-words">
-                                     <ReactMarkdown 
-                                       components={{
-                                         a: ({ href, children, ...props }) => (
-                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                             {children}
-                                           </a>
-                                         ),
-                                         p: ({ children, ...props }) => (
-                                           <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                         )
-                                       }}
-                                     >
-                                       {hit.Description}
-                                     </ReactMarkdown>
-                                   </div>
-                                 </PremiumBlur>
-                               </div>
-                             )}
+                            {(hit.Description_fr || hit.Description_en) && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">Description</span>
+                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                  <div className="text-xs mt-1 text-break-words">
+                                    <ReactMarkdown 
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                        )
+                                      }}
+                                    >
+                                      {(hit.Description_fr || hit.Description_en) as string}
+                                    </ReactMarkdown>
+                                  </div>
+                                </PremiumBlur>
+                              </div>
+                            )}
                              <div>
                                <span className="text-sm font-semibold text-indigo-950">Secteur</span>
-                               <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
+                               <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                 <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
+                               </PremiumBlur>
                              </div>
-                             {hit.Incertitude && (
-                               <div>
-                                 <span className="text-sm font-semibold text-indigo-950">Incertitude</span>
-                                 <PremiumBlur isBlurred={shouldBlur}>
-                                   <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
-                                 </PremiumBlur>
-                               </div>
-                             )}
-                             {hit.Contributeur && (
-                               <div>
-                                 <span className="text-sm font-semibold text-indigo-950">Contributeur</span>
-                                 <PremiumBlur isBlurred={shouldBlur}>
-                                    <div className="text-xs mt-1 text-break-words">
-                                     <ReactMarkdown 
-                                       components={{
-                                         a: ({ href, children, ...props }) => (
-                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                             {children}
-                                           </a>
-                                         ),
-                                         p: ({ children, ...props }) => (
-                                           <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                         )
-                                       }}
-                                     >
-                                       {hit.Contributeur}
-                                     </ReactMarkdown>
-                                   </div>
-                                 </PremiumBlur>
-                               </div>
-                             )}
-                             {hit.Commentaires && (
-                               <div>
-                                 <span className="text-sm font-semibold text-indigo-950">Commentaires</span>
-                                 <PremiumBlur isBlurred={shouldBlur}>
-                                   <div className="text-xs mt-1 text-break-words">
-                                     <ReactMarkdown 
-                                       components={{
-                                         a: ({ href, children, ...props }) => (
-                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                             {children}
-                                           </a>
-                                         ),
-                                         p: ({ children, ...props }) => (
-                                           <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                         )
-                                       }}
-                                     >
-                                       {hit.Commentaires}
-                                     </ReactMarkdown>
-                                   </div>
-                                 </PremiumBlur>
-                               </div>
-                             )}
+                            {hit.Incertitude && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">Incertitude</span>
+                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                  <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
+                                </PremiumBlur>
+                              </div>
+                            )}
+                            {hit.Contributeur && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">Contributeur</span>
+                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                  <div className="text-xs mt-1 text-break-words">
+                                    <ReactMarkdown 
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                        )
+                                      }}
+                                    >
+                                      {hit.Contributeur}
+                                    </ReactMarkdown>
+                                  </div>
+                                </PremiumBlur>
+                              </div>
+                            )}
+                            {(hit.Commentaires_fr || hit.Commentaires_en) && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">Commentaires</span>
+                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                  <div className="text-xs mt-1 text-break-words">
+                                    <ReactMarkdown 
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                        )
+                                      }}
+                                    >
+                                        {(hit.Commentaires_fr || hit.Commentaires_en) as string}
+                                    </ReactMarkdown>
+                                  </div>
+                                </PremiumBlur>
+                              </div>
+                            )}
                           </div>
                         )}
                         </div>

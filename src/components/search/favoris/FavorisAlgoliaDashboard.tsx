@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { FavorisSearchProvider } from './FavorisSearchProvider';
+import { OriginProvider } from '@/components/search/algolia/SearchProvider';
 import { FavorisSearchBox } from './FavorisSearchBox';
 import { FavorisSearchResults } from './FavorisSearchResults';
 import { SearchFilters } from '@/components/search/algolia/SearchFilters';
@@ -155,8 +156,10 @@ export const FavorisAlgoliaDashboard: React.FC = () => {
   const favoriteIds = useMemo(() => favorites.map(f => f.id), [favorites]);
 
   return (
-    <FavorisSearchProvider favoriteIds={favoriteIds}>
-      <FavorisAlgoliaContent favoriteIds={favoriteIds} />
-    </FavorisSearchProvider>
+    <OriginProvider>
+      <FavorisSearchProvider favoriteIds={favoriteIds}>
+        <FavorisAlgoliaContent favoriteIds={favoriteIds} />
+      </FavorisSearchProvider>
+    </OriginProvider>
   );
 };
