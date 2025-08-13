@@ -11,15 +11,18 @@ function json(status: number, body: unknown) {
 }
 
 async function loadSettingsFromStorage(supabase: ReturnType<typeof createClient>, key: string) {
-  const { data, error } = await supabase.storage.from('algolia_settings').download(key)
-  if (error) throw new Error(`Settings download failed for ${key}: ${error.message}`)
-  const text = await data.text()
-  const parsed = JSON.parse(text)
-  return {
-    settings: parsed.settings || {},
-    rules: parsed.rules || [],
-    synonyms: parsed.synonyms || [],
+  // Try bucket algolia_settings, fallback to source-logos (existing bucket) if not found
+  let download = await supabase.storage.from('algolia_settings').download(key)
+  if (download.error) {
+    // Fallback
+    download = await supabase.storage.from('source-logos').download(key)
+    if (download.error) {
+      throw new Error(`Settings download failed for ${key}: ${download.error.message}`)
+    }
   }
+  const text = await download.data.text()
+  const parsed = JSON.parse(text)
+  return { settings: parsed.settings || {}, rules: parsed.rules || [], synonyms: parsed.synonyms || [] }
 }
 
 async function fetchAllRows<T = any>(supabase: ReturnType<typeof createClient>, table: string, pageSize = 10000): Promise<T[]> {
