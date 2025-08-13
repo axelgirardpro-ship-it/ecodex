@@ -80,16 +80,16 @@ serve(async (req) => {
         const userIds = workspaceUsers.map(u => u.user_id)
         
         // Update search quotas based on new plan
-        let quotaUpdates = {}
+        let quotaUpdates: Record<string, any> = {}
         switch (newPlan) {
           case 'freemium':
-            quotaUpdates = { plan_type: 'freemium', searches_limit: 10, exports_limit: 0 }
+            quotaUpdates = { plan_type: 'freemium', exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
             break
           case 'standard':
-            quotaUpdates = { plan_type: 'standard', searches_limit: 1000, exports_limit: 100 }
+            quotaUpdates = { plan_type: 'standard', exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
             break
           case 'premium':
-            quotaUpdates = { plan_type: 'premium', searches_limit: null, exports_limit: null }
+            quotaUpdates = { plan_type: 'premium', exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
             break
         }
 
@@ -140,16 +140,16 @@ serve(async (req) => {
       if (userError) throw userError
 
       // Update user's search quotas
-      let quotaUpdates = {}
+      let quotaUpdates: Record<string, any> = {}
       switch (newPlan) {
         case 'freemium':
-          quotaUpdates = { plan_type: 'freemium', searches_limit: 10, exports_limit: 0 }
+          quotaUpdates = { plan_type: 'freemium', exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
           break
         case 'standard':
-          quotaUpdates = { plan_type: 'standard', searches_limit: 1000, exports_limit: 100 }
+          quotaUpdates = { plan_type: 'standard', exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
           break
         case 'premium':
-          quotaUpdates = { plan_type: 'premium', searches_limit: null, exports_limit: null }
+          quotaUpdates = { plan_type: 'premium', exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
           break
       }
 

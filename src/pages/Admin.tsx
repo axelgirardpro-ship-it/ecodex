@@ -4,26 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Shield, 
-  Users, 
-  Building, 
-  Database, 
-  Search,
-  Activity,
-  AlertTriangle,
-  Download,
-  Heart
-} from "lucide-react";
+import { Shield, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSupraAdmin } from "@/hooks/useSupraAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CompaniesTable } from "@/components/admin/CompaniesTable";
-import { FreemiumCompaniesTable } from "@/components/admin/FreemiumCompaniesTable";
+import { WorkspacesTable } from "@/components/admin/WorkspacesTable";
 import { ContactsTable } from "@/components/admin/ContactsTable";
-import { EmissionFactorAccessManager } from "@/components/admin/EmissionFactorAccessManager";
-import { SourceWorkspaceAssignments } from "@/components/admin/SourceWorkspaceAssignments";
+import { SourcesPanel } from "@/components/admin/SourcesPanel";
+import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
@@ -32,68 +21,11 @@ const Admin = () => {
   const { user } = useAuth();
   const { isSupraAdmin, loading: supraAdminLoading } = useSupraAdmin();
   const { toast } = useToast();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalCompanies: 0,
-    totalSearches: 0,
-    activeFavorites: 0,
-    totalExports: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadAdminStats = async () => {
-      if (!user || !isSupraAdmin) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Count users
-        const { count: userCount } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true });
-
-        // Count workspaces
-        const { count: companyCount } = await supabase
-          .from('workspaces')
-          .select('*', { count: 'exact', head: true });
-
-        // Count search quotas (proxy for active users)
-        const { count: searchCount } = await supabase
-          .from('search_quotas')
-          .select('searches_used', { count: 'exact', head: true });
-
-        // Count favorites
-        const { count: favoritesCount } = await supabase
-          .from('favorites')
-          .select('*', { count: 'exact', head: true });
-
-        // Count total exports
-        const { data: quotas } = await supabase.from('search_quotas').select('exports_used');
-        const totalExports = quotas?.reduce((sum, quota) => sum + (quota.exports_used || 0), 0) || 0;
-
-        setStats({
-          totalUsers: userCount || 0,
-          totalCompanies: companyCount || 0,
-          totalSearches: searchCount || 0,
-          activeFavorites: favoritesCount || 0,
-          totalExports: totalExports,
-        });
-      } catch (error) {
-        console.error('Error loading admin stats:', error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Erreur lors du chargement des statistiques",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAdminStats();
-  }, [user, isSupraAdmin, toast]);
+    setLoading(false);
+  }, [user, isSupraAdmin]);
 
   // Show loading while checking permissions
   if (supraAdminLoading) {
@@ -150,73 +82,7 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Utilisateurs</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                Comptes actifs
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Entreprises</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalCompanies}</div>
-              <p className="text-xs text-muted-foreground">
-                Workspaces créés
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recherches</CardTitle>
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSearches}</div>
-              <p className="text-xs text-muted-foreground">
-                Sessions actives
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Favoris</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeFavorites}</div>
-              <p className="text-xs text-muted-foreground">
-                Éléments sauvegardés
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Exports totaux</CardTitle>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalExports}</div>
-              <p className="text-xs text-muted-foreground">
-                Limite: 100/mois/utilisateur
-              </p>
-            </CardContent>
-          </Card>
-          
-        </div>
+        {/* KPIs supprimés pour épurer l'admin */}
 
 
         {/* Admin Components */}
@@ -224,16 +90,14 @@ const Admin = () => {
           {/* Entreprises Dashboard */}
           <div>
             <h2 className="text-2xl font-bold mb-4">Gestion des Entreprises</h2>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <CompaniesTable />
-              <FreemiumCompaniesTable />
-            </div>
+            <WorkspacesTable />
           </div>
           
           <ContactsTable />
           
-          <EmissionFactorAccessManager />
-          <SourceWorkspaceAssignments />
+          <FeSourcesProvider>
+            <SourcesPanel />
+          </FeSourcesProvider>
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>

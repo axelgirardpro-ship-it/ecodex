@@ -2,7 +2,7 @@
 // Génération d'une clé de recherche Algolia sécurisée
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import algoliasearch from 'npm:algoliasearch';
+import { generateSecuredApiKey } from 'https://esm.sh/algoliasearch@5?target=deno';
 
 const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? '';
 const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? '';
@@ -27,6 +27,9 @@ Deno.serve(async (req) => {
       return jsonResponse(500, { error: 'Algolia credentials not configured' });
     }
 
+    const url = new URL(req.url);
+    const workspaceId = url.searchParams.get('workspaceId') || '';
+
     const authHeader = req.headers.get('Authorization');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader || '' } },
@@ -37,23 +40,56 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { error: 'Unauthorized' });
     }
 
-    // Restrictions de la clé
-    const validUntil = Math.floor(Date.now() / 1000) + 60 * 60; // 1h
-    const restrictions = {
-      restrictIndices: ['ef_public_fr', 'ef_private_fr'],
-      validUntil,
-      userToken: user.id,
-    } as any;
+    // Restrictions des clés (1h)
+    const validUntil = Math.floor(Date.now() / 1000) + 60 * 60;
 
-    // Génération de la clé sécurisée
-    // algoliasearch.generateSecuredApiKey(adminKey, restrictions)
-    // @ts-ignore - la méthode est exposée par le package Node
-    const securedKey = algoliasearch.generateSecuredApiKey(ALGOLIA_ADMIN_KEY, restrictions);
+    // Clés unifiées pour l'index unique ef_all
+    // 1) PUBLIC FULL: scope public, standard ou premium assigné au workspace
+    const filtersPublicFull = workspaceId
+      ? `(scope:public) AND ((access_level:standard) OR (assigned_workspace_ids:${workspaceId}))`
+      : `(scope:public) AND (access_level:standard)`;
+
+    // 2) PRIVATE FULL: scope privé du workspace courant
+    const filtersPrivateFull = workspaceId
+      ? `(scope:private) AND (workspace_id:${workspaceId})`
+      : `(scope:private) AND (workspace_id:_none_)`;
+
+    // 3) PUBLIC TEASER: scope public premium non assigné (paywall)
+    const filtersPublicTeaser = workspaceId
+      ? `(scope:public) AND (access_level:premium)`
+      : `(scope:public) AND (access_level:premium)`;
+
+    // Attributs non sensibles autorisés pour la clé TEASER
+    const teaserAttrs = [
+      'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
+      'Nom_fr','Secteur_fr','Sous-secteur_fr','Localisation_fr','Périmètre_fr',
+      'Nom_en','Secteur_en','Sous-secteur_en','Localisation_en','Périmètre_en'
+    ];
+
+    const baseRestrictions = { restrictIndices: ['ef_all'], validUntil, userToken: user.id } as any;
+
+    const searchApiKeyPublicFull = generateSecuredApiKey(ALGOLIA_ADMIN_KEY, {
+      ...baseRestrictions,
+      filters: filtersPublicFull,
+      attributesToRetrieve: ['*'],
+    });
+    const searchApiKeyPrivateFull = generateSecuredApiKey(ALGOLIA_ADMIN_KEY, {
+      ...baseRestrictions,
+      filters: filtersPrivateFull,
+      attributesToRetrieve: ['*'],
+    });
+    const searchApiKeyPublicTeaser = generateSecuredApiKey(ALGOLIA_ADMIN_KEY, {
+      ...baseRestrictions,
+      filters: filtersPublicTeaser,
+      attributesToRetrieve: teaserAttrs,
+    });
 
     return jsonResponse(200, {
       appId: ALGOLIA_APP_ID,
-      searchApiKey: securedKey,
       validUntil,
+      fullPublic: { searchApiKey: searchApiKeyPublicFull, filters: filtersPublicFull },
+      fullPrivate: { searchApiKey: searchApiKeyPrivateFull, filters: filtersPrivateFull },
+      teaserPublic: { searchApiKey: searchApiKeyPublicTeaser, filters: filtersPublicTeaser },
     });
   } catch (e) {
     return jsonResponse(500, { error: 'Internal error', details: String(e) });

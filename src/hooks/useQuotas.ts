@@ -87,7 +87,7 @@ export const useQuotas = () => {
     loadQuotaData();
   }, [loadQuotaData]);
 
-  // Set up Realtime subscription
+  // Set up Realtime subscription (silenced logs)
   useEffect(() => {
     if (!user) return;
 
@@ -102,14 +102,13 @@ export const useQuotas = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Quota update received:', payload);
           if (payload.eventType === 'UPDATE' && payload.new) {
             setQuotaData(payload.new as QuotaData);
           }
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        // silence noisy status logs in production
       });
 
     channelRef.current = channel;

@@ -6,23 +6,20 @@ import { supabase } from "@/integrations/supabase/client";
 export const useEmissionFactorAccess = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const [premiumSources, setPremiumSources] = useState<string[]>([]);
   const [assignedSources, setAssignedSources] = useState<string[]>([]);
+  const [standardSources, setStandardSources] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchSources = async () => {
       if (!user || !currentWorkspace) return;
 
       try {
-        const { data: premiumSourcesData } = await supabase
+        const { data: stdData } = await supabase
           .from('fe_sources')
           .select('source_name')
-          .eq('access_level', 'premium')
+          .eq('access_level', 'standard')
           .eq('is_global', true);
-
-        if (premiumSourcesData) {
-          setPremiumSources(premiumSourcesData.map(s => s.source_name));
-        }
+        if (stdData) setStandardSources(stdData.map(s => s.source_name));
 
         const { data: assignedSourcesData } = await supabase
           .from('fe_source_workspace_assignments')
@@ -45,35 +42,21 @@ export const useEmissionFactorAccess = () => {
     return true;
   }, [user]);
 
-  const shouldBlurPremiumContent = useCallback((source: string, isPremiumSource?: boolean) => {
-    if (isPremiumSource) {
-      return currentWorkspace?.plan_type !== 'premium';
-    }
-
-    const isSourcePremium = premiumSources.includes(source);
-    if (!isSourcePremium) return false;
-
-    const isAssignedToWorkspace = assignedSources.includes(source);
-    const hasPremiumPlan = currentWorkspace?.plan_type === 'premium';
-    return !isAssignedToWorkspace && !hasPremiumPlan;
-  }, [premiumSources, assignedSources, currentWorkspace?.plan_type]);
+  const shouldBlurPremiumContent = useCallback((source: string) => {
+    // Nouvelle règle unique: full seulement si la source est assignée au workspace
+    return !assignedSources.includes(source);
+  }, [assignedSources]);
 
   const canUseFavorites = useCallback(() => {
     if (!user || !currentWorkspace) return false;
     return currentWorkspace.plan_type === 'premium';
   }, [user, currentWorkspace?.id, currentWorkspace?.plan_type]);
 
-  const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string, isPremiumSource?: boolean) => {
-    if (isWorkspaceSpecific) {
-      return { variant: "secondary" as const, label: "Workspace" };
-    }
-
-    const isSourcePremium = isPremiumSource || premiumSources.includes(source);
-    if (isSourcePremium) {
-      return { variant: "default" as const, label: "Premium" };
-    }
+  const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string) => {
+    if (isWorkspaceSpecific) return { variant: "secondary" as const, label: "Workspace" };
+    // Facultatif: pas de label premium/standard désormais
     return null;
-  }, [premiumSources]);
+  }, []);
 
   return {
     hasAccess,
@@ -82,7 +65,7 @@ export const useEmissionFactorAccess = () => {
     canUseFavorites,
     user,
     currentWorkspace,
-    premiumSources,
+    standardSources,
     assignedSources,
   };
 };

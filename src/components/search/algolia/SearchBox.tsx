@@ -4,6 +4,7 @@ import { Search, X, Clock } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSuggestions, SuggestionItem } from '@/hooks/useSuggestions';
+import { useOrigin } from '@/components/search/algolia/SearchProvider';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,12 +13,16 @@ export const SearchBox: React.FC = () => {
   const { nbHits } = useStats();
   const { hits } = useHits();
   const { suggestions, recentSearches } = useSuggestions(query);
+  const { origin } = useOrigin();
   const { recordSearch } = useSearchHistory();
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  console.log('SearchBox render:', { query, nbHits, hitsLength: hits.length });
+  // Logs de debug pour traquer les hints vs origine
+  React.useEffect(() => {
+    console.log('[SearchBox] render', { origin, query, suggestions: suggestions.length, recent: recentSearches.length });
+  }, [origin, query, suggestions, recentSearches]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -60,7 +65,6 @@ export const SearchBox: React.FC = () => {
               type="text"
               value={query}
               onChange={(e) => {
-                console.log('Search input change:', e.target.value);
                 refine(e.target.value);
                 setShowSuggestions(e.target.value.length > 0);
               }}

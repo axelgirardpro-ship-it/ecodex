@@ -31,40 +31,39 @@ serve(async (req) => {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
-    // Check if user is supra admin
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'supra_admin')
-      .is('workspace_id', null)
-      .single()
+    // Check supra-admin via RPC authoritative function
+    const { data: isSupra } = await supabase.rpc('is_supra_admin', { user_uuid: user.id })
+    if (!isSupra) return new Response('Forbidden', { status: 403, headers: corsHeaders })
 
-    if (!roleData) {
-      return new Response('Forbidden', { status: 403, headers: corsHeaders })
-    }
-
-    // Get filter parameter for workspace
-    let workspaceFilter = null;
+    // Filters & pagination
+    let workspaceFilter: string | null = null;
+    let page = 1; let pageSize = 25;
     if (req.method === 'POST') {
       const body = await req.json();
-      workspaceFilter = body.workspaceId;
+      workspaceFilter = body.workspaceId ?? null;
+      page = Number(body.page) || 1;
+      pageSize = Number(body.pageSize) || 25;
     } else {
       const url = new URL(req.url);
       workspaceFilter = url.searchParams.get('workspaceId');
+      page = Number(url.searchParams.get('page') || '1');
+      pageSize = Number(url.searchParams.get('pageSize') || '25');
     }
 
     // Get user roles with workspace filter if specified
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
     let query = supabase
       .from('user_roles')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (workspaceFilter && workspaceFilter !== 'all') {
       query = query.eq('workspace_id', workspaceFilter);
     }
 
-    const { data: userRoles, error: rolesError } = await query;
+    const { data: userRoles, error: rolesError, count: total } = await query as any;
     if (rolesError) throw rolesError;
 
     console.log('Found user roles:', userRoles?.length);
@@ -121,7 +120,7 @@ serve(async (req) => {
     })));
 
     return new Response(
-      JSON.stringify({ data: contactsWithDetails }),
+      JSON.stringify({ data: contactsWithDetails, total: total ?? contactsWithDetails.length }),
       { 
         headers: { 
           ...corsHeaders,

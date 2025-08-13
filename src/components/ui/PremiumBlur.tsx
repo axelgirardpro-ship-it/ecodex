@@ -10,17 +10,20 @@ interface PremiumBlurProps {
   children: React.ReactNode;
   className?: string;
   showUpgradeButton?: boolean;
+  showBadge?: boolean;
 }
 
 export const PremiumBlur = ({ 
   isBlurred = false, 
   children, 
   className,
-  showUpgradeButton = false 
+  showUpgradeButton = false,
+  showBadge = true
 }: PremiumBlurProps) => {
   const { currentWorkspace } = useWorkspace();
 
-  if (!isBlurred || currentWorkspace?.plan_type === 'premium') {
+  // Le plan du workspace ne doit pas bypass le blur premium
+  if (!isBlurred) {
     return <>{children}</>;
   }
 
@@ -31,10 +34,12 @@ export const PremiumBlur = ({
       </div>
       <div className="absolute inset-0 flex items-center justify-center bg-background/80">
         <div className="text-center space-y-2">
-          <Badge variant="default" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0">
-            <Crown className="w-3 h-3 mr-1" />
-            Premium
-          </Badge>
+          {showBadge && (
+            <Badge variant="default" className="bg-[#4ABEA1] text-white border-0">
+              <Crown className="w-3 h-3 mr-1" />
+              Base payante
+            </Badge>
+          )}
           {showUpgradeButton && (
             <Button 
               size="sm" 

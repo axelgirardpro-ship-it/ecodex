@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import type { AlgoliaHit } from '@/types/algolia';
+import { PremiumBlur } from '@/components/ui/PremiumBlur';
+import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -66,10 +68,8 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     });
   }, []);
 
-  // Apply sorting to hits
-  const hits = React.useMemo(() => {
-    return sortHits(originalHits, currentSort);
-  }, [originalHits, currentSort, sortHits]);
+  // Sort only (déduplication gérée au merge)
+  const hits = React.useMemo(() => sortHits(originalHits, currentSort), [originalHits, currentSort, sortHits]);
 
   const handleSortChange = (sortKey: string) => {
     setCurrentSort(sortKey);
@@ -90,6 +90,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const { removeFromFavorites, isFavorite } = useFavorites();
   const { canExport } = usePermissions();
   const { getSourceLogo } = useSourceLogos();
+  const { shouldBlurPremiumContent } = useEmissionFactorAccess();
 
   const allSelected = hits.length > 0 && hits.every(hit => selectedItems.has(hit.objectID));
   
@@ -107,11 +108,29 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     setExpandedRows(newExpanded);
   };
 
-  const getHighlightedText = (hit: AlgoliaHit, attribute: string) => {
-    if (hit._highlightResult && hit._highlightResult[attribute] && hit._highlightResult[attribute].value) {
-      return { __html: hit._highlightResult[attribute].value };
+  const getHighlightedText = (hit: AlgoliaHit, base: string) => {
+    const candidates: string[] = (() => {
+      switch (base) {
+        case 'Nom': return ['Nom_fr','Nom_en','Nom'];
+        case 'Description': return ['Description_fr','Description_en','Description'];
+        case 'Commentaires': return ['Commentaires_fr','Commentaires_en','Commentaires'];
+        case 'Secteur': return ['Secteur_fr','Secteur_en','Secteur'];
+        case 'Sous-secteur': return ['Sous-secteur_fr','Sous-secteur_en','Sous-secteur'];
+        case 'Périmètre': return ['Périmètre_fr','Périmètre_en','Périmètre'];
+        case 'Localisation': return ['Localisation_fr','Localisation_en','Localisation'];
+        case 'Unite': return ['Unite_fr','Unite_en','Unité donnée d\'activité'];
+        case 'Source': return ['Source'];
+        default: return [base];
+      }
+    })();
+    const hl = (hit as any)._highlightResult || {};
+    for (const a of candidates) {
+      const h = hl[a];
+      if (h?.value) return { __html: h.value };
+      const v = (hit as any)[a];
+      if (v) return { __html: v };
     }
-    return { __html: hit[attribute as keyof AlgoliaHit] || '' };
+    return { __html: '' };
   };
 
   const handleToggleFavorite = async (hit: AlgoliaHit) => {
@@ -125,19 +144,19 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
   const mapHitToEmissionFactor = (hit: AlgoliaHit): EmissionFactor => ({
     id: hit.objectID,
-    nom: hit.Nom,
-    description: hit.Description,
+    nom: (hit as any).Nom_fr || (hit as any).Nom_en || (hit as any).Nom || '',
+    description: (hit as any).Description_fr || (hit as any).Description_en || (hit as any).Description || '',
     fe: hit.FE,
-    uniteActivite: hit['Unité donnée d\'activité'],
+    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)["Unité donnée d'activité"] || '',
     source: hit.Source,
-    secteur: hit.Secteur,
-    sousSecteur: hit['Sous-secteur'],
-    localisation: hit.Localisation,
+    secteur: (hit as any).Secteur_fr || (hit as any).Secteur_en || (hit as any).Secteur || '',
+    sousSecteur: (hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur'] || '',
+    localisation: (hit as any).Localisation_fr || (hit as any).Localisation_en || (hit as any).Localisation || '',
     date: hit.Date,
     incertitude: hit.Incertitude,
-    perimetre: hit.Périmètre,
-    contributeur: hit.Contributeur,
-    commentaires: hit.Commentaires,
+    perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
+    contributeur: (hit as any).Contributeur || '',
+    commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
   });
 
   const handleExport = () => {
@@ -258,6 +277,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         {hits.map((hit) => {
           const isExpanded = expandedRows.has(hit.objectID);
           const isFav = isFavorite(hit.objectID);
+          const shouldBlur = shouldBlurPremiumContent(hit.Source);
 
           return (
             <Card key={hit.objectID} className="relative overflow-hidden bg-background border border-border hover:shadow-lg transition-shadow">
@@ -311,19 +331,21 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                         <div>
                           <span className="text-sm font-semibold text-foreground">Facteur d'émission</span>
-                          <p className="text-2xl font-bold text-primary">
-                            {hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq
-                          </p>
-                          <div className="mt-2">
-                            <span className="text-sm font-semibold text-foreground">Unité</span>
-                            <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unité donnée d\'activité')} />
-                          </div>
+                          <PremiumBlur isBlurred={shouldBlur}>
+                            <p className="text-2xl font-bold text-primary">
+                              {hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq
+                            </p>
+                            <div className="mt-2">
+                              <span className="text-sm font-semibold text-foreground">Unité</span>
+                              <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
+                            </div>
+                          </PremiumBlur>
                         </div>
                         <div className="grid grid-cols-1 gap-3">
-                          {hit.Périmètre && (
+                          {((hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']) && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Périmètre</span>
-                              <p className="text-sm font-light">{hit.Périmètre}</p>
+                              <p className="text-sm font-light">{(hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']}</p>
                             </div>
                           )}
                           <div>
@@ -343,10 +365,16 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        {hit.Localisation && <Badge variant="outline">{hit.Localisation}</Badge>}
+                        {((hit as any)['Localisation_fr'] || (hit as any)['Localisation_en'] || (hit as any)['Localisation']) && (
+                          <Badge variant="secondary">{(hit as any)['Localisation_fr'] || (hit as any)['Localisation_en'] || (hit as any)['Localisation']}</Badge>
+                        )}
                         {hit.Date && <Badge variant="outline">{hit.Date}</Badge>}
-                        {hit.Secteur && <Badge variant="outline">{hit.Secteur}</Badge>}
-                        {hit['Sous-secteur'] && <Badge variant="secondary">{hit['Sous-secteur']}</Badge>}
+                        {((hit as any)['Secteur_fr'] || (hit as any)['Secteur_en'] || (hit as any)['Secteur']) && (
+                          <Badge variant="outline">{(hit as any)['Secteur_fr'] || (hit as any)['Secteur_en'] || (hit as any)['Secteur']}</Badge>
+                        )}
+                        {((hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur']) && (
+                          <Badge variant="outline">{(hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur']}</Badge>
+                        )}
                       </div>
 
                       {isExpanded && (
@@ -354,22 +382,24 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           {hit.Description && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Description</span>
-                              <div className="text-xs mt-1 text-break-words">
-                                <ReactMarkdown 
-                                  components={{
-                                    a: ({ href, children, ...props }) => (
-                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                        {children}
-                                      </a>
-                                    ),
-                                    p: ({ children, ...props }) => (
-                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                    )
-                                  }}
-                                >
-                                  {hit.Description}
-                                </ReactMarkdown>
-                              </div>
+                              <PremiumBlur isBlurred={shouldBlur}>
+                                <div className="text-xs mt-1 text-break-words">
+                                  <ReactMarkdown 
+                                    components={{
+                                      a: ({ href, children, ...props }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                          {children}
+                                        </a>
+                                      ),
+                                      p: ({ children, ...props }) => (
+                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                      )
+                                    }}
+                                  >
+                                    {hit.Description}
+                                  </ReactMarkdown>
+                                </div>
+                              </PremiumBlur>
                             </div>
                           )}
                           <div>
@@ -406,22 +436,24 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           {hit.Commentaires && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Commentaires</span>
-                              <div className="text-xs mt-1 text-break-words">
-                                <ReactMarkdown 
-                                  components={{
-                                    a: ({ href, children, ...props }) => (
-                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                        {children}
-                                      </a>
-                                    ),
-                                    p: ({ children, ...props }) => (
-                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                    )
-                                  }}
-                                >
-                                  {hit.Commentaires}
-                                </ReactMarkdown>
-                              </div>
+                              <PremiumBlur isBlurred={shouldBlur}>
+                                <div className="text-xs mt-1 text-break-words">
+                                  <ReactMarkdown 
+                                    components={{
+                                      a: ({ href, children, ...props }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                          {children}
+                                        </a>
+                                      ),
+                                      p: ({ children, ...props }) => (
+                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                      )
+                                    }}
+                                  >
+                                    {hit.Commentaires}
+                                  </ReactMarkdown>
+                                </div>
+                              </PremiumBlur>
                             </div>
                           )}
                         </div>
@@ -436,46 +468,80 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
       </div>
 
       {/* Pagination */}
-      {nbPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => paginationRefine(currentPage - 1)}
-            disabled={currentPage === 0}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Précédent
-          </Button>
-          
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, nbPages) }, (_, i) => {
-              const pageNumber = Math.max(0, Math.min(currentPage - 2 + i, nbPages - 1));
-              return (
+      {nbPages > 1 && (() => {
+        const maxVisible = 5;
+        let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(nbPages - 1, start + maxVisible - 1);
+        if (end - start < maxVisible - 1) {
+          start = Math.max(0, end - maxVisible + 1);
+        }
+        const pages: number[] = [];
+        for (let p = start; p <= end; p++) pages.push(p);
+
+        return (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => paginationRefine(currentPage - 1)}
+              disabled={currentPage === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Précédent
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {start > 0 && (
                 <Button
-                  key={pageNumber}
-                  variant={pageNumber === currentPage ? "default" : "outline"}
+                  key="first-page"
+                  variant={0 === currentPage ? "default" : "outline"}
                   size="sm"
-                  onClick={() => paginationRefine(pageNumber)}
+                  onClick={() => paginationRefine(0)}
                   className="w-10"
                 >
-                  {pageNumber + 1}
+                  1
                 </Button>
-              );
-            })}
+              )}
+              {start > 1 && <span key="left-ellipsis" className="px-2">...</span>}
+
+              {pages.map((p) => (
+                <Button
+                  key={`page-${p}`}
+                  variant={p === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => paginationRefine(p)}
+                  className="w-10"
+                >
+                  {p + 1}
+                </Button>
+              ))}
+
+              {end < nbPages - 2 && <span key="right-ellipsis" className="px-2">...</span>}
+              {end < nbPages - 1 && (
+                <Button
+                  key="last-page"
+                  variant={nbPages - 1 === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => paginationRefine(nbPages - 1)}
+                  className="w-10"
+                >
+                  {nbPages}
+                </Button>
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => paginationRefine(currentPage + 1)}
+              disabled={currentPage >= nbPages - 1}
+            >
+              Suivant
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => paginationRefine(currentPage + 1)}
-            disabled={currentPage >= nbPages - 1}
-          >
-            Suivant
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

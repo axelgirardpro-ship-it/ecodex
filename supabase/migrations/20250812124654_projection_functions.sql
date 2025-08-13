@@ -127,7 +127,7 @@ BEGIN
     AND fs.access_level = 'premium'
     AND ef.language = 'fr';
   
-  -- Insérer les facteurs PREMIUM globaux - FULL (pour workspaces assignés)
+  -- Insérer les facteurs PREMIUM globaux - FULL (toujours indexés; l'accès est géré côté requête via Source allowlist)
   INSERT INTO public.emission_factors_public_search_fr (
     object_id, group_id, variant, variant_rank,
     "Nom", "Description", "FE", "Unité donnée d'activité", "Périmètre",
@@ -155,25 +155,14 @@ BEGIN
     fs.is_global,
     false as is_blurred,
     ef.language,
-    -- Agréger les workspaces assignés à cette source
-    COALESCE(
-      (SELECT array_agg(fsa.workspace_id) 
-       FROM public.fe_source_workspace_assignments fsa 
-       WHERE fsa.source_name = ef."Source"),
-      ARRAY[]::uuid[]
-    ) as assigned_workspace_ids
+    ARRAY[]::uuid[] as assigned_workspace_ids
   FROM public.emission_factors ef
   JOIN public.fe_sources fs ON fs.source_name = ef."Source"
   WHERE ef.is_latest = true
     AND ef.workspace_id IS NULL  -- Global uniquement
     AND fs.is_global = true
     AND fs.access_level = 'premium'
-    AND ef.language = 'fr'
-    -- Seulement si au moins un workspace est assigné
-    AND EXISTS (
-      SELECT 1 FROM public.fe_source_workspace_assignments fsa 
-      WHERE fsa.source_name = ef."Source"
-    );
+    AND ef.language = 'fr';
   
   -- Log du nombre d'enregistrements créés
   RAISE NOTICE 'Projection ef_public_fr rebuilt: % records', 

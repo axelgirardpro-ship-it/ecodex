@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { RotateCcw, Filter, X } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useOrigin, useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
 
 interface RefinementListProps {
   attribute: string;
@@ -297,37 +298,48 @@ const FERangeInput: React.FC = () => {
 };
 
 const OriginFilter: React.FC = () => {
-  const [origin, setOrigin] = React.useState<'all' | 'public' | 'private'>('all');
+  const ctx = useOptionalOrigin();
+  const origin = ctx?.origin ?? 'all';
+  const setOrigin = ctx?.setOrigin ?? (() => {});
+  const { refine: refinePage } = usePagination();
+  const debug = (...args: any[]) => { if (import.meta.env.DEV) console.log('[OriginFilter]', ...args); };
 
   // On passe par ruleContexts pour ne pas polluer facetFilters
   const ruleContexts = React.useMemo(() => {
-    if (origin === 'all') return undefined;
-    return [`origin:${origin}`];
+    const rc = origin === 'all' ? undefined : [`origin:${origin}`];
+    if (import.meta.env.DEV) console.log('[OriginFilter] ruleContexts', rc);
+    return rc;
   }, [origin]);
 
+  // Reset page when origin changes to avoid landing on an empty page
+  React.useEffect(() => {
+    debug('origin changed →', origin);
+    refinePage(0);
+  }, [origin, refinePage]);
+
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Button
           size="sm"
           variant={origin === 'all' ? 'default' : 'outline'}
-          onClick={() => setOrigin('all')}
+          onClick={() => { debug('click all'); setOrigin('all'); refinePage(0); }}
         >
           Tous
         </Button>
         <Button
           size="sm"
           variant={origin === 'public' ? 'default' : 'outline'}
-          onClick={() => setOrigin('public')}
+          onClick={() => { debug('click public'); setOrigin('public'); refinePage(0); }}
         >
-          Public
+          Base commune
         </Button>
         <Button
           size="sm"
           variant={origin === 'private' ? 'default' : 'outline'}
-          onClick={() => setOrigin('private')}
+          onClick={() => { debug('click private'); setOrigin('private'); refinePage(0); }}
         >
-          Privé
+          Base personnelle
         </Button>
       </div>
 
@@ -338,6 +350,12 @@ const OriginFilter: React.FC = () => {
 };
 
 export const SearchFilters: React.FC = () => {
+  // Sélecteur de langue local (évite de créer un widget RefinementList doublon)
+  const [lang, setLang] = React.useState<'fr'|'en'>('fr');
+  const searchable = lang === 'fr'
+    ? ['Nom_fr','Description_fr','Commentaires_fr','Secteur_fr','Sous-secteur_fr','Périmètre_fr','Localisation_fr']
+    : ['Nom_en','Description_en','Commentaires_en','Secteur_en','Sous-secteur_en','Périmètre_en','Localisation_en'];
+
   return (
     <Card className="bg-background border border-border">
       <CardHeader className="pb-3">
@@ -345,6 +363,16 @@ export const SearchFilters: React.FC = () => {
         <ClearRefinementsWidget />
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Piloter facets & searchable côté requête */}
+        <Configure facets={['languages']} facetFilters={[[`languages:${lang}`]]} restrictSearchableAttributes={searchable} />
+        {/* Langue - segmented control */}
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-primary">Langue</div>
+          <div className="flex gap-2">
+            <Button size="sm" variant={lang==='fr'?'default':'outline'} onClick={() => setLang('fr')}>FR</Button>
+            <Button size="sm" variant={lang==='en'?'default':'outline'} onClick={() => setLang('en')}>EN</Button>
+          </div>
+        </div>
         <Collapsible defaultOpen>
           <CollapsibleTrigger asChild>
             <Button 
@@ -361,20 +389,11 @@ export const SearchFilters: React.FC = () => {
         </Collapsible>
 
         {/* Filtre d'origine (virtuel) */}
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-between p-0 h-auto text-indigo-950 bg-transparent hover:bg-transparent"
-            >
-              <h5 className="text-base font-semibold font-montserrat text-primary">Origine</h5>
-              <Filter className="h-4 w-4 text-indigo-950" />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 mt-2">
-            <OriginFilter />
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Origine – segmented control inline */}
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-primary">Origine</div>
+          <OriginFilter />
+        </div>
 
         {/* 
         TEMPORAIREMENT DÉSACTIVÉ - Filtre FE (Facteur d'Émission)
@@ -386,13 +405,13 @@ export const SearchFilters: React.FC = () => {
         <FERangeInput />
         */}
         <RefinementList
-          attribute="Unité donnée d'activité"
+          attribute={lang === 'fr' ? 'Unite_fr' : 'Unite_en'}
           title="Unité"
           searchable
           limit={500}
         />
         <RefinementList
-          attribute="Périmètre"
+          attribute={lang === 'fr' ? 'Périmètre_fr' : 'Périmètre_en'}
           title="Périmètre"
           searchable
           limit={500}
@@ -409,19 +428,19 @@ export const SearchFilters: React.FC = () => {
           limit={500}
         />
         <RefinementList
-          attribute="Localisation"
+          attribute={lang === 'fr' ? 'Localisation_fr' : 'Localisation_en'}
           title="Localisation"
           searchable
           limit={500}
         />
         <RefinementList
-          attribute="Secteur"
+          attribute={lang === 'fr' ? 'Secteur_fr' : 'Secteur_en'}
           title="Secteur"
           searchable
           limit={500}
         />
         <RefinementList
-          attribute="Sous-secteur"
+          attribute={lang === 'fr' ? 'Sous-secteur_fr' : 'Sous-secteur_en'}
           title="Sous-secteur"
           searchable
           limit={500}

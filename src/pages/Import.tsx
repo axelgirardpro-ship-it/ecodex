@@ -28,17 +28,28 @@ const Import = () => {
   const { canImportData } = usePermissions();
 
   const downloadTemplate = () => {
-    const csvTemplate = [
-      "nom,description,fe,unite,source,secteur,categorie,localisation,date,incertitude",
-      "Exemple Verre,Description du facteur d'émission,1.62,kgCO2e/kg,Base Impacts 3.0,Matériaux,Verre,Europe,2023,±15%",
-      "Exemple Acier,Facteur d'émission pour l'acier,2.5,kgCO2e/kg,ADEME,Matériaux,Métaux,France,2023,±20%"
-    ].join("\n");
-    
-    const blob = new Blob([csvTemplate], { type: "text/csv" });
+    const headers = [
+      'id','nom','nom_en','description','description_en','fe','unite','unite_en','source','secteur','secteur_en','categorie','categorie_en','localisation','localisation_en','date','incertitude','perimetre','perimetre_en','contributeur','commentaires','commentaires_en'
+    ];
+    const row = [
+      '',
+      'Transport routier de marchandises','Freight transportation',
+      '', '',
+      '0.123','kgCO2e/t.km','kgCO2e/t.km',
+      'Ma Base Perso',
+      'Transport','Transportation',
+      'Fret','Freight',
+      'France','France',
+      '2025','',
+      'Well-to-Wheel','Well-to-Wheel',
+      '',''
+    ];
+    const csvTemplate = [headers.join(','), row.join(',')].join('\n');
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "template_facteurs_emissions.csv";
+    a.download = 'template_facteurs_emissions_bilingue.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -150,15 +161,26 @@ const Import = () => {
         workspace_id: currentWorkspace.id,
         dataset_id: dataset.id,
         "Nom": row.nom || row.name || 'Sans nom',
+        "Nom_en": row.nom_en || row.name_en || null,
         "Description": row.description || '',
-        "FE": parseFloat(row.fe || row.factor || '0'),
+        "Description_en": row.description_en || null,
+        "FE": parseFloat((row.fe || row.factor || '0').toString().replace(',','.')),
         "Unité donnée d'activité": row.unite || row.unit || '',
+        "Unite_en": row.unite_en || row.unit_en || null,
         "Source": row.source || 'Import CSV',
         "Secteur": row.secteur || row.sector || 'Non spécifié',
+        "Secteur_en": row.secteur_en || row.sector_en || null,
         "Sous-secteur": row.categorie || row.category || 'Non spécifié',
+        "Sous-secteur_en": row.categorie_en || row.category_en || null,
         "Localisation": row.localisation || row.location || 'Non spécifié',
-        "Date": parseInt(row.date || new Date().getFullYear().toString()),
+        "Localisation_en": row.localisation_en || row.location_en || null,
+        "Date": parseInt((row.date || new Date().getFullYear().toString()).toString()),
         "Incertitude": row.incertitude || row.uncertainty || '',
+        "Périmètre": row.perimetre || row.perimeter || null,
+        "Périmètre_en": row.perimetre_en || row.perimeter_en || null,
+        "Contributeur": row.contributeur || row.contributor || null,
+        "Commentaires": row.commentaires || row.comments || null,
+        "Commentaires_en": row.commentaires_en || row.comments_en || null,
       }));
 
       const { data: insertedFactors, error: insertError } = await supabase

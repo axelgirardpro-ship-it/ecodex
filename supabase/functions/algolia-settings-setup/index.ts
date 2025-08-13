@@ -29,22 +29,25 @@ Deno.serve(async (req) => {
     const { data: isSupra, error: roleErr } = await supabase.rpc('is_supra_admin', { user_uuid: userRes.user.id })
     if (roleErr || !isSupra) return json(403, { error: 'Access denied - supra admin required' })
 
-    // Créer le bucket s'il n'existe pas
-    const bucketName = 'algolia_settings'
+    // Créer le bucket s'il n'existe pas, sinon fallback sur bucket existant 'source-logos'
+    const primaryBucket = 'algolia_settings'
     // @ts-ignore - types de supabase-js
     const { data: buckets } = await supabase.storage.listBuckets()
-    const exists = (buckets || []).some((b: any) => b.name === bucketName)
+    const exists = (buckets || []).some((b: any) => b.name === primaryBucket)
     if (!exists) {
       // @ts-ignore - types de supabase-js
-      const { error: createErr } = await supabase.storage.createBucket(bucketName, {
+      const { error: createErr } = await supabase.storage.createBucket(primaryBucket, {
         public: false,
         fileSizeLimit: 1024 * 1024, // 1MB
         allowedMimeTypes: ['application/json'],
       })
-      if (createErr) return json(500, { error: `Bucket creation failed: ${createErr.message}` })
+      if (createErr) {
+        // Fallback: nothing to create, we will rely on source-logos
+        return json(200, { ok: true, bucket: 'source-logos', created: false, fallback: true })
+      }
     }
 
-    return json(200, { ok: true, bucket: bucketName, created: !exists })
+    return json(200, { ok: true, bucket: primaryBucket, created: !exists })
   } catch (e) {
     return json(500, { error: String(e) })
   }

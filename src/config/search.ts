@@ -1,5 +1,4 @@
-export const INDEX_PUBLIC = 'ef_public_fr';
-export const INDEX_PRIVATE = 'ef_private_fr';
+export const INDEX_ALL = 'ef_all';
 
 // Référence (facultatif) des facettes attendues côté front
 export const DEFAULT_FACETS = [

@@ -12,7 +12,7 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
 
-  console.log('FavorisSearchBox render:', { query, nbHits, favoriteIdsCount: favoriteIds?.length || 0 });
+  // debug removed
 
   const handleClear = () => {
     refine("");
@@ -32,7 +32,6 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
               type="text"
               value={query}
               onChange={(e) => {
-                console.log('Favoris search input change:', e.target.value);
                 refine(e.target.value);
               }}
               onKeyDown={(e) => {
