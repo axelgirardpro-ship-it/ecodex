@@ -71,6 +71,20 @@ export const SourceWorkspaceAssignments = () => {
     })()
   }, [selectedWorkspaceId, fetchAssignments])
 
+  // Realtime: suivre les changements d'assignation pour le workspace sélectionné
+  useEffect(() => {
+    if (!selectedWorkspaceId) return
+    const ch = supabase
+      .channel(`fsw-${selectedWorkspaceId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fe_source_workspace_assignments', filter: `workspace_id=eq.${selectedWorkspaceId}` },
+        () => { fetchAssignments(selectedWorkspaceId).catch(()=>{}) }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [selectedWorkspaceId, fetchAssignments])
+
   const toggle = useCallback(async (sourceName: string, enable: boolean) => {
     if (!selectedWorkspaceId) return
     setRowBusy(prev => ({ ...prev, [sourceName]: true }))
