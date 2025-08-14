@@ -75,8 +75,24 @@ export function mergeFacets(f1: any = {}, f2: any = {}) {
 }
 
 export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { sumNbHits?: boolean }) {
-  // Preserve base metadata from the first response (publicRes)
-  const merged: any = { ...publicRes };
+  const emptyRes = {
+    hits: [] as any[],
+    nbHits: 0,
+    nbPages: 0,
+    page: 0,
+    processingTimeMS: 0,
+    facets: {},
+    facets_stats: null,
+    query: '',
+    params: ''
+  } as any;
+
+  const a = publicRes || emptyRes;
+  const b = privateRes || emptyRes;
+
+  // Preserve base metadata from the first available response
+  const baseForMetadata = a || b || emptyRes;
+  const merged: any = { ...baseForMetadata };
 
   // Deduplicate hits by objectID while preserving order and prioritizing the first list
   const seenObjectIds = new Set<string>();
@@ -89,9 +105,8 @@ export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { 
       hits.push(h);
     }
   };
-  // First array wins (prefer full over teaser when called as mergeFederatedPair(full, teaser))
-  pushUnique(publicRes?.hits);
-  pushUnique(privateRes?.hits);
+  pushUnique(a?.hits);
+  pushUnique(b?.hits);
 
   merged.hits = hits;
 
@@ -101,14 +116,17 @@ export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { 
     return arr.length;
   };
 
-  // If merging disjoint datasets (e.g. public + private), sum them; otherwise preserve first
   const baseNbHits = options?.sumNbHits
-    ? getNbHits(publicRes) + getNbHits(privateRes)
-    : getNbHits(publicRes);
+    ? getNbHits(a) + getNbHits(b)
+    : getNbHits(a);
 
-  merged.nbHits = baseNbHits;
-  merged.facets = mergeFacets(publicRes?.facets, privateRes?.facets);
-  merged.facets_stats = publicRes?.facets_stats || privateRes?.facets_stats || null;
+  merged.nbHits = typeof baseNbHits === 'number' && isFinite(baseNbHits) ? baseNbHits : 0;
+  merged.nbPages = typeof a?.nbPages === 'number' ? a.nbPages : (typeof b?.nbPages === 'number' ? b.nbPages : 0);
+  merged.page = typeof a?.page === 'number' ? a.page : (typeof b?.page === 'number' ? b.page : 0);
+  merged.processingTimeMS = typeof a?.processingTimeMS === 'number' ? a.processingTimeMS : (typeof b?.processingTimeMS === 'number' ? b.processingTimeMS : 0);
+  merged.facets = mergeFacets(a?.facets, b?.facets);
+  merged.facets_stats = a?.facets_stats || b?.facets_stats || null;
+
   return merged;
 }
 

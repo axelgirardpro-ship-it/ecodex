@@ -4,7 +4,7 @@
  */
 
 // Clés Algolia sécurisées par workspace (par défaut true en production)
-export const USE_SECURED_KEYS = (import.meta.env.VITE_USE_SECURED_KEYS === 'true') || (!!import.meta.env.PROD);
+export const USE_SECURED_KEYS = (!!import.meta.env.PROD) || (import.meta.env.VITE_USE_SECURED_KEYS === 'true');
 
 // Recherche fédérée sur ef_public_fr + ef_private_fr (false = index actuel)
 export const USE_FEDERATED_SEARCH = import.meta.env.VITE_USE_FEDERATED_SEARCH === 'true';
