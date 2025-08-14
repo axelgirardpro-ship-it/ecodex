@@ -76,7 +76,11 @@ const FavoritesAlgoliaContent: React.FC = () => {
     if (toRemove.length === 0) return;
     
     try {
-      await Promise.all(toRemove.map(id => removeFromFavorites(id)));
+      // Supprimer en série pour garantir la cohérence UI + provider (évite collisions debounce/refresh)
+      for (const id of toRemove) {
+        // eslint-disable-next-line no-await-in-loop
+        await removeFromFavorites(id);
+      }
       setSelectedItems(new Set());
       toast({
         title: "Favoris mis à jour",
