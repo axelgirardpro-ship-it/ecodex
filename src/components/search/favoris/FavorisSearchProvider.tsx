@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useEffect, useState, useRef } from 'react';
-import { InstantSearch } from 'react-instantsearch';
+import { InstantSearch, useInstantSearch } from 'react-instantsearch';
 import { liteClient as algoliasearch, SearchResponse } from 'algoliasearch/lite';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuotas } from '@/hooks/useQuotas';
@@ -206,9 +206,22 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
   const searchClient = clients ? searchClientRef.current : null;
   if (!searchClient) return null;
 
+  const RefreshOnFavoriteIdsChange: React.FC<{ favoriteIds: string[] }> = ({ favoriteIds }) => {
+    const { refresh } = useInstantSearch();
+    const lastRef = useRef<string[] | null>(null);
+    useEffect(() => {
+      if (lastRef.current !== favoriteIds) {
+        lastRef.current = favoriteIds;
+        refresh();
+      }
+    }, [favoriteIds, refresh]);
+    return null;
+  };
+
   return (
     <FavorisQuotaContext.Provider value={quotaHook}>
       <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
+        <RefreshOnFavoriteIdsChange favoriteIds={favoriteIds} />
         {children}
       </InstantSearch>
     </FavorisQuotaContext.Provider>

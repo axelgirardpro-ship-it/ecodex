@@ -189,6 +189,42 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
     };
   }, [user, canUseFavorites, refreshFavorites]);
 
+  // Realtime: synchroniser automatiquement les favoris de l'utilisateur
+  useEffect(() => {
+    if (!user || !canUseFavorites()) return;
+
+    const channel = supabase
+      .channel(`favorites-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'favorites', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          try {
+            if (payload.eventType === 'INSERT' && (payload.new as any)?.item_type === 'emission_factor') {
+              const fav = mapDbToEmissionFactor((payload.new as any).item_data, (payload.new as any).item_id);
+              setFavorites(prev => (prev.some(f => f.id === fav.id) ? prev : [...prev, fav]));
+            }
+            if (payload.eventType === 'DELETE') {
+              const id = (payload.old as any)?.item_id;
+              if (id) setFavorites(prev => prev.filter(f => f.id !== id));
+            }
+            if (payload.eventType === 'UPDATE' && (payload.new as any)?.item_type === 'emission_factor') {
+              const fav = mapDbToEmissionFactor((payload.new as any).item_data, (payload.new as any).item_id);
+              setFavorites(prev => prev.map(f => (f.id === fav.id ? fav : f)));
+            }
+          } catch (e) {
+            // éviter de briser l'UI sur payload inattendu
+            console.error('favorites realtime handler error', e);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, canUseFavorites, mapDbToEmissionFactor]);
+
   return (
     <FavoritesContext.Provider value={{
       favorites,

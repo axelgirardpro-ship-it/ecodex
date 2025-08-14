@@ -32,6 +32,19 @@ export const FeSourcesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   React.useEffect(() => { fetchOnce(true) }, [fetchOnce])
 
+  // Realtime: rafraîchir automatiquement la liste des sources globales
+  React.useEffect(() => {
+    const ch = supabase
+      .channel('fe-sources-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fe_sources', filter: 'is_global=eq.true' },
+        () => { fetchOnce(true) }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [fetchOnce])
+
   const value: FeSourcesContextValue = React.useMemo(() => ({ sources, refresh: () => fetchOnce(true), loading }), [sources, fetchOnce, loading])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
