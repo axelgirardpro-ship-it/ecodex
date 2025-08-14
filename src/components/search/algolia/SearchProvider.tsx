@@ -7,7 +7,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { INDEX_ALL } from '@/config/search';
 import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair, buildPrivateFilters, type Origin } from '@/lib/algolia/searchClient';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
-import { USE_SECURED_KEYS } from '@/config/featureFlags';
+import { USE_SECURED_KEYS, DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
@@ -137,95 +137,100 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   if (clients && !searchClientRef.current) {
     searchClientRef.current = {
       search: async (requests: any[]) => {
-        if (import.meta.env.DEV) {
-          console.log('[SearchProvider] incoming requests', requests?.map((r) => ({ ruleContexts: r?.params?.ruleContexts, facetFilters: r?.params?.facetFilters })));
-        }
-        const cleaningFullPublic = cleaningFullPublicRef.current;
-        const cleaningFullPrivate = cleaningFullPrivateRef.current;
-        const cleaningTeaser = cleaningTeaserRef.current;
-        if (!cleaningFullPublic || !cleaningFullPrivate) return { results: [] };
-        const wsId = workspaceIdRef.current;
-        const expandedPublicFull: any[] = [];
-        const expandedPrivateFull: any[] = [];
-        const expandedTeaser: any[] = [];
+        try {
+          if (DEBUG_MULTI_INDEX) {
+            console.log('[SearchProvider] incoming requests', requests?.map((r) => ({ ruleContexts: r?.params?.ruleContexts, facetFilters: r?.params?.facetFilters })));
+          }
+          const cleaningFullPublic = cleaningFullPublicRef.current;
+          const cleaningFullPrivate = cleaningFullPrivateRef.current;
+          const cleaningTeaser = cleaningTeaserRef.current;
+          if (!cleaningFullPublic || !cleaningFullPrivate) return { results: [] };
+          const wsId = workspaceIdRef.current;
+          const expandedPublicFull: any[] = [];
+          const expandedPrivateFull: any[] = [];
+          const expandedTeaser: any[] = [];
 
-        const combineFilters = (...parts: (string | undefined)[]) => {
-          const arr = parts
-            .filter((p) => typeof p === 'string' && p.trim().length > 0)
-            .map((p) => p!.trim()) as string[];
-          if (arr.length === 0) return undefined;
-          if (arr.length === 1) return arr[0];
-          // Algolia n’autorise pas la forme (X AND Y) OR Z. On force la/les clauses avec OR d’abord
-          const withOr = arr.filter((p) => /\sOR\s/.test(p));
-          const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
-          const ordered = [...withOr, ...withoutOr];
-          return ordered.map((p) => `(${p})`).join(' AND ');
-        };
+          const combineFilters = (...parts: (string | undefined)[]) => {
+            const arr = parts
+              .filter((p) => typeof p === 'string' && p.trim().length > 0)
+              .map((p) => p!.trim()) as string[];
+            if (arr.length === 0) return undefined;
+            if (arr.length === 1) return arr[0];
+            const withOr = arr.filter((p) => /\sOR\s/.test(p));
+            const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
+            const ordered = [...withOr, ...withoutOr];
+            return ordered.map((p) => `(${p})`).join(' AND ');
+          };
 
-        // Figer l’origine pour l’ensemble du cycle
-        const frozenOrigin = originRef.current;
+          // Figer l’origine pour l’ensemble du cycle
+          const frozenOrigin = originRef.current;
 
-        for (const r of requests || []) {
-          const baseParams = { ...(r.params || {}) };
-          const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-          // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
-          const reqOrigin = frozenOrigin;
-          const privFilters = buildPrivateFilters(wsId);
-          if (import.meta.env.DEV) {
-            console.log('[SearchProvider] resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: reqOrigin });
+          for (const r of requests || []) {
+            const baseParams = { ...(r.params || {}) };
+            const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+            // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
+            const reqOrigin = frozenOrigin;
+            const privFilters = buildPrivateFilters(wsId);
+            if (DEBUG_MULTI_INDEX) {
+              console.log('[SearchProvider] resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: reqOrigin });
+            }
+
+            if (reqOrigin === 'public') {
+              expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+              expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+            } else if (reqOrigin === 'private') {
+              expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
+            } else {
+              // En mode "all", borner explicitement le flux public à scope:public pour garantir la séparation, même en local sans clés sécurisées
+              expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+              expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+              expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
+            }
           }
 
-          if (reqOrigin === 'public') {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
-          } else if (reqOrigin === 'private') {
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
-          } else {
-            // En mode "all", borner explicitement le flux public à scope:public pour garantir la séparation, même en local sans clés sécurisées
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
+          if (DEBUG_MULTI_INDEX) {
+            console.log('[SearchProvider] expandedPublicFull', expandedPublicFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+            console.log('[SearchProvider] expandedPrivateFull', expandedPrivateFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+            console.log('[SearchProvider] expandedTeaser', expandedTeaser?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
           }
-        }
 
-        if (import.meta.env.DEV) {
-          console.log('[SearchProvider] expandedPublicFull', expandedPublicFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
-          console.log('[SearchProvider] expandedPrivateFull', expandedPrivateFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
-          console.log('[SearchProvider] expandedTeaser', expandedTeaser?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
-        }
-
-        const [resPublicFull, resPrivateFull, resTeaser] = await Promise.all([
-          cleaningFullPublic.search(expandedPublicFull),
-          cleaningFullPrivate.search(expandedPrivateFull),
-          cleaningTeaser?.search(expandedTeaser) ?? Promise.resolve({ results: [] })
-        ]);
-        const merged = [] as any[];
-        // Réponse vide par défaut (évite processingTimeMS undefined)
-        const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
-        for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
-          const originalParams = (requests || [])[i]?.params || {};
-          // Toujours utiliser l'origine globale pour décider du merge
-          const mergeOrigin = frozenOrigin;
-          if (mergeOrigin === 'public') {
-            const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
-            merged.push(mergeFederatedPair(publicFull, publicTeaser));
-          } else if (mergeOrigin === 'private') {
-            const privateRes = resPrivateFull.results[jPriv] || emptyRes; jPriv += 1;
-            merged.push(privateRes);
-          } else {
-            const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
-            const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
-            const privateResult = resPrivateFull.results[jPriv] || emptyRes; jPriv++;
-            // Additionner nbHits public+privé pour un comptage cohérent en mode "all"
-            merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
+          const [resPublicFull, resPrivateFull, resTeaser] = await Promise.all([
+            cleaningFullPublic.search(expandedPublicFull),
+            cleaningFullPrivate.search(expandedPrivateFull),
+            cleaningTeaser?.search(expandedTeaser) ?? Promise.resolve({ results: [] })
+          ]);
+          const merged = [] as any[];
+          // Réponse vide par défaut (évite processingTimeMS undefined)
+          const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
+          for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
+            const originalParams = (requests || [])[i]?.params || {};
+            // Toujours utiliser l'origine globale pour décider du merge
+            const mergeOrigin = frozenOrigin;
+            if (mergeOrigin === 'public') {
+              const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
+              const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
+              merged.push(mergeFederatedPair(publicFull, publicTeaser));
+            } else if (mergeOrigin === 'private') {
+              const privateRes = resPrivateFull.results[jPriv] || emptyRes; jPriv += 1;
+              merged.push(privateRes);
+            } else {
+              const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
+              const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
+              const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
+              const privateResult = resPrivateFull.results[jPriv] || emptyRes; jPriv++;
+              // Additionner nbHits public+privé pour un comptage cohérent en mode "all"
+              merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
+            }
           }
+          if (DEBUG_MULTI_INDEX) {
+            console.log('[SearchProvider] merged results stats', merged?.map((r) => ({ nbHits: r?.nbHits })));
+          }
+          return { results: merged };
+        } catch (error) {
+          if (DEBUG_MULTI_INDEX) console.error('[SearchProvider] search error', error);
+          const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
+          return { results: (requests || []).map(() => emptyRes) };
         }
-        if (import.meta.env.DEV) {
-          console.log('[SearchProvider] merged results stats', merged?.map((r) => ({ nbHits: r?.nbHits })));
-        }
-        return { results: merged };
       }
     };
   }

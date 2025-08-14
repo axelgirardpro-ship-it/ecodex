@@ -8,7 +8,7 @@ import { INDEX_ALL } from '@/config/search';
 import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair, buildFavoriteIdsFilter, buildPublicFiltersBySources, buildPrivateFilters, type Origin } from '@/lib/algolia/searchClient';
 import { useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
-import { USE_SECURED_KEYS } from '@/config/featureFlags';
+import { USE_SECURED_KEYS, DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
@@ -119,87 +119,98 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
   if (clients && !searchClientRef.current) {
     searchClientRef.current = {
       search: async (requests: any[]) => {
-        const cleaningFullPublic = cleaningFullPublicRef.current;
-        const cleaningFullPrivate = cleaningFullPrivateRef.current;
-        const cleaningTeaser = cleaningTeaserRef.current;
-        if (!cleaningFullPublic || !cleaningFullPrivate) return { results: [] };
-        const wsId = workspaceIdRef.current;
-        const frozenOrigin = originRef.current; // Eviter les décalages lors d’un toggle rapide
-        debug('incoming requests', requests?.map((r) => ({ ruleContexts: r?.params?.ruleContexts, facetFilters: r?.params?.facetFilters })));
-        debug('ctx', { globalOrigin: frozenOrigin, wsId, favCount: favoriteIdsRef.current?.length });
-        const expandedPublicFull: any[] = [];
-        const expandedPrivateFull: any[] = [];
-        const expandedTeaser: any[] = [];
-
-        const combineFilters = (...parts: (string | undefined)[]) => {
-          const arr = parts
-            .filter((p) => typeof p === 'string' && p.trim().length > 0)
-            .map((p) => p!.trim()) as string[];
-          if (arr.length === 0) return undefined;
-          if (arr.length === 1) return arr[0];
-          const withOr = arr.filter((p) => /\sOR\s/.test(p));
-          const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
-          const ordered = [...withOr, ...withoutOr];
-          return ordered.map((p) => `(${p})`).join(' AND ');
-        };
-
-        for (const r of requests || []) {
-          const baseParams = { ...(r.params || {}) };
-          const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-          // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
-          const origin = frozenOrigin;
-          const favFilter = buildFavoriteIdsFilter(favoriteIdsRef.current);
-
-          // Séparer filtre workspace pour Algolia (éviter AND inclus dans une même clause)
-          const wsFilter = wsId ? `workspace_id:${wsId}` : 'workspace_id:_none_';
-
-          const privFilters = wsFilter; // pas d'AND ici, on laisse combineFilters gérer
-          debug('resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: origin });
-
-          if (origin === 'public') {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
-          } else if (origin === 'private') {
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
-          } else {
-            // En mode "all", borner explicitement le flux public à scope:public
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
+        try {
+          const cleaningFullPublic = cleaningFullPublicRef.current;
+          const cleaningFullPrivate = cleaningFullPrivateRef.current;
+          const cleaningTeaser = cleaningTeaserRef.current;
+          if (!cleaningFullPublic || !cleaningFullPrivate) return { results: [] };
+          const wsId = workspaceIdRef.current;
+          const frozenOrigin = originRef.current; // Eviter les décalages lors d’un toggle rapide
+          if (DEBUG_MULTI_INDEX) {
+            debug('incoming requests', requests?.map((r) => ({ ruleContexts: r?.params?.ruleContexts, facetFilters: r?.params?.facetFilters })));
+            debug('ctx', { globalOrigin: frozenOrigin, wsId, favCount: favoriteIdsRef.current?.length });
           }
-        }
+          const expandedPublicFull: any[] = [];
+          const expandedPrivateFull: any[] = [];
+          const expandedTeaser: any[] = [];
 
-        debug('expandedPublicFull', expandedPublicFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
-        debug('expandedPrivateFull', expandedPrivateFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
-        debug('expandedTeaser', expandedTeaser?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+          const combineFilters = (...parts: (string | undefined)[]) => {
+            const arr = parts
+              .filter((p) => typeof p === 'string' && p.trim().length > 0)
+              .map((p) => p!.trim()) as string[];
+            if (arr.length === 0) return undefined;
+            if (arr.length === 1) return arr[0];
+            const withOr = arr.filter((p) => /\sOR\s/.test(p));
+            const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
+            const ordered = [...withOr, ...withoutOr];
+            return ordered.map((p) => `(${p})`).join(' AND ');
+          };
 
-        const [resPublicFull, resPrivateFull, resTeaser] = await Promise.all([
-          cleaningFullPublic.search(expandedPublicFull),
-          cleaningFullPrivate.search(expandedPrivateFull),
-          cleaningTeaser?.search(expandedTeaser) ?? Promise.resolve({ results: [] })
-        ]);
-        const merged = [] as any[];
-        for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
-          const originalParams = (requests || [])[i]?.params || {};
-          const origin = frozenOrigin;
-          if (origin === 'public') {
-            const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
-            merged.push(mergeFederatedPair(publicFull, publicTeaser));
-          } else if (origin === 'private') {
-            const privateRes = resPrivateFull.results[jPriv]; jPriv += 1;
-            merged.push(privateRes);
-          } else {
-            const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
-            const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
-            const privateResult = resPrivateFull.results[jPriv] as SearchResponse<any>; jPriv++;
-            // Additionner nbHits public+privé pour un comptage cohérent en mode "all"
-            merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
+          for (const r of requests || []) {
+            const baseParams = { ...(r.params || {}) };
+            const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+            // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
+            const origin = frozenOrigin;
+            const favFilter = buildFavoriteIdsFilter(favoriteIdsRef.current);
+
+            // Séparer filtre workspace pour Algolia (éviter AND inclus dans une même clause)
+            const wsFilter = wsId ? `workspace_id:${wsId}` : 'workspace_id:_none_';
+
+            const privFilters = wsFilter; // pas d'AND ici, on laisse combineFilters gérer
+            if (DEBUG_MULTI_INDEX) {
+              debug('resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: origin });
+            }
+
+            if (origin === 'public') {
+              expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
+              expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
+            } else if (origin === 'private') {
+              expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
+            } else {
+              // En mode "all", borner explicitement le flux public à scope:public
+              expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
+              expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
+              expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
+            }
           }
+
+          if (DEBUG_MULTI_INDEX) {
+            debug('expandedPublicFull', expandedPublicFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+            debug('expandedPrivateFull', expandedPrivateFull?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+            debug('expandedTeaser', expandedTeaser?.map((r) => ({ facetFilters: r?.params?.facetFilters, filters: r?.params?.filters })));
+          }
+
+          const [resPublicFull, resPrivateFull, resTeaser] = await Promise.all([
+            cleaningFullPublic.search(expandedPublicFull),
+            cleaningFullPrivate.search(expandedPrivateFull),
+            cleaningTeaser?.search(expandedTeaser) ?? Promise.resolve({ results: [] })
+          ]);
+          const merged = [] as any[];
+          for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
+            const originalParams = (requests || [])[i]?.params || {};
+            const origin = frozenOrigin;
+            if (origin === 'public') {
+              const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
+              const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
+              merged.push(mergeFederatedPair(publicFull, publicTeaser));
+            } else if (origin === 'private') {
+              const privateRes = resPrivateFull.results[jPriv]; jPriv += 1;
+              merged.push(privateRes);
+            } else {
+              const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
+              const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
+              const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
+              const privateResult = resPrivateFull.results[jPriv] as SearchResponse<any>; jPriv++;
+              merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
+            }
+          }
+          if (DEBUG_MULTI_INDEX) debug('merged results stats', merged?.map((r: any) => ({ nbHits: r?.nbHits })));
+          return { results: merged };
+        } catch (error) {
+          if (DEBUG_MULTI_INDEX) console.error('[FavorisProvider] search error', error);
+          const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
+          return { results: (requests || []).map(() => emptyRes) };
         }
-        debug('merged results stats', merged?.map((r: any) => ({ nbHits: r?.nbHits })));
-        return { results: merged };
       }
     };
   }
@@ -212,6 +223,8 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
     const lastRef = useRef<string[] | null>(null);
     useEffect(() => {
       if (lastRef.current !== favoriteIds) {
+        // Mettre à jour la ref utilisée par le search client avant de rafraîchir
+        favoriteIdsRef.current = favoriteIds;
         lastRef.current = favoriteIds;
         refresh();
       }

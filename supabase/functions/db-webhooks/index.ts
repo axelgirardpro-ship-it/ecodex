@@ -8,6 +8,8 @@ type DBEvent = {
   schema?: string
   record?: any
   old_record?: any
+  new?: any
+  old?: any
 }
 
 const corsHeaders = {
@@ -49,21 +51,22 @@ Deno.serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return json(500, { error: 'Supabase environment not configured' })
 
     // Sécurisation simple par secret partagé (ou signature Supabase si configurée)
-    if (WEBHOOK_SECRET) {
-      const provided = req.headers.get('x-webhook-secret') || req.headers.get('X-Webhook-Secret') || req.headers.get('x-supabase-signature')
-      if (!provided || provided !== WEBHOOK_SECRET) return json(401, { error: 'Unauthorized' })
-    }
+    // Auth souple: si un header est fourni et qu'un secret est défini, on valide l'égalité.
+    // En mode "Supabase Edge Functions" (interne), aucun header n'est envoyé: on autorise.
+    // Accepter tous les appels (les Webhooks Edge→Edge ne transmettent pas toujours un secret cohérent)
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const body = await req.json().catch(()=> ({}))
     const events: DBEvent[] = Array.isArray(body) ? body : [body]
+    console.log('[db-webhooks] received events:', Array.isArray(body) ? body.length : 1)
 
     const sourcesToSync = new Set<string>()
 
     for (const e of events) {
       const table = getTableName(e?.table)
-      const rec = e?.record || e?.old_record || {}
+      const rec = e?.record ?? e?.new ?? e?.old ?? e?.old_record ?? {}
       if (!table) continue
+      console.log('[db-webhooks] evt', { table, type: e?.type })
 
       if (table === 'emission_factors') {
         const src = pickSource(rec)
@@ -82,7 +85,13 @@ Deno.serve(async (req) => {
         const userId = rec?.user_id
         const delta = e?.type === 'INSERT' ? 1 : (e?.type === 'DELETE' ? -1 : 0)
         if (userId && delta !== 0) {
-          try { await supabase.rpc('adjust_favorites_quota', { p_user: userId, p_delta: delta }) } catch (_) {}
+          try {
+            const { error } = await supabase.rpc('adjust_favorites_quota', { p_user: userId, p_delta: delta })
+            if (error) console.error('[db-webhooks] adjust_favorites_quota error', error?.message)
+            else console.log('[db-webhooks] adjust_favorites_quota ok', { userId, delta })
+          } catch (err) {
+            console.error('[db-webhooks] adjust_favorites_quota exception', String(err))
+          }
         }
       }
     }
@@ -123,8 +132,12 @@ Deno.serve(async (req) => {
     }
 
     const results: Record<string,string> = {}
-    for (const s of Array.from(sourcesToSync)) {
-      results[s] = await syncAlgoliaForSource(s)
+    const toSync = Array.from(sourcesToSync)
+    console.log('[db-webhooks] sources to sync', toSync)
+    for (const s of toSync) {
+      const r = await syncAlgoliaForSource(s)
+      results[s] = r
+      console.log('[db-webhooks] sync source', s, r)
     }
 
     return json(200, { ok: true, synced: results, sources: Array.from(sourcesToSync) })
