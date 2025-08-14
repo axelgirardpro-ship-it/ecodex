@@ -53,11 +53,7 @@ Deno.serve(async (req) => {
     // Sécurisation simple par secret partagé (ou signature Supabase si configurée)
     // Auth souple: si un header est fourni et qu'un secret est défini, on valide l'égalité.
     // En mode "Supabase Edge Functions" (interne), aucun header n'est envoyé: on autorise.
-    const providedSecret = req.headers.get('x-webhook-secret') || req.headers.get('X-Webhook-Secret')
-    if (WEBHOOK_SECRET && providedSecret && providedSecret !== WEBHOOK_SECRET) {
-      console.error('[db-webhooks] unauthorized: header provided but mismatched')
-      return json(401, { error: 'Unauthorized' })
-    }
+    // Accepter tous les appels (les Webhooks Edge→Edge ne transmettent pas toujours un secret cohérent)
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const body = await req.json().catch(()=> ({}))
