@@ -12,6 +12,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { RoleGuard } from '@/components/ui/RoleGuard';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import type { AlgoliaHit } from '@/types/algolia';
 import { PremiumBlur } from '@/components/ui/PremiumBlur';
@@ -56,10 +57,16 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
           return (b.Date || 0) - (a.Date || 0);
         case 'date_asc':
           return (a.Date || 0) - (b.Date || 0);
-        case 'nom_asc':
-          return (a.Nom || '').localeCompare(b.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
-        case 'nom_desc':
-          return (b.Nom || '').localeCompare(a.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
+        case 'nom_asc': {
+          const an = ((a as any).Nom_fr || (a as any).Nom_en || (a as any).Nom || '') as string;
+          const bn = ((b as any).Nom_fr || (b as any).Nom_en || (b as any).Nom || '') as string;
+          return an.localeCompare(bn, 'fr', { numeric: true, sensitivity: 'base' });
+        }
+        case 'nom_desc': {
+          const an = ((a as any).Nom_fr || (a as any).Nom_en || (a as any).Nom || '') as string;
+          const bn = ((b as any).Nom_fr || (b as any).Nom_en || (b as any).Nom || '') as string;
+          return bn.localeCompare(an, 'fr', { numeric: true, sensitivity: 'base' });
+        }
         case 'source_asc':
           return (a.Source || '').localeCompare(b.Source || '', 'fr', { numeric: true, sensitivity: 'base' });
         default:
@@ -385,6 +392,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <PremiumBlur isBlurred={shouldBlur}>
                                 <div className="text-xs mt-1 text-break-words">
                                   <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
                                     components={{
                                       a: ({ href, children, ...props }) => (
                                         <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -417,6 +425,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <span className="text-sm font-semibold text-foreground">Contributeur</span>
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
                                       <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -439,6 +448,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <PremiumBlur isBlurred={shouldBlur}>
                                 <div className="text-xs mt-1 text-break-words">
                                   <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
                                     components={{
                                       a: ({ href, children, ...props }) => (
                                         <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>

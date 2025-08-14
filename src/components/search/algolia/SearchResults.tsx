@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuotaContext } from './SearchProvider';
 import { useQuotaActions } from '@/hooks/useQuotaActions';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 
 interface AlgoliaHit {
@@ -635,6 +636,7 @@ export const SearchResults: React.FC = () => {
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                                   <div className="text-xs mt-1 text-break-words">
                                     <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm]}
                                       components={{
                                         a: ({ href, children, ...props }) => (
                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -672,6 +674,7 @@ export const SearchResults: React.FC = () => {
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                                   <div className="text-xs mt-1 text-break-words">
                                     <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm]}
                                       components={{
                                         a: ({ href, children, ...props }) => (
                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -695,6 +698,7 @@ export const SearchResults: React.FC = () => {
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                                   <div className="text-xs mt-1 text-break-words">
                                     <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm]}
                                       components={{
                                         a: ({ href, children, ...props }) => (
                                           <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
