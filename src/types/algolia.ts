@@ -15,6 +15,11 @@ export interface AlgoliaHit {
   Unite_fr?: string; Unite_en?: string;
   // Compat: certains enregistrements historiques peuvent garder l'ancien nom FR
   "Unité donnée d'activité"?: string;
+  // Legacy non localisés (compat)
+  Nom?: string;
+  Description?: string;
+  Commentaires?: string;
+  Contributeur?: string;
   // Facets/meta
   languages?: string[];
   workspace_id?: string;
