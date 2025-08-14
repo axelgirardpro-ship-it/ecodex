@@ -99,6 +99,13 @@ Deno.serve(async (req) => {
     async function syncAlgoliaForSource(sourceName: string): Promise<'ok'|'skipped'|'failed'> {
       if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) return 'skipped'
       try {
+        // Garantir l'existence de la source pour la projection
+        try {
+          await supabase
+            .from('fe_sources')
+            .upsert({ source_name: sourceName, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
+        } catch (_) { /* best-effort */ }
+
         const { default: algoliasearch } = await import('https://esm.sh/algoliasearch@5?target=deno')
         const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY)
         const index = client.initIndex(ALGOLIA_INDEX_ALL)
@@ -115,18 +122,23 @@ Deno.serve(async (req) => {
         const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
         const currentIds = new Set(records.map((r: any) => r.objectID))
 
+        // Récupérer les objectID existants pour cette Source sans dépendre des facets
         const existingIds: string[] = []
         await index.browseObjects({
           query: '',
-          filters: `Source:\"${sourceName.replaceAll('"', '\\"')}\"`,
-          attributesToRetrieve: ['objectID'],
-          batch: (batch: any[]) => { for (const h of batch) existingIds.push(String(h.objectID)) }
+          attributesToRetrieve: ['objectID', 'Source'],
+          batch: (batch: any[]) => {
+            for (const h of batch) {
+              if (String(h?.Source) === sourceName) existingIds.push(String(h.objectID))
+            }
+          }
         })
         const toDelete = existingIds.filter((id) => !currentIds.has(id))
         if (toDelete.length > 0) await index.deleteObjects(toDelete)
         if (records.length > 0) await index.saveObjects(records, { autoGenerateObjectIDIfNotExist: false })
         return 'ok'
-      } catch (_) {
+      } catch (e) {
+        console.error('[db-webhooks] sync error', String(e))
         return 'failed'
       }
     }

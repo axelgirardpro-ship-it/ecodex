@@ -22,6 +22,7 @@ const Import = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importStatus, setImportStatus] = useState<"idle" | "uploading" | "processing" | "success" | "error">("idle");
   const [importResults, setImportResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [indexingStatus, setIndexingStatus] = useState<"idle" | "indexing" | "success" | "error">("idle");
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -156,7 +157,17 @@ const Import = () => {
 
       setUploadProgress(75);
 
+      // S'assurer que la source existe dans fe_sources (requis pour la projection/Algolia)
+      try {
+        await supabase
+          .from('fe_sources')
+          .upsert({ source_name: dataset.name, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
+      } catch (_) {
+        // non bloquant
+      }
+
       // Traiter et insérer les facteurs d'émissions
+      // La Source est toujours le nom du dataset, pour être conservée dans la projection
       const emissionFactors = data.map(row => ({
         workspace_id: currentWorkspace.id,
         dataset_id: dataset.id,
@@ -167,7 +178,7 @@ const Import = () => {
         "FE": parseFloat((row.fe || row.factor || '0').toString().replace(',','.')),
         "Unité donnée d'activité": row.unite || row.unit || '',
         "Unite_en": row.unite_en || row.unit_en || null,
-        "Source": row.source || 'Import CSV',
+        "Source": dataset.name,
         "Secteur": row.secteur || row.sector || 'Non spécifié',
         "Secteur_en": row.secteur_en || row.sector_en || null,
         "Sous-secteur": row.categorie || row.category || 'Non spécifié',
@@ -190,6 +201,19 @@ const Import = () => {
 
       if (insertError) {
         throw new Error(`Erreur lors de l'insertion: ${insertError.message}`);
+      }
+
+      // Déclencher un full record updates Algolia pour le dataset importé (source = dataset.name)
+      try {
+        setIndexingStatus("indexing")
+        await supabase.functions.invoke('db-webhooks', {
+          body: [
+            { type: 'INSERT', table: 'public:fe_sources', record: { source_name: dataset.name } }
+          ]
+        })
+        setIndexingStatus("success")
+      } catch (_) {
+        setIndexingStatus("error")
       }
 
       setUploadProgress(100);
@@ -405,6 +429,25 @@ const Import = () => {
                             <li key={index}>• {error}</li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Indexation Algolia */}
+                {indexingStatus !== "idle" && (
+                  <div className="mt-3 p-3 rounded-lg border bg-muted/30">
+                    {indexingStatus === "indexing" && (
+                      <div className="text-sm text-muted-foreground">Indexation Algolia en cours…</div>
+                    )}
+                    {indexingStatus === "success" && (
+                      <div className="flex items-center text-sm text-green-700">
+                        <CheckCircle className="w-4 h-4 mr-2" /> Indexation Algolia terminée
+                      </div>
+                    )}
+                    {indexingStatus === "error" && (
+                      <div className="flex items-center text-sm text-red-700">
+                        <AlertCircle className="w-4 h-4 mr-2" /> Échec de l'indexation Algolia (non bloquant)
                       </div>
                     )}
                   </div>
