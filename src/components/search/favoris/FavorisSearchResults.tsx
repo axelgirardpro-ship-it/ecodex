@@ -183,7 +183,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   };
 
   const isPrivateHit = (hit: AlgoliaHit) => {
-    return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported' || (hit as any).__indexName === 'ef_private_fr';
+    return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
   };
 
   if (hits.length === 0) {

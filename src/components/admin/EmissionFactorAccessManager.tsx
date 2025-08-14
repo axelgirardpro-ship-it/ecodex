@@ -63,16 +63,11 @@ export const EmissionFactorAccessManager = () => {
 
       console.log(`✅ Successfully updated source ${source} to ${newTier}`);
 
-      // Rebuild projection publique puis reindexer public pour refléter le nouveau tier
+      // Rebuild unifié pour refléter le nouveau tier sur ef_all
       try {
-        await supabase.rpc('rebuild_emission_factors_public_search_fr');
+        await supabase.rpc('refresh_ef_all_for_source', { p_source: source });
       } catch (e) {
-        console.warn('Rebuild projection public failed (continuing to reindex):', e);
-      }
-      try {
-        await supabase.functions.invoke('algolia-reindex', { body: { index: 'public', applySettings: false } });
-      } catch (e) {
-        console.warn('Algolia reindex public failed:', e);
+        console.warn('Refresh ef_all failed (tier updated in DB):', e);
       }
 
       // Mark as successful
