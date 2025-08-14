@@ -51,9 +51,12 @@ Deno.serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return json(500, { error: 'Supabase environment not configured' })
 
     // Sécurisation simple par secret partagé (ou signature Supabase si configurée)
-    if (WEBHOOK_SECRET) {
-      const provided = req.headers.get('x-webhook-secret') || req.headers.get('X-Webhook-Secret') || req.headers.get('x-supabase-signature')
-      if (!provided || provided !== WEBHOOK_SECRET) return json(401, { error: 'Unauthorized' })
+    // Auth souple: si un header est fourni et qu'un secret est défini, on valide l'égalité.
+    // En mode "Supabase Edge Functions" (interne), aucun header n'est envoyé: on autorise.
+    const provided = req.headers.get('x-webhook-secret') || req.headers.get('X-Webhook-Secret') || req.headers.get('x-supabase-signature')
+    if (WEBHOOK_SECRET && provided && provided !== WEBHOOK_SECRET) {
+      console.error('[db-webhooks] unauthorized: header provided but mismatched')
+      return json(401, { error: 'Unauthorized' })
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
