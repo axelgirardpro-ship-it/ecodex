@@ -39,7 +39,28 @@ Deno.serve(async (req) => {
       p_assigned_source_names: assigned,
       p_unassigned_source_names: unassigned
     })
-    if (rpcErr) return json(500, { step: 'rpc', error: rpcErr.message })
+
+    // Fallback: si la RPC n'existe pas ou échoue, on applique directement via inserts/deletes
+    if (rpcErr) {
+      // Upsert assignés
+      if (assigned.length > 0) {
+        const rows = assigned.map((src) => ({ source_name: src, workspace_id: workspaceId, assigned_by: userRes.user.id }))
+        const { error: upsertErr } = await supabase
+          .from('fe_source_workspace_assignments')
+          .upsert(rows, { onConflict: 'source_name,workspace_id' })
+        if (upsertErr) return json(500, { step: 'fallback_upsert', error: upsertErr.message })
+      }
+
+      // Delete désassignés
+      if (unassigned.length > 0) {
+        const { error: delErr } = await supabase
+          .from('fe_source_workspace_assignments')
+          .delete()
+          .eq('workspace_id', workspaceId)
+          .in('source_name', unassigned)
+        if (delErr) return json(500, { step: 'fallback_delete', error: delErr.message })
+      }
+    }
 
     // Rafraîchir projection unifiée pour chaque source modifiée
     const changed = [...new Set([...assigned, ...unassigned])]
