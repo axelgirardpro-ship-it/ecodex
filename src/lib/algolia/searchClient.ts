@@ -70,7 +70,7 @@ export function mergeFacets(f1: any = {}, f2: any = {}) {
   return merged;
 }
 
-export function mergeFederatedPair(publicRes: any, privateRes: any) {
+export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { sumNbHits?: boolean }) {
   // Preserve base metadata from the first response (publicRes)
   const merged: any = { ...publicRes };
 
@@ -90,7 +90,19 @@ export function mergeFederatedPair(publicRes: any, privateRes: any) {
   pushUnique(privateRes?.hits);
 
   merged.hits = hits;
-  merged.nbHits = hits.length;
+
+  const getNbHits = (res: any) => {
+    if (typeof res?.nbHits === 'number') return res.nbHits;
+    const arr = Array.isArray(res?.hits) ? res.hits : [];
+    return arr.length;
+  };
+
+  // If merging disjoint datasets (e.g. public + private), sum them; otherwise preserve first
+  const baseNbHits = options?.sumNbHits
+    ? getNbHits(publicRes) + getNbHits(privateRes)
+    : getNbHits(publicRes);
+
+  merged.nbHits = baseNbHits;
   merged.facets = mergeFacets(publicRes?.facets, privateRes?.facets);
   merged.facets_stats = publicRes?.facets_stats || privateRes?.facets_stats || null;
   return merged;
