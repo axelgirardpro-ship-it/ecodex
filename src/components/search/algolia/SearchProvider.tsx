@@ -17,6 +17,17 @@ function useDualAlgoliaClients(workspaceId?: string) {
   useEffect(() => {
     let cancelled = false;
     async function init() {
+      const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (isLocalhost) {
+        if (!cancelled) {
+          setClients({
+            fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
+            fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
+            teaser: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
+          });
+        }
+        return;
+      }
       if (USE_SECURED_KEYS) {
         try {
           const body = workspaceId ? { workspaceId } : {} as any;
@@ -32,11 +43,7 @@ function useDualAlgoliaClients(workspaceId?: string) {
             return;
           }
         } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('[SearchProvider] secure key fetch failed', err);
-          }
-          // En DEV: autoriser un fallback pour ne pas bloquer le dev local si CORS/Edge indisponible
-          if (!cancelled && import.meta.env.DEV) {
+          if (!cancelled) {
             setClients({
               fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
               fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
@@ -46,7 +53,7 @@ function useDualAlgoliaClients(workspaceId?: string) {
           }
         }
       }
-      // En prod: pas de fallback en clair (on laisse null)
+      // En prod cloud sans clés sécurisées: ne rien initialiser pour forcer l'erreur visible plutôt que du faux positif
     }
     init();
     return () => { cancelled = true; };
@@ -143,21 +150,30 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
         const expandedTeaser: any[] = [];
 
         const combineFilters = (...parts: (string | undefined)[]) => {
-          const arr = parts.filter((p) => typeof p === 'string' && p.trim().length > 0) as string[];
+          const arr = parts
+            .filter((p) => typeof p === 'string' && p.trim().length > 0)
+            .map((p) => p!.trim()) as string[];
           if (arr.length === 0) return undefined;
           if (arr.length === 1) return arr[0];
-          return arr.map((p) => `(${p})`).join(' AND ');
+          // Algolia n’autorise pas la forme (X AND Y) OR Z. On force la/les clauses avec OR d’abord
+          const withOr = arr.filter((p) => /\sOR\s/.test(p));
+          const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
+          const ordered = [...withOr, ...withoutOr];
+          return ordered.map((p) => `(${p})`).join(' AND ');
         };
+
+        // Figer l’origine pour l’ensemble du cycle
+        const frozenOrigin = originRef.current;
 
         for (const r of requests || []) {
           const baseParams = { ...(r.params || {}) };
           const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
           let reqOrigin = resolveOrigin(baseParams);
           // Forcer l'origine globale si sélectionnée
-          if (originRef.current !== 'all') reqOrigin = originRef.current;
+          if (frozenOrigin !== 'all') reqOrigin = frozenOrigin;
           const privFilters = buildPrivateFilters(wsId);
           if (import.meta.env.DEV) {
-            console.log('[SearchProvider] resolveOrigin', { globalOrigin: originRef.current, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: reqOrigin });
+            console.log('[SearchProvider] resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: reqOrigin });
           }
 
           if (reqOrigin === 'public') {
@@ -184,22 +200,24 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           cleaningTeaser?.search(expandedTeaser) ?? Promise.resolve({ results: [] })
         ]);
         const merged = [] as any[];
+        // Réponse vide par défaut (évite processingTimeMS undefined)
+        const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
         for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
           const originalParams = (requests || [])[i]?.params || {};
           let mergeOrigin = resolveOrigin(originalParams);
-          if (originRef.current !== 'all') mergeOrigin = originRef.current;
+          if (frozenOrigin !== 'all') mergeOrigin = frozenOrigin;
           if (mergeOrigin === 'public') {
-            const publicFull = resPublicFull.results[jPub]; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser]; jTeaser++;
+            const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
+            const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
             merged.push(mergeFederatedPair(publicFull, publicTeaser));
           } else if (mergeOrigin === 'private') {
-            const privateRes = resPrivateFull.results[jPriv]; jPriv += 1;
+            const privateRes = resPrivateFull.results[jPriv] || emptyRes; jPriv += 1;
             merged.push(privateRes);
           } else {
-            const publicFull = resPublicFull.results[jPub]; jPub++;
-            const publicTeaser = (resTeaser as any).results?.[jTeaser]; jTeaser++;
+            const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
+            const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
             const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
-            const privateResult = resPrivateFull.results[jPriv]; jPriv++;
+            const privateResult = resPrivateFull.results[jPriv] || emptyRes; jPriv++;
             merged.push(mergeFederatedPair(mergedPublic, privateResult));
           }
         }

@@ -18,6 +18,17 @@ function useDualAlgoliaClients(workspaceId?: string) {
   useEffect(() => {
     let cancelled = false;
     async function init() {
+      const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (isLocalhost) {
+        if (!cancelled) {
+          setClients({
+            fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
+            fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
+            teaser: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
+          });
+        }
+        return;
+      }
       if (USE_SECURED_KEYS) {
         try {
           const body = workspaceId ? { workspaceId } : {} as any;
@@ -33,10 +44,7 @@ function useDualAlgoliaClients(workspaceId?: string) {
             return;
           }
         } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('[FavorisSearchProvider] secure key fetch failed', err);
-          }
-          if (!cancelled && import.meta.env.DEV) {
+          if (!cancelled) {
             setClients({
               fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
               fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
@@ -46,7 +54,7 @@ function useDualAlgoliaClients(workspaceId?: string) {
           }
         }
       }
-      // En prod: pas de fallback
+      // En prod cloud sans clés sécurisées: ne rien initialiser pour forcer l'erreur visible plutôt que du faux positif
     }
     init();
     return () => { cancelled = true; };
@@ -116,38 +124,47 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
         const cleaningTeaser = cleaningTeaserRef.current;
         if (!cleaningFullPublic || !cleaningFullPrivate) return { results: [] };
         const wsId = workspaceIdRef.current;
+        const frozenOrigin = originRef.current; // Eviter les décalages lors d’un toggle rapide
         debug('incoming requests', requests?.map((r) => ({ ruleContexts: r?.params?.ruleContexts, facetFilters: r?.params?.facetFilters })));
-        debug('ctx', { globalOrigin: originRef.current, wsId, favCount: favoriteIdsRef.current?.length });
+        debug('ctx', { globalOrigin: frozenOrigin, wsId, favCount: favoriteIdsRef.current?.length });
         const expandedPublicFull: any[] = [];
         const expandedPrivateFull: any[] = [];
         const expandedTeaser: any[] = [];
 
         const combineFilters = (...parts: (string | undefined)[]) => {
-          const arr = parts.filter((p) => typeof p === 'string' && p.trim().length > 0) as string[];
+          const arr = parts
+            .filter((p) => typeof p === 'string' && p.trim().length > 0)
+            .map((p) => p!.trim()) as string[];
           if (arr.length === 0) return undefined;
           if (arr.length === 1) return arr[0];
-          return arr.map((p) => `(${p})`).join(' AND ');
+          const withOr = arr.filter((p) => /\sOR\s/.test(p));
+          const withoutOr = arr.filter((p) => !/\sOR\s/.test(p));
+          const ordered = [...withOr, ...withoutOr];
+          return ordered.map((p) => `(${p})`).join(' AND ');
         };
 
         for (const r of requests || []) {
           const baseParams = { ...(r.params || {}) };
           const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
           let origin = resolveOrigin(baseParams);
-          if (originRef.current !== 'all') origin = originRef.current;
+          if (frozenOrigin !== 'all') origin = frozenOrigin;
           const favFilter = buildFavoriteIdsFilter(favoriteIdsRef.current);
 
-          const privFilters = buildPrivateFilters(wsId, favFilter);
-          debug('resolveOrigin', { globalOrigin: originRef.current, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: origin });
+          // Séparer filtre workspace pour Algolia (éviter AND inclus dans une même clause)
+          const wsFilter = wsId ? `workspace_id:${wsId}` : 'workspace_id:_none_';
+
+          const privFilters = wsFilter; // pas d'AND ici, on laisse combineFilters gérer
+          debug('resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: origin });
 
           if (origin === 'public') {
             expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
             expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
           } else if (origin === 'private') {
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
+            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
           } else {
             expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: safeFacetFilters, filters: combineFilters(baseParams.filters, favFilter) } });
             expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
+            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
           }
         }
 
@@ -164,7 +181,7 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
         for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
           const originalParams = (requests || [])[i]?.params || {};
           let origin = resolveOrigin(originalParams);
-          if (originRef.current !== 'all') origin = originRef.current;
+          if (frozenOrigin !== 'all') origin = frozenOrigin;
           if (origin === 'public') {
             const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
             const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;

@@ -31,6 +31,16 @@ export const useSuggestions = (searchQuery: string) => {
   useEffect(() => {
     let cancelled = false;
     async function init() {
+      const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (isLocalhost) {
+        if (!cancelled) {
+          clientsRef.current = {
+            public: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY),
+            private: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY)
+          };
+        }
+        return;
+      }
       if (USE_SECURED_KEYS) {
         try {
           const wsId = currentWorkspace?.id;
@@ -52,7 +62,6 @@ export const useSuggestions = (searchQuery: string) => {
           if (import.meta.env.DEV) console.warn('[useSuggestions] secure key fetch failed', e);
         }
       }
-      // Fallback en DEV seulement
       if (!cancelled && import.meta.env.DEV) {
         clientsRef.current = {
           public: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY),
