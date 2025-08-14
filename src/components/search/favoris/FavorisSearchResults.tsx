@@ -57,10 +57,16 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
           return (b.Date || 0) - (a.Date || 0);
         case 'date_asc':
           return (a.Date || 0) - (b.Date || 0);
-        case 'nom_asc':
-          return (a.Nom || '').localeCompare(b.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
-        case 'nom_desc':
-          return (b.Nom || '').localeCompare(a.Nom || '', 'fr', { numeric: true, sensitivity: 'base' });
+        case 'nom_asc': {
+          const an = (a.Nom_fr || a.Nom_en || a.Nom || '');
+          const bn = (b.Nom_fr || b.Nom_en || b.Nom || '');
+          return an.localeCompare(bn, 'fr', { numeric: true, sensitivity: 'base' });
+        }
+        case 'nom_desc': {
+          const an = (a.Nom_fr || a.Nom_en || a.Nom || '');
+          const bn = (b.Nom_fr || b.Nom_en || b.Nom || '');
+          return bn.localeCompare(an, 'fr', { numeric: true, sensitivity: 'base' });
+        }
         case 'source_asc':
           return (a.Source || '').localeCompare(b.Source || '', 'fr', { numeric: true, sensitivity: 'base' });
         default:
