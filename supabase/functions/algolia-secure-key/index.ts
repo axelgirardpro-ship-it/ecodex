@@ -10,25 +10,48 @@ const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-function jsonResponse(status: number, body: unknown) {
+function buildCorsHeaders(origin: string | null) {
+  const allowOrigin = origin || '*';
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+    'Access-Control-Allow-Credentials': 'true',
+  } as Record<string, string>;
+}
+
+function jsonResponse(status: number, body: unknown, origin?: string | null) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...(buildCorsHeaders(origin ?? null)), 'Content-Type': 'application/json' },
   });
 }
 
 Deno.serve(async (req) => {
   try {
-    if (req.method !== 'GET') {
-      return jsonResponse(405, { error: 'Method not allowed' });
+    const origin = req.headers.get('Origin');
+    if (req.method === 'OPTIONS') {
+      const requestHeaders = req.headers.get('Access-Control-Request-Headers') || '';
+      const headers = buildCorsHeaders(origin);
+      if (requestHeaders) headers['Access-Control-Allow-Headers'] = requestHeaders;
+      return new Response(null, { status: 204, headers });
     }
+    if (req.method !== 'GET' && req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' }, origin);
 
     if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
-      return jsonResponse(500, { error: 'Algolia credentials not configured' });
+      return jsonResponse(500, { error: 'Algolia credentials not configured' }, origin);
     }
 
     const url = new URL(req.url);
-    const workspaceId = url.searchParams.get('workspaceId') || '';
+    let workspaceId = url.searchParams.get('workspaceId') || '';
+    if (!workspaceId && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        workspaceId = (body?.workspaceId as string) || '';
+      } catch {}
+    }
 
     const authHeader = req.headers.get('Authorization');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -37,7 +60,7 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
-      return jsonResponse(401, { error: 'Unauthorized' });
+      return jsonResponse(401, { error: 'Unauthorized' }, origin);
     }
 
     // Restrictions des clés (1h)
@@ -90,8 +113,9 @@ Deno.serve(async (req) => {
       fullPublic: { searchApiKey: searchApiKeyPublicFull, filters: filtersPublicFull },
       fullPrivate: { searchApiKey: searchApiKeyPrivateFull, filters: filtersPrivateFull },
       teaserPublic: { searchApiKey: searchApiKeyPublicTeaser, filters: filtersPublicTeaser },
-    });
+    }, origin);
   } catch (e) {
-    return jsonResponse(500, { error: 'Internal error', details: String(e) });
+    const origin = req.headers.get('Origin');
+    return jsonResponse(500, { error: 'Internal error', details: String(e) }, origin);
   }
 });

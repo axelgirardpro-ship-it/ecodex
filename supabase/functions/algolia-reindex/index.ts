@@ -57,14 +57,20 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '')
-    if (!authHeader) return json(401, { error: 'Missing bearer token' })
-    const { data: userRes, error: userErr } = await supabase.auth.getUser(authHeader)
-    if (userErr || !userRes?.user) return json(401, { error: 'Unauthorized' })
+    // Auth: JWT utilisateur (supra_admin), secret interne, ou token service_role
+    const INTERNAL_CRON_SECRET = Deno.env.get('INTERNAL_CRON_SECRET') ?? ''
+    const internalHeader = req.headers.get('X-Internal-Secret') || ''
+    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '') || ''
+    const allowByInternalSecret = Boolean(INTERNAL_CRON_SECRET && internalHeader && INTERNAL_CRON_SECRET === internalHeader)
+    const allowByServiceRole = Boolean(authHeader && authHeader === SUPABASE_SERVICE_ROLE_KEY)
 
-    // Vérifier rôle supra admin
-    const { data: isSupra, error: roleErr } = await supabase.rpc('is_supra_admin', { user_uuid: userRes.user.id })
-    if (roleErr || !isSupra) return json(403, { error: 'Access denied - supra admin required' })
+    if (!allowByInternalSecret && !allowByServiceRole) {
+      if (!authHeader) return json(401, { error: 'Missing bearer token' })
+      const { data: userRes, error: userErr } = await supabase.auth.getUser(authHeader)
+      if (userErr || !userRes?.user) return json(401, { error: 'Unauthorized' })
+      const { data: isSupra, error: roleErr } = await supabase.rpc('is_supra_admin', { user_uuid: userRes.user.id })
+      if (roleErr || !isSupra) return json(403, { error: 'Access denied - supra admin required' })
+    }
 
     const body = await req.json()
     const indexParam = (body?.index as string) || 'all' // 'public' | 'private' | 'all'

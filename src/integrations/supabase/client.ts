@@ -8,9 +8,21 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+const selectStorage = (): Storage | undefined => {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      return window.sessionStorage;
+    }
+  } catch (_err) {
+    // ignore SSR or restricted storage access
+  }
+  return undefined;
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    // Réduire le risque d'exfiltration (XSS) en évitant localStorage
+    storage: selectStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }

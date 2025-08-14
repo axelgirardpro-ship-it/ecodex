@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- CSP stricte (frame-ancestors doit être envoyée en header HTTP, pas en meta) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* https://wrodvaatdujbpfpvrzge.supabase.co wss://wrodvaatdujbpfpvrzge.supabase.co https://*.algolia.net https://*.algolianet.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
