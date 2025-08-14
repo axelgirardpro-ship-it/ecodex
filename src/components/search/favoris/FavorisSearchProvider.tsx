@@ -146,8 +146,8 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
         for (const r of requests || []) {
           const baseParams = { ...(r.params || {}) };
           const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-          let origin = resolveOrigin(baseParams);
-          if (frozenOrigin !== 'all') origin = frozenOrigin;
+          // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
+          const origin = frozenOrigin;
           const favFilter = buildFavoriteIdsFilter(favoriteIdsRef.current);
 
           // Séparer filtre workspace pour Algolia (éviter AND inclus dans une même clause)
@@ -162,7 +162,8 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
           } else if (origin === 'private') {
             expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
           } else {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: safeFacetFilters, filters: combineFilters(baseParams.filters, favFilter) } });
+            // En mode "all", borner explicitement le flux public à scope:public
+            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
             expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, favFilter) } });
             expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters, favFilter) } });
           }
@@ -180,8 +181,7 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
         const merged = [] as any[];
         for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
           const originalParams = (requests || [])[i]?.params || {};
-          let origin = resolveOrigin(originalParams);
-          if (frozenOrigin !== 'all') origin = frozenOrigin;
+          const origin = frozenOrigin;
           if (origin === 'public') {
             const publicFull = resPublicFull.results[jPub] as SearchResponse<any>; jPub++;
             const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
@@ -194,7 +194,8 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
             const publicTeaser = (resTeaser as any).results?.[jTeaser] as SearchResponse<any>; jTeaser++;
             const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
             const privateResult = resPrivateFull.results[jPriv] as SearchResponse<any>; jPriv++;
-            merged.push(mergeFederatedPair(mergedPublic, privateResult));
+            // Additionner nbHits public+privé pour un comptage cohérent en mode "all"
+            merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
           }
         }
         debug('merged results stats', merged?.map((r: any) => ({ nbHits: r?.nbHits })));
