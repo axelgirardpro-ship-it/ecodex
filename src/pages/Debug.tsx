@@ -3,11 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+ 
 
 export default function Debug() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [loading, setLoading] = useState(false);
 
@@ -34,45 +33,7 @@ export default function Debug() {
     setLoading(false);
   };
 
-  const testCreateCheckout = async () => {
-    setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("No session found");
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planType: 'standard' },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      setDebugInfo(prev => ({
-        ...prev,
-        createCheckout: {
-          success: !error,
-          data,
-          error: error?.message,
-          url: data?.url
-        }
-      }));
-
-      if (data?.url) {
-        toast({
-          title: "Success",
-          description: "Checkout URL generated successfully",
-        });
-      }
-    } catch (err) {
-      setDebugInfo(prev => ({
-        ...prev,
-        createCheckout: { error: err instanceof Error ? err.message : String(err) }
-      }));
-    }
-    setLoading(false);
-  };
+ 
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -105,22 +66,7 @@ export default function Debug() {
             )}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Checkout Test</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={testCreateCheckout} disabled={loading}>
-              Test Create Checkout
-            </Button>
-            {debugInfo.createCheckout && (
-              <pre className="text-sm bg-muted p-2 rounded overflow-auto">
-                {JSON.stringify(debugInfo.createCheckout, null, 2)}
-              </pre>
-            )}
-          </CardContent>
-        </Card>
+ 
 
         <Card>
           <CardHeader>
