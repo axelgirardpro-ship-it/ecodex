@@ -132,8 +132,12 @@ Deno.serve(async (req) => {
     }
 
     const results: Record<string,string> = {}
-    for (const s of Array.from(sourcesToSync)) {
-      results[s] = await syncAlgoliaForSource(s)
+    const toSync = Array.from(sourcesToSync)
+    console.log('[db-webhooks] sources to sync', toSync)
+    for (const s of toSync) {
+      const r = await syncAlgoliaForSource(s)
+      results[s] = r
+      console.log('[db-webhooks] sync source', s, r)
     }
 
     return json(200, { ok: true, synced: results, sources: Array.from(sourcesToSync) })
