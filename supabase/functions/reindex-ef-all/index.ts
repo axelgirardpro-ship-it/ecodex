@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '')
     if (!authHeader) return json(401, { error: 'Missing bearer token' })
 
+    const body = await req.json().catch(()=>({})) as any
+    const applySettings = body?.applySettings !== false
+
     // 1) rebuild projection (bilingue FR/EN si colonnes EN remplies)
     const { error: rebuildErr } = await supabase.rpc('rebuild_emission_factors_all_search')
     if (rebuildErr) return json(500, { step: 'rebuild', error: rebuildErr.message })
@@ -102,7 +105,19 @@ Deno.serve(async (req) => {
       from += pageSize
     }
 
-    return json(200, { ok: true, indexed: total, index: ALGOLIA_INDEX_ALL, cleared })
+    // 3) Optionnel: appliquer les settings/rules/synonyms depuis Storage
+    let settingsApplied: any = null
+    if (applySettings) {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/apply-algolia-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authHeader}` },
+        body: JSON.stringify({ indexName: ALGOLIA_INDEX_ALL, bucket: 'algolia_settings', path: 'ef_all.json' })
+      })
+      settingsApplied = await resp.json().catch(()=>null)
+      if (!resp.ok) return json(500, { step: 'apply_settings', error: settingsApplied })
+    }
+
+    return json(200, { ok: true, indexed: total, index: ALGOLIA_INDEX_ALL, cleared, settingsApplied })
   } catch (e) {
     return json(500, { step: 'top_catch', error: String(e) })
   }
