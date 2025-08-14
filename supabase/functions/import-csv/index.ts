@@ -188,11 +188,52 @@ Deno.serve(async (req) => {
         if (!insertError) inserted++
       }
 
-      // Déclencher rebuild des projections
+      // Déclencher rebuild des projections (public/private FR)
       const { error: rebuildError } = await supabase.rpc('rebuild_after_import_fr', { p_import_id: importRecord.id })
       if (rebuildError) {
         await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'rebuild failed', details: rebuildError.message }, finished_at: new Date().toISOString(), processed: processed, inserted: inserted }).eq('id', importRecord.id)
         return new Response(JSON.stringify({ error: 'Rebuild projections failed', details: rebuildError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // Full record updates Algolia par source
+      try {
+        const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
+        const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
+        const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
+        if (ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY) {
+          const { default: algoliasearch } = await import('https://esm.sh/algoliasearch@5?target=deno')
+          const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY)
+          const index = client.initIndex(ALGOLIA_INDEX_ALL)
+
+          for (const [sourceName] of sourcesCount) {
+            await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
+
+            const { data: rows, error } = await supabase
+              .from('emission_factors_all_search')
+              .select('*')
+              .eq('Source', sourceName)
+            if (error) continue
+
+            const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
+            const currentIds = new Set(records.map((r: any) => r.objectID))
+
+            const existingIds: string[] = []
+            await index.browseObjects({
+              query: '',
+              attributesToRetrieve: ['objectID', 'Source'],
+              batch: (batch: any[]) => {
+                for (const h of batch) {
+                  if (String(h?.Source) === sourceName) existingIds.push(String(h.objectID))
+                }
+              }
+            })
+            const toDelete = existingIds.filter((id) => !currentIds.has(id))
+            if (toDelete.length > 0) await index.deleteObjects(toDelete)
+            if (records.length > 0) await index.saveObjects(records, { autoGenerateObjectIDIfNotExist: false })
+          }
+        }
+      } catch (_) {
+        // Ne pas bloquer l'import si la synchro Algolia échoue
       }
 
       await supabase.from('data_imports').update({ status: 'completed', finished_at: new Date().toISOString(), processed: processed, inserted: inserted }).eq('id', importRecord.id)

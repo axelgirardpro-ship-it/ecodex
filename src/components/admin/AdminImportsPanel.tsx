@@ -35,7 +35,8 @@ export const AdminImportsPanel: React.FC = () => {
   const [jobs, setJobs] = React.useState<ImportJob[]>([]);
   const [loadingJobs, setLoadingJobs] = React.useState(false);
 
-  const [reindexing, setReindexing] = React.useState<null | 'public' | 'private' | 'all'>(null);
+  const [importStatus, setImportStatus] = React.useState<'idle'|'importing'|'success'|'error'>('idle');
+  const [importMessage, setImportMessage] = React.useState<string | null>(null);
 
   const downloadTemplate = () => {
     const headers = [
@@ -116,14 +117,20 @@ export const AdminImportsPanel: React.FC = () => {
       // 3) Import
       const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
       rows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
+      setImportStatus('importing');
+      setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
       const { data: importData, error: importErr } = await supabase.functions.invoke('import-csv', {
         body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
       });
       if (importErr) throw importErr;
       toast({ title: 'Import lancé', description: `Job: ${importData?.import_id || 'en file'}` });
+      setImportStatus('success');
+      setImportMessage('Import terminé. Indexation Algolia effectuée par source.');
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
+      setImportStatus('error');
+      setImportMessage(e?.message ? String(e.message) : 'Erreur lors de l\'import.');
     }
   };
 
@@ -139,31 +146,24 @@ export const AdminImportsPanel: React.FC = () => {
     try {
       const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
       mappingRows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
+      setImportStatus('importing');
+      setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
       const { data, error } = await supabase.functions.invoke('import-csv', {
         body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
       });
       if (error) throw error;
       toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });
+      setImportStatus('success');
+      setImportMessage('Import terminé. Indexation Algolia effectuée par source.');
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
+      setImportStatus('error');
+      setImportMessage(e?.message ? String(e.message) : 'Erreur lors de l\'import.');
     }
   };
 
-  const triggerReindex = async (kind: 'public' | 'private' | 'all') => {
-    try {
-      setReindexing(kind);
-      const { data, error } = await supabase.functions.invoke('reindex-ef-all', {
-        body: { index: kind, applySettings: true }
-      });
-      if (error) throw error;
-      toast({ title: 'Reindex terminé', description: JSON.stringify(data) });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erreur reindex', description: e.message || String(e) });
-    } finally {
-      setReindexing(null);
-    }
-  };
+  // Reindex manuel supprimé: l'indexation se fait automatiquement via Webhooks après import
 
   const loadJobs = React.useCallback(async () => {
     try {
@@ -205,11 +205,10 @@ export const AdminImportsPanel: React.FC = () => {
       <CardHeader>
         <CardTitle>Import de la base de facteurs (FR/EN)</CardTitle>
         <CardDescription>
-          Cet outil permet d\'uploader un CSV complet (supra‑admin) puis de lancer un reindex Algolia.
+          L\'indexation Algolia est automatique via Webhook après import.
           • Étape 1: Uploader le fichier vers le Storage.
           • Étape 2: Analyser pour détecter les sources et préparer le mapping (Standard/Premium, Global oui/non).
-          • Étape 3: Lancer l\'import.
-          • Étape 4: Reindex Algolia.
+          • Étape 3: Importer. La synchronisation Algolia par source s\'exécute automatiquement.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -379,27 +378,27 @@ export const AdminImportsPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Label>Algolia — Reindex</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Reconstruit la table de projection puis pousse vers l\'index unique `ef_all` via batch API. Utilisez "Reindex TOUT" après un import massif.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        {/* Statut visuel d'import/indexation */}
+        {importStatus !== 'idle' && (
+          <div className="space-y-2 p-4 border rounded-md">
+            {importStatus === 'importing' && (
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">{importMessage}</div>
+                <div className="w-full h-2 bg-muted rounded-md overflow-hidden">
+                  <div className="h-2 w-2/3 bg-primary animate-pulse" />
+                </div>
+              </div>
+            )}
+            {importStatus === 'success' && (
+              <div className="text-sm text-green-700">{importMessage}</div>
+            )}
+            {importStatus === 'error' && (
+              <div className="text-sm text-red-700">{importMessage}</div>
+            )}
           </div>
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">Lancer un reindex complet via replaceAllObjects (swap atomique). Les settings sont lus depuis Supabase Storage (<code>algolia_settings</code>).</div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => triggerReindex('all')} disabled={reindexing !== null}>{reindexing === 'all' ? 'Reindex tout...' : 'Reindex TOUT'}</Button>
-            </div>
-          </div>
-        </div>
+        )}
+
+        {/* Reindex manuel retiré: Webhook = auto-sync après import */}
       </CardContent>
     </Card>
   );
