@@ -343,11 +343,13 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                             <p className="text-2xl font-bold text-primary">
                               {hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq
                             </p>
-                            <div className="mt-2">
-                              <span className="text-sm font-semibold text-foreground">Unité</span>
-                              <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
-                            </div>
                           </PremiumBlur>
+                          <div className="mt-2">
+                            <span className="text-sm font-semibold text-foreground">Unité</span>
+                            <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                              <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
+                            </PremiumBlur>
+                          </div>
                         </div>
                         <div className="grid grid-cols-1 gap-3">
                           {((hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']) && (
@@ -387,30 +389,28 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t space-y-3">
-                          {hit.Description && (
+                          {(hit as any).Description_fr || (hit as any).Description_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Description</span>
-                              <PremiumBlur isBlurred={shouldBlur}>
-                                <div className="text-xs mt-1 text-break-words">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      a: ({ href, children, ...props }) => (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                          {children}
-                                        </a>
-                                      ),
-                                      p: ({ children, ...props }) => (
-                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                      )
-                                    }}
-                                  >
-                                    {hit.Description}
-                                  </ReactMarkdown>
-                                </div>
-                              </PremiumBlur>
+                              <div className="text-xs mt-1 text-break-words">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    a: ({ href, children, ...props }) => (
+                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                        {children}
+                                      </a>
+                                    ),
+                                    p: ({ children, ...props }) => (
+                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                    )
+                                  }}
+                                >
+                                  {((hit as any).Description_fr || (hit as any).Description_en) as string}
+                                </ReactMarkdown>
+                              </div>
                             </div>
-                          )}
+                          ) : null}
                           <div>
                             <span className="text-sm font-semibold text-foreground">Secteur</span>
                             <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
@@ -443,30 +443,28 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               </div>
                             </div>
                           )}
-                          {hit.Commentaires && (
+                          {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Commentaires</span>
-                              <PremiumBlur isBlurred={shouldBlur}>
-                                <div className="text-xs mt-1 text-break-words">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      a: ({ href, children, ...props }) => (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                          {children}
-                                        </a>
-                                      ),
-                                      p: ({ children, ...props }) => (
-                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                      )
-                                    }}
-                                  >
-                                    {hit.Commentaires}
-                                  </ReactMarkdown>
-                                </div>
-                              </PremiumBlur>
+                              <div className="text-xs mt-1 text-break-words">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    a: ({ href, children, ...props }) => (
+                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                        {children}
+                                      </a>
+                                    ),
+                                    p: ({ children, ...props }) => (
+                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                    )
+                                  }}
+                                >
+                                  {((hit as any).Commentaires_fr || (hit as any).Commentaires_en) as string}
+                                </ReactMarkdown>
+                              </div>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       )}
                     </div>
