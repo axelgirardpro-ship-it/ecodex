@@ -633,87 +633,77 @@ export const SearchResults: React.FC = () => {
                             {(hit.Description_fr || hit.Description_en) && (
                               <div>
                                 <span className="text-sm font-semibold text-indigo-950">Description</span>
-                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                  <div className="text-xs mt-1 text-break-words">
-                                    <ReactMarkdown 
-                                      remarkPlugins={[remarkGfm]}
-                                      components={{
-                                        a: ({ href, children, ...props }) => (
-                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                            {children}
-                                          </a>
-                                        ),
-                                        p: ({ children, ...props }) => (
-                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                        )
-                                      }}
-                                    >
-                                      {(hit.Description_fr || hit.Description_en) as string}
-                                    </ReactMarkdown>
-                                  </div>
-                                </PremiumBlur>
+                                <div className="text-xs mt-1 text-break-words">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      a: ({ href, children, ...props }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                          {children}
+                                        </a>
+                                      ),
+                                      p: ({ children, ...props }) => (
+                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                      )
+                                    }}
+                                  >
+                                    {(hit.Description_fr || hit.Description_en) as string}
+                                  </ReactMarkdown>
+                                </div>
                               </div>
                             )}
                              <div>
                                <span className="text-sm font-semibold text-indigo-950">Secteur</span>
-                               <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                 <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
-                               </PremiumBlur>
+                               <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
                              </div>
                             {hit.Incertitude && (
                               <div>
                                 <span className="text-sm font-semibold text-indigo-950">Incertitude</span>
-                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                  <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
-                                </PremiumBlur>
+                                <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
                               </div>
                             )}
                             {hit.Contributeur && (
                               <div>
                                 <span className="text-sm font-semibold text-indigo-950">Contributeur</span>
-                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                  <div className="text-xs mt-1 text-break-words">
-                                    <ReactMarkdown 
-                                      remarkPlugins={[remarkGfm]}
-                                      components={{
-                                        a: ({ href, children, ...props }) => (
-                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                            {children}
-                                          </a>
-                                        ),
-                                        p: ({ children, ...props }) => (
-                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                        )
-                                      }}
-                                    >
-                                      {hit.Contributeur}
-                                    </ReactMarkdown>
-                                  </div>
-                                </PremiumBlur>
+                                <div className="text-xs mt-1 text-break-words">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      a: ({ href, children, ...props }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                          {children}
+                                        </a>
+                                      ),
+                                      p: ({ children, ...props }) => (
+                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                      )
+                                    }}
+                                  >
+                                    {hit.Contributeur}
+                                  </ReactMarkdown>
+                                </div>
                               </div>
                             )}
                             {(hit.Commentaires_fr || hit.Commentaires_en) && (
                               <div>
                                 <span className="text-sm font-semibold text-indigo-950">Commentaires</span>
-                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                  <div className="text-xs mt-1 text-break-words">
-                                    <ReactMarkdown 
-                                      remarkPlugins={[remarkGfm]}
-                                      components={{
-                                        a: ({ href, children, ...props }) => (
-                                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                            {children}
-                                          </a>
-                                        ),
-                                        p: ({ children, ...props }) => (
-                                          <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                        )
-                                      }}
-                                    >
-                                        {(hit.Commentaires_fr || hit.Commentaires_en) as string}
-                                    </ReactMarkdown>
-                                  </div>
-                                </PremiumBlur>
+                                <div className="text-xs mt-1 text-break-words">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      a: ({ href, children, ...props }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                          {children}
+                                        </a>
+                                      ),
+                                      p: ({ children, ...props }) => (
+                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
+                                      )
+                                    }}
+                                  >
+                                      {(hit.Commentaires_fr || hit.Commentaires_en) as string}
+                                  </ReactMarkdown>
+                                </div>
                               </div>
                             )}
                           </div>

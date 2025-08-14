@@ -310,44 +310,39 @@ export const ResultsTable = ({
                     />
                   </TableCell>
                   <TableCell className="font-medium max-w-xs">
-                    <PremiumBlur 
-                      isBlurred={shouldBlurPremiumContent(item.source)}
-                      showUpgradeButton={false}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="truncate">{item.nom}</div>
-                        {(() => {
-                          const label = getSourceLabel(
-                            !!(item as any).workspace_id, 
-                            item.source
-                          );
-                          return label ? (
-                            <Badge variant={label.variant} className="text-xs">
-                              {label.label}
-                            </Badge>
-                          ) : null;
-                        })()}
+                    <div className="flex items-center gap-2">
+                      <div className="truncate">{item.nom}</div>
+                      {(() => {
+                        const label = getSourceLabel(
+                          !!(item as any).workspace_id, 
+                          item.source
+                        );
+                        return label ? (
+                          <Badge variant={label.variant} className="text-xs">
+                            {label.label}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </div>
+                    {item.description && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ href, children, ...props }) => (
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
+                                {children}
+                              </a>
+                            ),
+                            p: ({ children, ...props }) => (
+                              <span {...props}>{children}</span>
+                            )
+                          }}
+                        >
+                          {item.description}
+                        </ReactMarkdown>
                       </div>
-                      {item.description && (
-                        <div className="text-xs text-muted-foreground truncate">
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              a: ({ href, children, ...props }) => (
-                                <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
-                                  {children}
-                                </a>
-                              ),
-                              p: ({ children, ...props }) => (
-                                <span {...props}>{children}</span>
-                              )
-                            }}
-                          >
-                            {item.description}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </PremiumBlur>
+                    )}
                   </TableCell>
                   <TableCell>
                     <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
@@ -361,24 +356,21 @@ export const ResultsTable = ({
                       <Badge variant="secondary">{item.uniteActivite}</Badge>
                     </PremiumBlur>
                   </TableCell>
-                   <TableCell>
-                     <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
-                       <div className="flex items-center gap-2">
-                         {getSourceLogo(item.source) && (
-                           <img 
-                             src={getSourceLogo(item.source)!} 
-                             alt={`Logo ${item.source}`}
-                             className="w-6 h-6 object-contain"
-                             onError={(e) => {
-                               // Hide image if loading fails
-                               (e.target as HTMLImageElement).style.display = 'none';
-                             }}
-                           />
-                         )}
-                         <span>{item.source}</span>
-                       </div>
-                     </PremiumBlur>
-                   </TableCell>
+                 <TableCell>
+                   <div className="flex items-center gap-2">
+                     {getSourceLogo(item.source) && (
+                       <img 
+                         src={getSourceLogo(item.source)!} 
+                         alt={`Logo ${item.source}`}
+                         className="w-6 h-6 object-contain"
+                         onError={(e) => {
+                           (e.target as HTMLImageElement).style.display = 'none';
+                         }}
+                       />
+                     )}
+                     <span>{item.source}</span>
+                   </div>
+                 </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
                       <span>{item.localisation}</span>
@@ -430,11 +422,15 @@ export const ResultsTable = ({
                            </div>
                            <div>
                              <span className="font-medium">FE: </span>
-                             {item.fe}
+                             <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                               <span className="font-mono">{item.fe}</span>
+                             </PremiumBlur>
                            </div>
                            <div>
                              <span className="font-medium">Unité donnée d'activité: </span>
-                             {item.uniteActivite}
+                             <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                               <span>{item.uniteActivite}</span>
+                             </PremiumBlur>
                            </div>
                            <div>
                              <span className="font-medium">Source: </span>
