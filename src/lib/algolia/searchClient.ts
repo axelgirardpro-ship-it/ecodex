@@ -52,6 +52,10 @@ export function sanitizeFacetFilters(facetFilters: any): any {
       .filter((g) => g && (Array.isArray(g) ? g.length > 0 : true));
     return cleaned;
   }
+  // Si c'est une chaîne (cas marginal), la normaliser en un groupe unique
+  if (typeof facetFilters === 'string') {
+    return [[facetFilters]];
+  }
   return facetFilters;
 }
 

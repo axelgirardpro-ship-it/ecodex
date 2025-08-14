@@ -352,9 +352,14 @@ const OriginFilter: React.FC = () => {
 export const SearchFilters: React.FC = () => {
   // Sélecteur de langue local (évite de créer un widget RefinementList doublon)
   const [lang, setLang] = React.useState<'fr'|'en'>('fr');
-  const searchable = lang === 'fr'
-    ? ['Nom_fr','Description_fr','Commentaires_fr','Secteur_fr','Sous-secteur_fr','Périmètre_fr','Localisation_fr']
-    : ['Nom_en','Description_en','Commentaires_en','Secteur_en','Sous-secteur_en','Périmètre_en','Localisation_en'];
+  const searchable = React.useMemo(() => (
+    lang === 'fr'
+      ? ['Nom_fr','Description_fr','Commentaires_fr','Secteur_fr','Sous-secteur_fr','Périmètre_fr','Localisation_fr']
+      : ['Nom_en','Description_en','Commentaires_en','Secteur_en','Sous-secteur_en','Périmètre_en','Localisation_en']
+  ), [lang]);
+
+  const languageFacetFilters = React.useMemo(() => [[`languages:${lang}`]] as string[][], [lang]);
+  const languageFilterString = React.useMemo(() => `languages:${lang}`, [lang]);
 
   return (
     <Card className="bg-background border border-border">
@@ -364,7 +369,7 @@ export const SearchFilters: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Piloter facets & searchable côté requête */}
-        <Configure facets={['languages']} facetFilters={[[`languages:${lang}`]]} restrictSearchableAttributes={searchable} />
+        <Configure filters={languageFilterString} restrictSearchableAttributes={searchable} />
         {/* Langue - segmented control */}
         <div className="space-y-2">
           <div className="text-sm font-semibold text-primary">Langue</div>

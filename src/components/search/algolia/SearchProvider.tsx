@@ -142,6 +142,13 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
         const expandedPrivateFull: any[] = [];
         const expandedTeaser: any[] = [];
 
+        const combineFilters = (...parts: (string | undefined)[]) => {
+          const arr = parts.filter((p) => typeof p === 'string' && p.trim().length > 0) as string[];
+          if (arr.length === 0) return undefined;
+          if (arr.length === 1) return arr[0];
+          return arr.map((p) => `(${p})`).join(' AND ');
+        };
+
         for (const r of requests || []) {
           const baseParams = { ...(r.params || {}) };
           const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
@@ -154,14 +161,14 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           }
 
           if (reqOrigin === 'public') {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])] } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])] } });
+            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
           } else if (reqOrigin === 'private') {
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: privFilters } });
+            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
           } else {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: safeFacetFilters } });
-            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])] } });
-            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: privFilters } });
+            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: safeFacetFilters, filters: combineFilters(baseParams.filters) } });
+            expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
+            expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
           }
         }
 
