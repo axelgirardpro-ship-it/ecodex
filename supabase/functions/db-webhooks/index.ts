@@ -8,6 +8,8 @@ type DBEvent = {
   schema?: string
   record?: any
   old_record?: any
+  new?: any
+  old?: any
 }
 
 const corsHeaders = {
@@ -62,7 +64,7 @@ Deno.serve(async (req) => {
 
     for (const e of events) {
       const table = getTableName(e?.table)
-      const rec = e?.record || e?.old_record || {}
+      const rec = e?.record ?? e?.new ?? e?.old ?? e?.old_record ?? {}
       if (!table) continue
 
       if (table === 'emission_factors') {
