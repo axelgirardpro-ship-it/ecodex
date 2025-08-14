@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -309,7 +311,7 @@ export const ResultsTable = ({
                   </TableCell>
                   <TableCell className="font-medium max-w-xs">
                     <PremiumBlur 
-                      isBlurred={shouldBlurPremiumContent(item.source, (item as any).isPremiumSource)}
+                      isBlurred={shouldBlurPremiumContent(item.source)}
                       showUpgradeButton={false}
                     >
                       <div className="flex items-center gap-2">
@@ -317,8 +319,7 @@ export const ResultsTable = ({
                         {(() => {
                           const label = getSourceLabel(
                             !!(item as any).workspace_id, 
-                            item.source, 
-                            (item as any).isPremiumSource
+                            item.source
                           );
                           return label ? (
                             <Badge variant={label.variant} className="text-xs">
@@ -329,25 +330,39 @@ export const ResultsTable = ({
                       </div>
                       {item.description && (
                         <div className="text-xs text-muted-foreground truncate">
-                          {item.description}
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ href, children, ...props }) => (
+                                <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
+                                  {children}
+                                </a>
+                              ),
+                              p: ({ children, ...props }) => (
+                                <span {...props}>{children}</span>
+                              )
+                            }}
+                          >
+                            {item.description}
+                          </ReactMarkdown>
                         </div>
                       )}
                     </PremiumBlur>
                   </TableCell>
                   <TableCell>
-                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source, (item as any).isPremiumSource)}>
+                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
                       <Badge variant="outline" className="font-mono">
                         {typeof item.fe === 'number' ? parseFloat(item.fe.toFixed(4)).toLocaleString('fr-FR') : (typeof item.fe === 'string' ? parseFloat(parseFloat(item.fe).toFixed(4)).toLocaleString('fr-FR') : item.fe)}
                       </Badge>
                     </PremiumBlur>
                   </TableCell>
                   <TableCell>
-                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source, (item as any).isPremiumSource)}>
+                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
                       <Badge variant="secondary">{item.uniteActivite}</Badge>
                     </PremiumBlur>
                   </TableCell>
                    <TableCell>
-                     <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source, (item as any).isPremiumSource)}>
+                     <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
                        <div className="flex items-center gap-2">
                          {getSourceLogo(item.source) && (
                            <img 
@@ -437,10 +452,10 @@ export const ResultsTable = ({
                              <span className="font-medium">Date: </span>
                              {item.date}
                            </div>
-                           <div>
-                             <span className="font-medium">Localisation: </span>
-                             {item.localisation}
-                           </div>
+                            <div>
+                              <span className="font-medium">Localisation: </span>
+                              {item.localisation}
+                            </div>
                            <div>
                              <span className="font-medium">Incertitude: </span>
                              {item.incertitude || "N/A"}
@@ -449,21 +464,77 @@ export const ResultsTable = ({
                              <span className="font-medium">Périmètre: </span>
                              {item.perimetre || "N/A"}
                            </div>
-                           <div>
-                              <span className="text-sm font-medium">Contributeur: </span>
-                              <span className="text-xs">{item.contributeur || "N/A"}</span>
-                           </div>
-                           <div>
-                              <span className="text-sm font-medium">Commentaires: </span>
-                              <span className="text-xs">{item.commentaires || "N/A"}</span>
-                           </div>
-                         </div>
-                         {item.description && (
-                            <div className="text-sm">
-                              <span className="font-medium">Description: </span>
-                              <span className="text-xs">{item.description}</span>
+                            <div>
+                               <span className="text-sm font-medium">Contributeur: </span>
+                               <span className="text-xs">
+                                 {item.contributeur ? (
+                                   <ReactMarkdown 
+                                     remarkPlugins={[remarkGfm]}
+                                     components={{
+                                       a: ({ href, children, ...props }) => (
+                                         <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
+                                           {children}
+                                         </a>
+                                       ),
+                                       p: ({ children, ...props }) => (
+                                         <span {...props}>{children}</span>
+                                       )
+                                     }}
+                                   >
+                                     {item.contributeur}
+                                   </ReactMarkdown>
+                                 ) : (
+                                   "N/A"
+                                 )}
+                               </span>
                             </div>
-                         )}
+                            <div>
+                               <span className="text-sm font-medium">Commentaires: </span>
+                               <div className="text-xs">
+                                 {item.commentaires ? (
+                                   <ReactMarkdown 
+                                     remarkPlugins={[remarkGfm]}
+                                     components={{
+                                       a: ({ href, children, ...props }) => (
+                                         <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
+                                           {children}
+                                         </a>
+                                       ),
+                                       p: ({ children, ...props }) => (
+                                         <span {...props}>{children}</span>
+                                       )
+                                     }}
+                                   >
+                                     {item.commentaires}
+                                   </ReactMarkdown>
+                                 ) : (
+                                   "N/A"
+                                 )}
+                               </div>
+                            </div>
+                         </div>
+                          {item.description && (
+                             <div className="text-sm">
+                               <span className="font-medium">Description: </span>
+                               <div className="text-xs text-break-words">
+                                 <ReactMarkdown 
+                                   remarkPlugins={[remarkGfm]}
+                                   components={{
+                                     a: ({ href, children, ...props }) => (
+                                       <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800" {...props}>
+                                         {children}
+                                       </a>
+                                     ),
+                                     p: ({ children, ...props }) => (
+                                       <p className="leading-relaxed" {...props}>{children}</p>
+                                     )
+                                   }}
+                                 >
+                                   {item.description}
+                                 </ReactMarkdown>
+                               </div>
+                             </div>
+                          )}
                       </div>
                     </TableCell>
                   </TableRow>
