@@ -26,6 +26,11 @@ Deno.serve(async (req) => {
     const { data: userRes, error: userErr } = await supabase.auth.getUser(authHeader)
     if (userErr || !userRes?.user) return json(401, { error: 'Unauthorized' })
 
+    // Vérifier supra admin, comme dans manage-fe-source-assignments
+    const { data: isSupra, error: roleErr } = await supabase.rpc('is_supra_admin', { user_uuid: userRes.user.id })
+    if (roleErr) return json(500, { error: 'Authorization check failed' })
+    if (!isSupra) return json(403, { error: 'Access denied - supra admin required' })
+
     const body = await req.json()
     const workspaceId = body?.workspace_id as string
     const assigned = Array.isArray(body?.assigned) ? body.assigned as string[] : []
