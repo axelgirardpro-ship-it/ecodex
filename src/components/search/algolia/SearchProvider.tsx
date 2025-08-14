@@ -168,9 +168,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
         for (const r of requests || []) {
           const baseParams = { ...(r.params || {}) };
           const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-          let reqOrigin = resolveOrigin(baseParams);
-          // Forcer l'origine globale si sélectionnée
-          if (frozenOrigin !== 'all') reqOrigin = frozenOrigin;
+          // Toujours privilégier l'origine globale (évite tout résidu de paramètres)
+          const reqOrigin = frozenOrigin;
           const privFilters = buildPrivateFilters(wsId);
           if (import.meta.env.DEV) {
             console.log('[SearchProvider] resolveOrigin', { globalOrigin: frozenOrigin, ruleContexts: baseParams.ruleContexts, facetFilters: baseParams.facetFilters, resolved: reqOrigin });
@@ -182,7 +181,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           } else if (reqOrigin === 'private') {
             expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
           } else {
-            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: safeFacetFilters, filters: combineFilters(baseParams.filters) } });
+            // En mode "all", borner explicitement le flux public à scope:public pour garantir la séparation, même en local sans clés sécurisées
+            expandedPublicFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
             expandedTeaser.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:public'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters) } });
             expandedPrivateFull.push({ ...r, indexName: INDEX_ALL, params: { ...baseParams, facetFilters: [['scope:private'], ...(safeFacetFilters || [])], filters: combineFilters(baseParams.filters, privFilters) } });
           }
@@ -204,8 +204,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
         const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
         for (let i = 0, jPub = 0, jPriv = 0, jTeaser = 0; i < (requests || []).length; i++) {
           const originalParams = (requests || [])[i]?.params || {};
-          let mergeOrigin = resolveOrigin(originalParams);
-          if (frozenOrigin !== 'all') mergeOrigin = frozenOrigin;
+          // Toujours utiliser l'origine globale pour décider du merge
+          const mergeOrigin = frozenOrigin;
           if (mergeOrigin === 'public') {
             const publicFull = resPublicFull.results[jPub] || emptyRes; jPub++;
             const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
@@ -218,7 +218,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             const publicTeaser = (resTeaser as any).results?.[jTeaser] || emptyRes; jTeaser++;
             const mergedPublic = mergeFederatedPair(publicFull, publicTeaser);
             const privateResult = resPrivateFull.results[jPriv] || emptyRes; jPriv++;
-            merged.push(mergeFederatedPair(mergedPublic, privateResult));
+            // Additionner nbHits public+privé pour un comptage cohérent en mode "all"
+            merged.push(mergeFederatedPair(mergedPublic, privateResult, { sumNbHits: true }));
           }
         }
         if (import.meta.env.DEV) {

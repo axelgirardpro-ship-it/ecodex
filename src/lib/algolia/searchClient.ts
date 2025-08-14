@@ -39,15 +39,19 @@ export function resolveOrigin(params: any): Origin {
 
 export function sanitizeFacetFilters(facetFilters: any): any {
   if (!facetFilters) return facetFilters;
-  const isSourceIndex = (v: any) => typeof v === 'string' && v.startsWith('source_index:');
+  const isTechnicalFacet = (v: any) => {
+    if (typeof v !== 'string') return false;
+    // Retirer les facettes techniques pilotées par le provider
+    return v.startsWith('source_index:') || v.startsWith('scope:');
+  };
   if (Array.isArray(facetFilters)) {
     const cleaned = facetFilters
       .map((group) => {
         if (Array.isArray(group)) {
-          const g = group.filter((v) => !isSourceIndex(v));
+          const g = group.filter((v) => !isTechnicalFacet(v));
           return g.length > 0 ? g : null;
         }
-        return isSourceIndex(group) ? null : group;
+        return isTechnicalFacet(group) ? null : group;
       })
       .filter((g) => g && (Array.isArray(g) ? g.length > 0 : true));
     return cleaned;
@@ -116,14 +120,31 @@ export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { 
     return arr.length;
   };
 
-  const baseNbHits = options?.sumNbHits
-    ? getNbHits(a) + getNbHits(b)
-    : getNbHits(a);
-
+  const baseNbHits = options?.sumNbHits ? getNbHits(a) + getNbHits(b) : getNbHits(a);
   merged.nbHits = typeof baseNbHits === 'number' && isFinite(baseNbHits) ? baseNbHits : 0;
-  merged.nbPages = typeof a?.nbPages === 'number' ? a.nbPages : (typeof b?.nbPages === 'number' ? b.nbPages : 0);
-  merged.page = typeof a?.page === 'number' ? a.page : (typeof b?.page === 'number' ? b.page : 0);
-  merged.processingTimeMS = typeof a?.processingTimeMS === 'number' ? a.processingTimeMS : (typeof b?.processingTimeMS === 'number' ? b.processingTimeMS : 0);
+
+  // Recalculer nbPages si on somme les jeux, sinon conserver l'info du premier
+  const parseHitsPerPage = (paramsStr?: string): number | undefined => {
+    if (!paramsStr || typeof paramsStr !== 'string') return undefined;
+    const m = paramsStr.match(/(?:^|&)hitsPerPage=(\d+)(?:&|$)/);
+    if (!m) return undefined;
+    const v = Number(m[1]);
+    return Number.isFinite(v) ? v : undefined;
+  };
+  if (options?.sumNbHits) {
+    const hpp = parseHitsPerPage(a?.params) || parseHitsPerPage(b?.params) || 20;
+    merged.nbPages = Math.ceil((merged.nbHits || 0) / hpp);
+    // Page: conserver celle de la première réponse
+    merged.page = typeof a?.page === 'number' ? a.page : (typeof b?.page === 'number' ? b.page : 0);
+    // Processing time: max des deux
+    const ptA = typeof a?.processingTimeMS === 'number' ? a.processingTimeMS : 0;
+    const ptB = typeof b?.processingTimeMS === 'number' ? b.processingTimeMS : 0;
+    merged.processingTimeMS = Math.max(ptA, ptB);
+  } else {
+    merged.nbPages = typeof a?.nbPages === 'number' ? a.nbPages : (typeof b?.nbPages === 'number' ? b.nbPages : 0);
+    merged.page = typeof a?.page === 'number' ? a.page : (typeof b?.page === 'number' ? b.page : 0);
+    merged.processingTimeMS = typeof a?.processingTimeMS === 'number' ? a.processingTimeMS : (typeof b?.processingTimeMS === 'number' ? b.processingTimeMS : 0);
+  }
   merged.facets = mergeFacets(a?.facets, b?.facets);
   merged.facets_stats = a?.facets_stats || b?.facets_stats || null;
 

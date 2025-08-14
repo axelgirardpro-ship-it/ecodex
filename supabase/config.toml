@@ -77,3 +77,6 @@ vector_port = 54329
 
 [functions.import-csv]
 verify_jwt = true
+
+[functions.db-webhooks]
+verify_jwt = false

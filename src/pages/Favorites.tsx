@@ -12,6 +12,7 @@ import { useQuotaActions } from "@/hooks/useQuotaActions";
 
 // Import des composants Algolia
 import { FavorisSearchProvider } from "@/components/search/favoris/FavorisSearchProvider";
+import { OriginProvider } from "@/components/search/algolia/SearchProvider";
 import { FavorisSearchBox } from "@/components/search/favoris/FavorisSearchBox";
 import { FavorisSearchResults } from "@/components/search/favoris/FavorisSearchResults";
 import { SearchFilters } from "@/components/search/algolia/SearchFilters";
@@ -257,9 +258,11 @@ const Favorites = () => {
   }, [favorites]);
 
   return (
-    <FavorisSearchProvider favoriteIds={favoriteIds}>
-      <FavoritesAlgoliaContent />
-    </FavorisSearchProvider>
+    <OriginProvider>
+      <FavorisSearchProvider favoriteIds={favoriteIds}>
+        <FavoritesAlgoliaContent />
+      </FavorisSearchProvider>
+    </OriginProvider>
   );
 };
 
