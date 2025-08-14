@@ -49,16 +49,33 @@ Deno.serve(async (req) => {
       throw new Error(`waitTask timeout for ${taskID}`)
     }
 
-    // Auth minimale: exiger un Bearer; en prod on pourra réactiver un contrôle strict
-    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '')
-    if (!authHeader) return json(401, { error: 'Missing bearer token' })
+    // Auth minimale: JWT utilisateur/supra, secret interne, ou token service_role
+    const INTERNAL_CRON_SECRET = Deno.env.get('INTERNAL_CRON_SECRET') ?? ''
+    const internalHeader = req.headers.get('X-Internal-Secret') || ''
+    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '') || ''
+    const allowByInternal = Boolean(INTERNAL_CRON_SECRET && internalHeader && INTERNAL_CRON_SECRET === internalHeader)
+    const allowByServiceRole = Boolean(authHeader && authHeader === SUPABASE_SERVICE_ROLE_KEY)
+    if (!allowByInternal && !allowByServiceRole && !authHeader) return json(401, { error: 'Missing bearer token' })
 
     const body = await req.json().catch(()=>({})) as any
     const applySettings = body?.applySettings !== false
+    const mode: 'rebuild' | 'refresh' = body?.mode === 'rebuild' ? 'rebuild' : 'refresh'
 
-    // 1) rebuild projection (bilingue FR/EN si colonnes EN remplies)
-    const { error: rebuildErr } = await supabase.rpc('rebuild_emission_factors_all_search')
-    if (rebuildErr) return json(500, { step: 'rebuild', error: rebuildErr.message })
+    // 1) Rebuild complet ou refresh par source pour éviter les timeouts
+    if (mode === 'rebuild') {
+      const { error: rebuildErr } = await supabase.rpc('rebuild_emission_factors_all_search')
+      if (rebuildErr) return json(500, { step: 'rebuild', error: rebuildErr.message })
+    } else {
+      // Refresh par source (boucle) pour limiter la durée de chaque requête SQL
+      const { data: sources, error: srcErr } = await supabase.from('fe_sources').select('source_name')
+      if (srcErr) return json(500, { step: 'list_sources', error: srcErr.message })
+      for (const s of (sources || [])) {
+        const name = (s as any).source_name as string
+        if (!name) continue
+        const { error: rErr } = await supabase.rpc('refresh_projection_for_source_safe', { p_source: name })
+        if (rErr) return json(500, { step: 'refresh_source', source: name, error: rErr.message })
+      }
+    }
 
     // Quick count after rebuild (head count)
     const { error: headErr, count } = await supabase

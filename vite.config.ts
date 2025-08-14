@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Bypass navigateur pour /functions (préflight/CORS en dev)
+      '/functions/v1': {
+        target: 'https://wrodvaatdujbpfpvrzge.supabase.co',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),

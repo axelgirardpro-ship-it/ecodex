@@ -4,29 +4,29 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as 90693
+as $$
 begin
   perform public.refresh_ef_all_for_source(coalesce(new.source_name, old.source_name));
   return new;
-end; 90693;
+end; $$;
 
 create or replace function public.tr_refresh_projection_assignments()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
-as 90693
+as $$
 begin
   perform public.refresh_ef_all_for_source(coalesce(new.source_name, old.source_name));
   return new;
-end; 90693;
+end; $$;
 
 create or replace function public.tr_refresh_projection_emission_factors()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
-as 90693
+as $$
 declare
   v_source text;
 begin
@@ -35,7 +35,7 @@ begin
     perform public.refresh_ef_all_for_source(v_source);
   end if;
   return new;
-end; 90693;
+end; $$;
 
 -- Recréer les triggers pour pointer vers ces fonctions
 DROP TRIGGER IF EXISTS trg_fe_sources_refresh_projection ON public.fe_sources;

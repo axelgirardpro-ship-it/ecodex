@@ -12,7 +12,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { RoleGuard } from '@/components/ui/RoleGuard';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import type { AlgoliaHit } from '@/types/algolia';
 import { PremiumBlur } from '@/components/ui/PremiumBlur';
@@ -386,7 +385,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <PremiumBlur isBlurred={shouldBlur}>
                                 <div className="text-xs mt-1 text-break-words">
                                   <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
                                     components={{
                                       a: ({ href, children, ...props }) => (
                                         <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -419,7 +417,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <span className="text-sm font-semibold text-foreground">Contributeur</span>
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
                                       <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
@@ -442,7 +439,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <PremiumBlur isBlurred={shouldBlur}>
                                 <div className="text-xs mt-1 text-break-words">
                                   <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
                                     components={{
                                       a: ({ href, children, ...props }) => (
                                         <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>

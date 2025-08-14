@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { liteClient as algoliasearch, SearchResponse } from "algoliasearch/lite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useOrigin } from "@/components/search/algolia/SearchProvider";
+import { USE_SECURED_KEYS } from "@/config/featureFlags";
 
-const ALGOLIA_APPLICATION_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
-const ALGOLIA_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
-
-const algoliaClient = algoliasearch(ALGOLIA_APPLICATION_ID, ALGOLIA_SEARCH_API_KEY);
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
+const FALLBACK_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
 
 type HitMinimal = { Nom_fr?: string; Nom_en?: string };
 
@@ -26,6 +25,44 @@ export const useSuggestions = (searchQuery: string) => {
   const { currentWorkspace } = useWorkspace();
   const { origin } = useOrigin();
   const debug = (...args: any[]) => { if (import.meta.env.DEV) console.log('[useSuggestions]', ...args); };
+
+  // Clients sécurisés (public/private) pour les suggestions
+  const clientsRef = useRef<{ public: any; private: any } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      if (USE_SECURED_KEYS) {
+        try {
+          const wsId = currentWorkspace?.id;
+          const qs = wsId ? `?workspaceId=${encodeURIComponent(wsId)}` : '';
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token || '';
+          const res = await fetch(`/functions/v1/algolia-secure-key${qs}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const payload = await res.json();
+            if (!cancelled) {
+              clientsRef.current = {
+                public: algoliasearch(payload.appId, payload.fullPublic?.searchApiKey || payload.full?.searchApiKey),
+                private: algoliasearch(payload.appId, payload.fullPrivate?.searchApiKey || payload.full?.searchApiKey)
+              };
+            }
+            return;
+          }
+        } catch (e) {
+          if (import.meta.env.DEV) console.warn('[useSuggestions] secure key fetch failed', e);
+        }
+      }
+      // Fallback en DEV seulement
+      if (!cancelled && import.meta.env.DEV) {
+        clientsRef.current = {
+          public: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY),
+          private: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY)
+        };
+      }
+    }
+    init();
+    return () => { cancelled = true; };
+  }, [currentWorkspace?.id]);
 
   const fetchSuggestions = async (query: string) => {
     if (!query.trim()) return [] as SuggestionItem[];
@@ -68,12 +105,14 @@ export const useSuggestions = (searchQuery: string) => {
       }
 
       debug('query', { origin, query, wsId, publicFilters, privateFilters, requests });
-      const { results } = (await algoliaClient.search(requests)) as MultiSearchResults;
+      const clients = clientsRef.current;
+      if (!clients) return [] as SuggestionItem[];
+      // Public et privé doivent être cherché avec les clients correspondants
+      const resPublic = (origin === 'private') ? { results: [] } as any : await clients.public.search([requests[0]].filter(Boolean));
+      const resPrivate = (origin === 'public') ? { results: [] } as any : await clients.private.search([requests[origin==='all' ? 1 : 0]].filter(Boolean));
 
-      const hitsPublic = (origin === 'private') ? [] : (results?.[0]?.hits || []);
-      const hitsPrivate = (origin === 'all') ? (results?.[1]?.hits || [])
-        : (origin === 'private') ? (results?.[0]?.hits || [])
-        : [];
+      const hitsPublic = (origin === 'private') ? [] : ((resPublic?.results?.[0]?.hits || []) as SearchResponse<HitMinimal>["hits"]);
+      const hitsPrivate = (origin === 'public') ? [] : ((resPrivate?.results?.[0]?.hits || []) as SearchResponse<HitMinimal>["hits"]);
 
       const map = new Map<string, boolean>();
       const labelFrom = (h: HitMinimal) => h.Nom_fr || h.Nom_en || '';
