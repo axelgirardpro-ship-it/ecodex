@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useOrigin } from "@/components/search/algolia/SearchProvider";
 import { USE_SECURED_KEYS } from "@/config/featureFlags";
+import { createProxyClient } from "@/lib/algolia/proxySearchClient";
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
@@ -41,31 +42,12 @@ export const useSuggestions = (searchQuery: string) => {
         }
         return;
       }
-      if (USE_SECURED_KEYS) {
-        try {
-          const wsId = currentWorkspace?.id;
-          const qs = wsId ? `?workspaceId=${encodeURIComponent(wsId)}` : '';
-          const { data: { session } } = await supabase.auth.getSession();
-          const token = session?.access_token || '';
-          const res = await fetch(`/functions/v1/algolia-secure-key${qs}`, { headers: { Authorization: `Bearer ${token}` } });
-          if (res.ok) {
-            const payload = await res.json();
-            if (!cancelled) {
-              clientsRef.current = {
-                public: algoliasearch(payload.appId, payload.fullPublic?.searchApiKey || payload.full?.searchApiKey),
-                private: algoliasearch(payload.appId, payload.fullPrivate?.searchApiKey || payload.full?.searchApiKey)
-              };
-            }
-            return;
-          }
-        } catch (e) {
-          if (import.meta.env.DEV) console.warn('[useSuggestions] secure key fetch failed', e);
-        }
-      }
-      if (!cancelled && import.meta.env.DEV) {
+      
+      // Utiliser le proxy de recherche sécurisé au lieu des clés directes
+      if (!cancelled) {
         clientsRef.current = {
-          public: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY),
-          private: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_API_KEY)
+          public: createProxyClient('fullPublic'),
+          private: createProxyClient('fullPrivate')
         };
       }
     }

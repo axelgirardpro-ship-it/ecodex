@@ -8,6 +8,7 @@ import { INDEX_ALL } from '@/config/search';
 import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair, buildPrivateFilters, type Origin } from '@/lib/algolia/searchClient';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { USE_SECURED_KEYS } from '@/config/featureFlags';
+import { createProxyClient } from '@/lib/algolia/proxySearchClient';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
@@ -28,32 +29,15 @@ function useDualAlgoliaClients(workspaceId?: string) {
         }
         return;
       }
-      if (USE_SECURED_KEYS) {
-        try {
-          const body = workspaceId ? { workspaceId } : {} as any;
-          const { data, error } = await supabase.functions.invoke('algolia-secure-key', { body });
-          if (error) throw error;
-          const payload: any = data || {};
-          if (!cancelled && payload?.appId) {
-            setClients({
-              fullPublic: algoliasearch(payload.appId, payload.fullPublic?.searchApiKey || payload.full?.searchApiKey),
-              fullPrivate: algoliasearch(payload.appId, payload.fullPrivate?.searchApiKey || payload.full?.searchApiKey),
-              teaser: algoliasearch(payload.appId, payload.teaserPublic?.searchApiKey || payload.teaser?.searchApiKey)
-            });
-            return;
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setClients({
-              fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
-              fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
-              teaser: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
-            });
-            return;
-          }
-        }
+      
+      // Utiliser le proxy de recherche sécurisé au lieu des clés directes
+      if (!cancelled) {
+        setClients({
+          fullPublic: createProxyClient('fullPublic'),
+          fullPrivate: createProxyClient('fullPrivate'),
+          teaser: createProxyClient('teaserPublic')
+        });
       }
-      // En prod cloud sans clés sécurisées: ne rien initialiser pour forcer l'erreur visible plutôt que du faux positif
     }
     init();
     return () => { cancelled = true; };

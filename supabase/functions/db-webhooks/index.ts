@@ -106,9 +106,12 @@ Deno.serve(async (req) => {
             .upsert({ source_name: sourceName, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
         } catch (_) { /* best-effort */ }
 
-        const { default: algoliasearch } = await import('https://esm.sh/algoliasearch@5?target=deno')
-        const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY)
-        const index = client.initIndex(ALGOLIA_INDEX_ALL)
+        // Utiliser l'API REST Algolia directement avec fetch (compatible Deno/Edge Functions)
+        const algoliaHeaders = {
+          'X-Algolia-API-Key': ALGOLIA_ADMIN_KEY,
+          'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+          'Content-Type': 'application/json'
+        }
 
         // Projection à jour
         await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
@@ -122,20 +125,62 @@ Deno.serve(async (req) => {
         const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
         const currentIds = new Set(records.map((r: any) => r.objectID))
 
-        // Récupérer les objectID existants pour cette Source sans dépendre des facets
+        // Récupérer les objectID existants pour cette Source via API REST
         const existingIds: string[] = []
-        await index.browseObjects({
+        const searchUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/query`
+        const searchBody = {
           query: '',
+          filters: `Source:"${sourceName}"`,
           attributesToRetrieve: ['objectID', 'Source'],
-          batch: (batch: any[]) => {
-            for (const h of batch) {
-              if (String(h?.Source) === sourceName) existingIds.push(String(h.objectID))
-            }
-          }
+          hitsPerPage: 1000
+        }
+        
+        const searchResponse = await fetch(searchUrl, {
+          method: 'POST',
+          headers: algoliaHeaders,
+          body: JSON.stringify(searchBody)
         })
+        
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json()
+          if (searchData.hits) {
+            searchData.hits.forEach((hit: any) => {
+              existingIds.push(String(hit.objectID))
+            })
+          }
+        }
         const toDelete = existingIds.filter((id) => !currentIds.has(id))
-        if (toDelete.length > 0) await index.deleteObjects(toDelete)
-        if (records.length > 0) await index.saveObjects(records, { autoGenerateObjectIDIfNotExist: false })
+        
+        // Supprimer les objets obsolètes via API REST
+        if (toDelete.length > 0) {
+          const deleteUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/deleteByQuery`
+          const deleteBody = {
+            filters: `Source:"${sourceName}" AND objectID:${toDelete.map(id => `"${id}"`).join(' OR objectID:')}`
+          }
+          
+          await fetch(deleteUrl, {
+            method: 'POST',
+            headers: algoliaHeaders,
+            body: JSON.stringify(deleteBody)
+          })
+        }
+        
+        // Sauvegarder les nouveaux objets via API REST
+        if (records.length > 0) {
+          const saveUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/batch`
+          const saveBody = {
+            requests: records.map((record: any) => ({
+              action: 'updateObject',
+              body: record
+            }))
+          }
+          
+          await fetch(saveUrl, {
+            method: 'POST',
+            headers: algoliaHeaders,
+            body: JSON.stringify(saveBody)
+          })
+        }
         return 'ok'
       } catch (e) {
         console.error('[db-webhooks] sync error', String(e))
