@@ -8,7 +8,7 @@ import { INDEX_ALL } from '@/config/search';
 import { VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, resolveOrigin, mergeFederatedPair, buildFavoriteIdsFilter, buildPublicFiltersBySources, buildPrivateFilters, type Origin } from '@/lib/algolia/searchClient';
 import { useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
-import { USE_SECURED_KEYS, DEBUG_MULTI_INDEX } from '@/config/featureFlags';
+import { DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 import { createProxyClient } from '@/lib/algolia/proxySearchClient';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';

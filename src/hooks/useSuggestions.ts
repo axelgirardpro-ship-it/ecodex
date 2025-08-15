@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useOrigin } from "@/components/search/algolia/SearchProvider";
-import { USE_SECURED_KEYS } from "@/config/featureFlags";
+
 import { createProxyClient } from "@/lib/algolia/proxySearchClient";
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';

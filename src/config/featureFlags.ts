@@ -1,10 +1,6 @@
 /**
- * Feature flags pour le rollout progressif du multi-index
- * Permet d'activer/désactiver les nouvelles fonctionnalités sans redéploiement
+ * Feature flags pour la configuration de l'application
  */
-
-// Clés Algolia sécurisées par workspace (par défaut true en production)
-export const USE_SECURED_KEYS = (!!import.meta.env.PROD) || (import.meta.env.VITE_USE_SECURED_KEYS === 'true');
 
 // Recherche fédérée sur ef_public_fr + ef_private_fr (false = index actuel)
 export const USE_FEDERATED_SEARCH = import.meta.env.VITE_USE_FEDERATED_SEARCH === 'true';
@@ -17,8 +13,7 @@ export const DEBUG_MULTI_INDEX = import.meta.env.VITE_DEBUG_MULTI_INDEX === 'tru
 
 // Log l'état des feature flags en mode développement
 if (import.meta.env.DEV && DEBUG_MULTI_INDEX) {
-  console.log('🚀 Feature flags multi-index:', {
-    USE_SECURED_KEYS,
+  console.log('🚀 Feature flags:', {
     USE_FEDERATED_SEARCH,
     NEW_ADMIN_IMPORT,
     DEBUG_MULTI_INDEX
