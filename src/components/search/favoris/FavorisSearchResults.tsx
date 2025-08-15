@@ -185,6 +185,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const handleRemoveSelected = () => {
     if (onRemoveSelectedFromFavorites) {
       const selectedIds = Array.from(selectedItems);
+      // Forcer le rafraîchissement d'InstantSearch après la suppression
       onRemoveSelectedFromFavorites(selectedIds);
     }
   };
