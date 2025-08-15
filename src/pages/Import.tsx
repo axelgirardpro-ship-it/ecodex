@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
 const Import = () => {
@@ -27,6 +28,7 @@ const Import = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { canImportData } = usePermissions();
+  const { addToFavorites: addItemToFavorites } = useFavorites();
 
   const downloadTemplate = () => {
     const headers = [
@@ -162,8 +164,18 @@ const Import = () => {
         await supabase
           .from('fe_sources')
           .upsert({ source_name: dataset.name, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
-      } catch (_) {
-        // non bloquant
+        
+        // IMPORTANT: Assigner automatiquement la source au workspace pour éviter le floutage
+        await supabase
+          .from('fe_source_workspace_assignments')
+          .upsert({ 
+            source_name: dataset.name, 
+            workspace_id: currentWorkspace.id,
+            assigned_by: user.id
+          }, { onConflict: 'source_name,workspace_id' })
+      } catch (error) {
+        console.warn('Erreur assignation source au workspace:', error)
+        // non bloquant mais important pour éviter le floutage
       }
 
       // Traiter et insérer les facteurs d'émissions
@@ -214,6 +226,49 @@ const Import = () => {
         setIndexingStatus("success")
       } catch (_) {
         setIndexingStatus("error")
+      }
+
+      // Ajouter automatiquement aux favoris si demandé
+      if (addToFavorites && insertedFactors && insertedFactors.length > 0) {
+        try {
+          let addedToFavorites = 0;
+          for (const factor of insertedFactors) {
+            try {
+              // Convertir le facteur au format EmissionFactor attendu par le contexte
+              const emissionFactor = {
+                id: factor.id,
+                nom: factor.Nom || '',
+                description: factor.Description || '',
+                fe: factor.FE || 0,
+                uniteActivite: factor["Unité donnée d'activité"] || '',
+                source: factor.Source || '',
+                secteur: factor.Secteur || '',
+                sousSecteur: factor["Sous-secteur"] || '',
+                localisation: factor.Localisation || '',
+                date: factor.Date || new Date().getFullYear(),
+                incertitude: factor.Incertitude || '',
+                perimetre: factor.Périmètre || '',
+                contributeur: factor.Contributeur || '',
+                commentaires: factor.Commentaires || ''
+              };
+              
+              await addItemToFavorites(emissionFactor);
+              addedToFavorites++;
+            } catch (favError) {
+              console.warn('Erreur ajout favori:', favError);
+              // Continue avec les autres éléments
+            }
+          }
+          
+          if (addedToFavorites > 0) {
+            toast({
+              title: "Favoris ajoutés",
+              description: `${addedToFavorites} éléments ajoutés aux favoris.`,
+            });
+          }
+        } catch (error) {
+          console.warn('Erreur ajout favoris global:', error);
+        }
       }
 
       setUploadProgress(100);
