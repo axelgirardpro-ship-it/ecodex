@@ -73,7 +73,14 @@ export const AdminImportsPanel: React.FC = () => {
     try {
       setUploading(true);
       setProgress(0);
-      const path = `imports/${Date.now()}_${file.name}`;
+      
+      // Nettoyer le nom de fichier pour éviter les caractères problématiques
+      const sanitizedFileName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_')  // Remplace caractères spéciaux par _
+        .replace(/_{2,}/g, '_')           // Évite les _ multiples
+        .substring(0, 100);               // Limite la longueur
+      
+      const path = `${Date.now()}_${sanitizedFileName}`;
       const { error } = await supabase.storage.from('imports').upload(path, file, { upsert: true });
       if (error) throw error;
       setFilePath(path);
