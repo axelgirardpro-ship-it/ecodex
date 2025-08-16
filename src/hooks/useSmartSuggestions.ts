@@ -52,6 +52,12 @@ export const useSmartSuggestions = (
 
   // Préchargement des préfixes populaires
   useEffect(() => {
+    // Désactiver le préchargement en développement si Algolia peut être bloqué
+    if (import.meta.env.DEV) {
+      console.log('🔄 Préchargement suggestions désactivé en développement');
+      return;
+    }
+    
     if (enablePreloading && recentSearches && recentSearches.length > 0) {
       smartSuggestionManager.preloadPopularPrefixes(recentSearches.slice(0, 10));
     }
@@ -59,6 +65,14 @@ export const useSmartSuggestions = (
 
   // Fonction de récupération des suggestions
   const fetchSuggestions = useCallback(async (searchQuery: string) => {
+    // Désactiver les suggestions en développement si Algolia bloqué
+    if (import.meta.env.DEV) {
+      console.log('🔄 Suggestions désactivées en développement');
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
+    
     const currentRequestId = ++requestCounterRef.current;
     
     try {
@@ -88,6 +102,12 @@ export const useSmartSuggestions = (
 
   // Debounced fetch
   const debouncedFetch = useCallback((searchQuery: string) => {
+    // Désactiver les suggestions en développement si Algolia bloqué
+    if (import.meta.env.DEV) {
+      console.log('🔄 Debounced suggestions désactivé en développement');
+      return;
+    }
+    
     // Nettoyer le timeout précédent
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -158,6 +178,12 @@ export const useSmartSuggestions = (
 
   // Précharger des suggestions pour une requête donnée
   const preloadSuggestions = useCallback((targetQuery: string) => {
+    // Désactiver le préchargement en développement si Algolia bloqué
+    if (import.meta.env.DEV) {
+      console.log('🔄 Préchargement suggestions désactivé en développement');
+      return;
+    }
+    
     smartSuggestionManager.getSuggestions(targetQuery, maxSuggestions);
   }, [maxSuggestions]);
 
