@@ -1,4 +1,18 @@
+// Edge Function pour Supabase - Compatible Deno Runtime
+// @ts-ignore - Import ESM valide pour Deno/Edge Functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Types pour l'environnement Deno/Edge Functions
+interface DenoEnv {
+  get(key: string): string | undefined;
+}
+
+interface DenoGlobal {
+  env: DenoEnv;
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+}
+
+declare const Deno: DenoGlobal;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -171,7 +185,7 @@ Deno.serve(async (req) => {
           return Number.isFinite(n) ? n : null
         }
 
-        const versionId = (globalThis.crypto?.randomUUID?.() as string) || '00000000-0000-0000-0000-000000000000'
+        const versionId = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`
 
         const record: any = {
           factor_key: factorKey,
