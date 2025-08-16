@@ -74,36 +74,51 @@ export const AdminImportsPanel: React.FC = () => {
       setUploading(true);
       setProgress(0);
       
-      // Nettoyer le nom de fichier pour éviter les caractères problématiques
-      // Remplacer TOUS les caractères spéciaux (y compris les tirets) par des underscores
-      const sanitizedFileName = file.name
-        .replace(/[^a-zA-Z0-9.]/g, '_')   // Remplace caractères spéciaux ET tirets par _
-        .replace(/_{2,}/g, '_')           // Évite les _ multiples
-        .replace(/^_+|_+$/g, '')          // Supprime les _ en début/fin
-        .substring(0, 80);                // Limite la longueur
+      // Debug : Analyser le nom de fichier original en détail
+      console.log('🔍 Analyse filename original:', {
+        name: file.name,
+        length: file.name.length,
+        charCodes: file.name.split('').map(char => `${char}(${char.charCodeAt(0)})`),
+        hasNonAscii: /[^\x00-\x7F]/.test(file.name),
+        hasSpaces: file.name.includes(' '),
+        hasDashes: file.name.includes('-'),
+        hasSpecialChars: /[^a-zA-Z0-9.-]/.test(file.name)
+      });
+
+      // Sanitization ultra-agressive pour Supabase Storage
+      let cleanFileName = file.name
+        .normalize('NFD')                     // Décomposer les accents
+        .replace(/[\u0300-\u036f]/g, '')      // Supprimer les accents
+        .toLowerCase()                        // Tout en minuscules
+        .replace(/[^a-z0-9.]/g, '_')         // SEULEMENT lettres, chiffres, points
+        .replace(/_{2,}/g, '_')              // Pas de _ multiples
+        .replace(/^_+|_+$/g, '')             // Pas de _ début/fin
+        .substring(0, 50);                   // Limite plus stricte
+
+      // Forcer extension .csv sans duplication
+      if (!cleanFileName.endsWith('.csv')) {
+        cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + '.csv';
+      }
       
-      // S'assurer que le fichier se termine par .csv (sans duplication)
-      const finalFileName = sanitizedFileName.endsWith('.csv') 
-        ? sanitizedFileName 
-        : sanitizedFileName.replace(/\.[^.]*$/, '') + '.csv';
+      // Path final avec timestamp
+      const finalPath = `${Date.now()}_${cleanFileName}`;
       
-      const path = `${Date.now()}_${finalFileName}`;
-      
-      // Debug: Afficher le nom final dans la console pour vérifier
-      console.log('🔍 Debug upload:', {
-        original: file.name,
-        sanitized: sanitizedFileName,
-        final: finalFileName,
-        path: path
+      // Debug complet de la transformation
+      console.log('🔍 Debug transformation complète:', {
+        '1_original': file.name,
+        '2_clean': cleanFileName,
+        '3_finalPath': finalPath,
+        '4_pathLength': finalPath.length,
+        '5_onlyAllowedChars': /^[a-z0-9_.]+$/.test(finalPath)
       });
       
-      const { error } = await supabase.storage.from('imports').upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from('imports').upload(finalPath, file, { upsert: true });
       if (error) throw error;
-      setFilePath(path);
+      setFilePath(finalPath);
       setProgress(100);
       setAnalysisDone(false);
       setMappingRows([]);
-      toast({ title: 'Upload terminé', description: path });
+      toast({ title: 'Upload terminé', description: finalPath });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur upload', description: e.message || String(e) });
     } finally {
