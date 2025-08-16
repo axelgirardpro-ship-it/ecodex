@@ -16,6 +16,7 @@ import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
+import { StorageBucketDebug } from "@/components/admin/StorageBucketDebug";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -101,7 +102,10 @@ const Admin = () => {
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>
-            <AdminImportsPanel />
+            <div className="space-y-4">
+              <StorageBucketDebug />
+              <AdminImportsPanel />
+            </div>
           </div>
 
           {/* Supra Admin Creation */}
