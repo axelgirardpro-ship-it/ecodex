@@ -28,16 +28,9 @@ export const StorageBucketDebug: React.FC = () => {
 
       setBuckets(bucketsData || []);
       
-      // Vérifier les politiques storage
-      const { data: policiesData, error: policiesError } = await supabase
-        .from('pg_policies')
-        .select('*')
-        .like('tablename', 'objects')
-        .like('policyname', '%imports%');
-
-      if (!policiesError) {
-        setPolicies(policiesData || []);
-      }
+      // Les politiques ne sont pas accessibles via l'API REST
+      // On va juste indiquer qu'elles doivent être créées via migration
+      setPolicies([]);
 
       toast({
         title: "Diagnostic terminé",
@@ -59,34 +52,11 @@ export const StorageBucketDebug: React.FC = () => {
     try {
       setLoading(true);
       
-      // Créer le bucket imports via l'API Storage
-      const { data, error } = await supabase
-        .storage
-        .createBucket('imports', { 
-          public: false,
-          allowedMimeTypes: ['text/csv', 'application/csv'],
-          fileSizeLimit: 52428800 // 50MB
-        });
-
-      if (error) {
-        // Si le bucket existe déjà, ce n'est pas grave
-        if (error.message.includes('already exists')) {
-          toast({
-            title: "Bucket existe déjà",
-            description: "Le bucket 'imports' existe déjà en production"
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        toast({
-          title: "Bucket créé !",
-          description: "Le bucket 'imports' a été créé avec succès"
-        });
-      }
-
-      // Recharger la liste des buckets
-      await checkBuckets();
+      toast({
+        variant: "destructive",
+        title: "Création bucket impossible",
+        description: "La création de bucket nécessite des permissions élevées. Le bucket doit être créé via la migration SQL ou le dashboard Supabase."
+      });
 
     } catch (error: any) {
       toast({
@@ -147,9 +117,6 @@ export const StorageBucketDebug: React.FC = () => {
           <Button onClick={checkBuckets} disabled={loading}>
             {loading ? "Diagnostic..." : "Vérifier Buckets"}
           </Button>
-          <Button onClick={createImportsBucket} disabled={loading} variant="secondary">
-            Créer Bucket Imports
-          </Button>
           <Button onClick={testUpload} disabled={loading} variant="outline">
             Test Upload
           </Button>
@@ -181,17 +148,44 @@ export const StorageBucketDebug: React.FC = () => {
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div><strong>URL d'erreur analysée:</strong></div>
-          <div className="font-mono bg-red-50 p-2 rounded text-red-700">
-            POST /storage/v1/object/imports/1755363317664_export_algolia_COMBINED_2025-08-14_20-07-_export_algolia_COMBINED_2025-08.csv
+        <div className="text-xs text-muted-foreground space-y-2">
+          <div><strong>Diagnostic de l'erreur 400 Bad Request:</strong></div>
+          
+          {buckets.find(b => b.id === 'imports') ? (
+            <div className="bg-green-50 p-2 rounded text-green-700">
+              ✅ Bucket 'imports' trouvé ! Le problème vient d'ailleurs.
+            </div>
+          ) : (
+            <div className="bg-red-50 p-2 rounded text-red-700">
+              ❌ Bucket 'imports' manquant ! C'est la cause du problème.
+            </div>
+          )}
+
+          <div><strong>Solutions pour créer le bucket 'imports':</strong></div>
+          <div className="bg-blue-50 p-3 rounded space-y-2">
+            <div><strong>Option 1: Via Supabase Dashboard</strong></div>
+            <ol className="list-decimal list-inside text-xs space-y-1 ml-2">
+              <li>Aller sur <a href="https://supabase.com/dashboard/project/wrodvaatdujbpfpvrzge/storage/buckets" target="_blank" className="text-blue-600 underline">dashboard.supabase.com</a></li>
+              <li>Section Storage → Buckets</li>
+              <li>Cliquer "New bucket"</li>
+              <li>Nom: <code className="bg-gray-200 px-1 rounded">imports</code></li>
+              <li>Public: <code className="bg-gray-200 px-1 rounded">Non</code></li>
+              <li>File size limit: <code className="bg-gray-200 px-1 rounded">50MB</code></li>
+              <li>Allowed MIME types: <code className="bg-gray-200 px-1 rounded">text/csv</code></li>
+            </ol>
+            
+            <div className="mt-2"><strong>Option 2: Via SQL (recommandé)</strong></div>
+            <div className="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono">
+              {`-- Créer le bucket
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('imports', 'imports', false);
+
+-- Créer les politiques pour supra admins
+CREATE POLICY "Supra admins can manage imports" 
+ON storage.objects FOR ALL 
+USING (bucket_id = 'imports' AND is_supra_admin());`}
+            </div>
           </div>
-          <div><strong>Problèmes identifiés:</strong></div>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Le bucket 'imports' pourrait ne pas exister</li>
-            <li>Les politiques RLS pourraient être manquantes</li>
-            <li>Le nom de fichier contient encore des caractères problématiques</li>
-          </ul>
         </div>
       </CardContent>
     </Card>
