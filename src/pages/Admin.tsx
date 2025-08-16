@@ -17,6 +17,7 @@ import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
 import { StorageBucketDebug } from "@/components/admin/StorageBucketDebug";
+import { AlgoliaPerformanceDashboard } from "@/components/admin/AlgoliaPerformanceDashboard";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -99,6 +100,12 @@ const Admin = () => {
           <FeSourcesProvider>
             <SourcesPanel />
           </FeSourcesProvider>
+
+          {/* Performance Algolia Dashboard */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Performance Algolia</h2>
+            <AlgoliaPerformanceDashboard />
+          </div>
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>

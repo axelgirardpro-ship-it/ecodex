@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchBox, useStats, useHits } from 'react-instantsearch';
-import { Search, X, Clock } from "lucide-react";
+import { Search, X, Clock, Zap } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useSuggestions, SuggestionItem } from '@/hooks/useSuggestions';
+import { useSearchBoxSuggestions } from '@/hooks/useSmartSuggestions';
 import { useOrigin } from '@/components/search/algolia/SearchProvider';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,19 @@ export const SearchBox: React.FC = () => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
   const { hits } = useHits();
-  const { suggestions, recentSearches } = useSuggestions(query);
+  const { 
+    highlightedSuggestions, 
+    groupedSuggestions, 
+    loading: suggestionsLoading,
+    isRecentSearches,
+    getCacheStats
+  } = useSearchBoxSuggestions(query, origin, {
+    maxSuggestions: 8,
+    enablePreloading: true,
+    showCategories: true,
+    groupByCategory: true,
+    highlightMatches: true
+  });
   const { origin } = useOrigin();
   const { recordSearch } = useSearchHistory();
   
@@ -21,8 +33,14 @@ export const SearchBox: React.FC = () => {
 
   // Logs de debug pour traquer les hints vs origine
   React.useEffect(() => {
-    console.log('[SearchBox] render', { origin, query, suggestions: suggestions.length, recent: recentSearches.length });
-  }, [origin, query, suggestions, recentSearches]);
+    console.log('[OptimizedSearchBox] render', { 
+      origin, 
+      query, 
+      suggestions: highlightedSuggestions.length, 
+      isRecentSearches,
+      cacheStats: getCacheStats()
+    });
+  }, [origin, query, highlightedSuggestions, isRecentSearches, getCacheStats]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -94,49 +112,103 @@ export const SearchBox: React.FC = () => {
           </Button>
         </div>
 
-        {showSuggestions && (suggestions.length > 0 || recentSearches.length > 0) && (
+        {showSuggestions && (highlightedSuggestions.length > 0) && (
           <div className="absolute top-full left-0 right-[200px] bg-white border border-white/20 rounded-xl shadow-xl z-50 mt-2">
-            {suggestions.length > 0 && (
-              <>
-                <div className="p-3 text-sm text-indigo-950/70 border-b border-white/20 bg-white font-montserrat">
-                  Suggestions
-                </div>
-                <div className="max-h-40 overflow-y-auto bg-white">
-                  {suggestions.map((s: SuggestionItem, index) => (
-                    <button 
-                      key={`suggestion-${index}`} 
-                      onClick={() => handleSuggestionClick(s.label)} 
-                      className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white font-montserrat flex items-center gap-2"
-                    >
-                      <span className="truncate flex-1">{s.label}</span>
-                      {s.isPrivate && (
-                        <Badge variant="secondary" className="text-[10px] leading-none px-2 py-0.5">
-                          FE importé
-                        </Badge>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
+            {suggestionsLoading && (
+              <div className="p-3 text-sm text-indigo-950/70 border-b border-white/20 bg-white font-montserrat flex items-center gap-2">
+                <Zap className="h-3 w-3 animate-pulse" />
+                Recherche optimisée...
+              </div>
             )}
             
-            {recentSearches.length > 0 && (
+            {isRecentSearches ? (
               <>
                 <div className="p-3 text-sm text-indigo-950/70 border-b border-white/20 bg-white flex items-center gap-2 font-montserrat">
                   <Clock className="h-3 w-3" />
                   Recherches récentes
                 </div>
                 <div className="max-h-32 overflow-y-auto bg-white">
-                  {recentSearches.map((search, index) => (
+                  {highlightedSuggestions.map((suggestion, index) => (
                     <button 
                       key={`recent-${index}`} 
-                      onClick={() => handleSuggestionClick(search)} 
+                      onClick={() => handleSuggestionClick(suggestion.label)} 
                       className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white flex items-center gap-2 font-montserrat"
                     >
                       <Clock className="h-3 w-3 text-indigo-950/60" />
-                      {search}
+                      {suggestion.label}
                     </button>
                   ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 text-sm text-indigo-950/70 border-b border-white/20 bg-white font-montserrat flex items-center gap-2">
+                  <Zap className="h-3 w-3" />
+                  Suggestions intelligentes ({highlightedSuggestions.length})
+                </div>
+                <div className="max-h-40 overflow-y-auto bg-white">
+                  {Object.keys(groupedSuggestions).length > 0 ? (
+                    // Rendu groupé par catégorie
+                    Object.entries(groupedSuggestions).map(([category, suggestions]) => (
+                      <div key={category}>
+                        {category !== 'Autres' && (
+                          <div className="px-4 py-2 text-xs text-indigo-950/50 bg-gray-50 font-montserrat">
+                            {category}
+                          </div>
+                        )}
+                        {suggestions.map((suggestion, index) => (
+                          <button 
+                            key={`${category}-${index}`} 
+                            onClick={() => handleSuggestionClick(suggestion.label)} 
+                            className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white font-montserrat flex items-center gap-2"
+                          >
+                            <span 
+                              className="truncate flex-1"
+                              dangerouslySetInnerHTML={{ 
+                                __html: suggestion.highlightedLabel || suggestion.label 
+                              }}
+                            />
+                            {suggestion.isPrivate && (
+                              <Badge variant="secondary" className="text-[10px] leading-none px-2 py-0.5">
+                                FE importé
+                              </Badge>
+                            )}
+                            {suggestion.source && (
+                              <Badge variant="outline" className="text-[10px] leading-none px-2 py-0.5">
+                                {suggestion.source}
+                              </Badge>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ))
+                  ) : (
+                    // Rendu simple
+                    highlightedSuggestions.map((suggestion, index) => (
+                      <button 
+                        key={`suggestion-${index}`} 
+                        onClick={() => handleSuggestionClick(suggestion.label)} 
+                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-sm text-indigo-950 bg-white font-montserrat flex items-center gap-2"
+                      >
+                        <span 
+                          className="truncate flex-1"
+                          dangerouslySetInnerHTML={{ 
+                            __html: suggestion.highlightedLabel || suggestion.label 
+                          }}
+                        />
+                        {suggestion.isPrivate && (
+                          <Badge variant="secondary" className="text-[10px] leading-none px-2 py-0.5">
+                            FE importé
+                          </Badge>
+                        )}
+                        {suggestion.source && (
+                          <Badge variant="outline" className="text-[10px] leading-none px-2 py-0.5">
+                            {suggestion.source}
+                          </Badge>
+                        )}
+                      </button>
+                    ))
+                  )}
                 </div>
               </>
             )}

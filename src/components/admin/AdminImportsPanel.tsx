@@ -79,11 +79,14 @@ export const AdminImportsPanel: React.FC = () => {
         .replace(/[^a-zA-Z0-9.-]/g, '_')  // Remplace caractères spéciaux par _
         .replace(/_{2,}/g, '_')           // Évite les _ multiples
         .replace(/^_+|_+$/g, '')          // Supprime les _ en début/fin
-        .replace(/\.+$/, '')              // Supprime les points finaux
-        .substring(0, 80)                 // Limite la longueur
-        .concat('.csv');                  // Force l'extension CSV
+        .substring(0, 80);                // Limite la longueur
       
-      const path = `${Date.now()}_${sanitizedFileName}`;
+      // S'assurer que le fichier se termine par .csv (sans duplication)
+      const finalFileName = sanitizedFileName.endsWith('.csv') 
+        ? sanitizedFileName 
+        : sanitizedFileName.replace(/\.[^.]*$/, '') + '.csv';
+      
+      const path = `${Date.now()}_${finalFileName}`;
       const { error } = await supabase.storage.from('imports').upload(path, file, { upsert: true });
       if (error) throw error;
       setFilePath(path);
