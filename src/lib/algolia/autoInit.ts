@@ -133,11 +133,24 @@ class AlgoliaAutoInitializer {
         recentSearches: commonSearchTerms.slice(0, 3)
       });
 
-      // Précharger en arrière-plan
-      await smartSuggestionManager.preloadPopularPrefixes(commonSearchTerms);
+      // Précharger en arrière-plan seulement si Algolia est disponible
+      // Désactiver temporairement le préchargement si API bloquée
+      if (import.meta.env.DEV) {
+        console.log('🔄 Préchargement désactivé en développement (Algolia peut être bloqué)');
+        return;
+      }
       
-      if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-        console.log('🔄 Préchargement terminé:', commonSearchTerms.length, 'termes');
+      try {
+        await smartSuggestionManager.preloadPopularPrefixes(commonSearchTerms);
+        if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+          console.log('🔄 Préchargement terminé:', commonSearchTerms.length, 'termes');
+        }
+      } catch (algoliaError: any) {
+        if (algoliaError?.message?.includes('blocked') || algoliaError?.status === 403) {
+          console.log('ℹ️ Algolia temporairement indisponible (plan payant requis), préchargement ignoré');
+        } else {
+          throw algoliaError;
+        }
       }
     } catch (error) {
       console.warn('⚠️ Erreur préchargement:', error);

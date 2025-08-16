@@ -9,6 +9,9 @@ import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 import { createUnifiedClient } from '@/lib/algolia/unifiedSearchClient';
 import { performanceMonitor } from '@/lib/algolia/performanceMonitor';
+import AlgoliaFallback from '@/components/search/AlgoliaFallback';
+import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
+import DebugSearchState from '@/components/search/DebugSearchState';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
@@ -149,16 +152,22 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const searchClient = unifiedClient ? searchClientRef.current : null;
 
   return (
-    <QuotaContext.Provider value={quotaHook}>
-      <OriginContext.Provider value={{ origin, setOrigin }}>
-        {searchClient ? (
+    <AlgoliaErrorBoundary>
+      <QuotaContext.Provider value={quotaHook}>
+        <OriginContext.Provider value={{ origin, setOrigin }}>
+                  {searchClient ? (
           <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
             {children}
+            <DebugSearchState />
           </InstantSearch>
         ) : (
-          <div />
+          <AlgoliaFallback 
+            error="Chargement du client de recherche..." 
+            showOptimizationInfo={true}
+          />
         )}
-      </OriginContext.Provider>
-    </QuotaContext.Provider>
+        </OriginContext.Provider>
+      </QuotaContext.Provider>
+    </AlgoliaErrorBoundary>
   );
 };

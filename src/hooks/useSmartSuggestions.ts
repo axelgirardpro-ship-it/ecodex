@@ -45,14 +45,14 @@ export const useSmartSuggestions = (
       workspaceId: currentWorkspace?.id,
       assignedSources,
       origin,
-      recentSearches: showRecentSearches ? recentSearches : [],
+      recentSearches: showRecentSearches ? (recentSearches || []) : [],
       userLanguage: 'fr' // TODO: récupérer depuis le contexte utilisateur
     });
   }, [currentWorkspace?.id, assignedSources, origin, recentSearches, showRecentSearches]);
 
   // Préchargement des préfixes populaires
   useEffect(() => {
-    if (enablePreloading && recentSearches.length > 0) {
+    if (enablePreloading && recentSearches && recentSearches.length > 0) {
       smartSuggestionManager.preloadPopularPrefixes(recentSearches.slice(0, 10));
     }
   }, [enablePreloading, recentSearches]);

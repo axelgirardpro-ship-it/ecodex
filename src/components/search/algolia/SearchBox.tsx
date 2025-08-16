@@ -12,6 +12,7 @@ export const SearchBox: React.FC = () => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
   const { hits } = useHits();
+  const { origin } = useOrigin();
   const { 
     highlightedSuggestions, 
     groupedSuggestions, 
@@ -25,7 +26,6 @@ export const SearchBox: React.FC = () => {
     groupByCategory: true,
     highlightMatches: true
   });
-  const { origin } = useOrigin();
   const { recordSearch } = useSearchHistory();
   
   const [showSuggestions, setShowSuggestions] = useState(false);

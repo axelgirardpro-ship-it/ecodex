@@ -232,7 +232,12 @@ export class SmartSuggestionManager {
 
       return suggestions;
 
-    } catch (error) {
+    } catch (error: any) {
+      // Gestion spéciale pour les erreurs Algolia 403 (application bloquée)
+      if (error?.message?.includes('blocked') || error?.status === 403) {
+        console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
+        return [];
+      }
       console.error('Error fetching suggestions:', error);
       return [];
     }

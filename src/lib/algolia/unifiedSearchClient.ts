@@ -157,8 +157,32 @@ export class UnifiedAlgoliaClient {
           resolve({ results: [result.results[index]] });
         }
       });
-    } catch (error) {
-      // Rejeter toutes les promesses du batch
+    } catch (error: any) {
+      // Gestion spéciale pour les erreurs Algolia 403 (application bloquée)
+      if (error?.message?.includes('blocked') || error?.status === 403) {
+        console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
+        // Résoudre avec des résultats vides plutôt que de rejeter
+        batch.forEach((request, index) => {
+          const resolve = (request as any).resolve;
+          if (resolve) {
+            resolve({
+              results: [{
+                hits: [],
+                nbHits: 0,
+                page: 0,
+                nbPages: 0,
+                hitsPerPage: request.params?.hitsPerPage || 10,
+                processingTimeMS: 0,
+                query: request.params?.query || '',
+                params: ''
+              }]
+            });
+          }
+        });
+        return;
+      }
+      
+      // Rejeter toutes les promesses du batch pour les autres erreurs
       batch.forEach(request => {
         const reject = (request as any).reject;
         if (reject) reject(error);

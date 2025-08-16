@@ -95,9 +95,10 @@ export const AdminImportsPanel: React.FC = () => {
         .replace(/^_+|_+$/g, '')             // Pas de _ début/fin
         .substring(0, 50);                   // Limite plus stricte
 
-      // Forcer extension .csv sans duplication
-      if (!cleanFileName.endsWith('.csv')) {
-        cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + '.csv';
+      // Préserver l'extension originale (.csv ou .xlsx)
+      const originalExtension = file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv';
+      if (!cleanFileName.endsWith(originalExtension)) {
+        cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + originalExtension;
       }
       
       // Path final avec timestamp
@@ -264,12 +265,12 @@ export const AdminImportsPanel: React.FC = () => {
                     <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Sélectionnez le CSV complet exporté depuis la Base Carbone (ou template compatible). Les colonnes FR/EN sont supportées.
+                    Sélectionnez le fichier CSV ou XLSX exporté depuis la Base Carbone (ou template compatible). Les colonnes FR/EN sont supportées. XLSX recommandé pour gros fichiers.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            <Input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => setFile(e.target.files?.[0] || null)} />
             <div className="flex gap-2">
               <TooltipProvider>
                 <Tooltip>

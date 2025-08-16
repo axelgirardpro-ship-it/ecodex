@@ -1,6 +1,8 @@
 // Edge Function pour Supabase - Compatible Deno Runtime
 // @ts-ignore - Import ESM valide pour Deno/Edge Functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// @ts-ignore - Import XLSX pour parsing Excel
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 
 // Types pour l'environnement Deno/Edge Functions
 interface DenoEnv {
@@ -48,6 +50,40 @@ async function readCsvLines(url: string, maxErrors = 50) {
   return lines.filter(l => l !== '');
 }
 
+async function readXlsxLines(url: string, maxErrors = 50) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
+  
+  // Lire le fichier XLSX en ArrayBuffer
+  const arrayBuffer = await res.arrayBuffer();
+  
+  // Parser avec XLSX
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  
+  // Prendre la première feuille
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  
+  // Convertir en CSV
+  const csvString = XLSX.utils.sheet_to_csv(worksheet);
+  
+  // Retourner les lignes comme pour CSV
+  return csvString.split(/\r?\n/).filter(l => l !== '');
+}
+
+async function readFileLines(url: string, maxErrors = 50) {
+  // Détecter le type de fichier par l'URL
+  const isXlsx = url.toLowerCase().includes('.xlsx');
+  
+  if (isXlsx) {
+    console.log('📊 Détection fichier XLSX, parsing Excel...');
+    return await readXlsxLines(url, maxErrors);
+  } else {
+    console.log('📄 Détection fichier CSV, parsing texte...');
+    return await readCsvLines(url, maxErrors);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
@@ -89,7 +125,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Cannot sign storage url' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const lines = await readCsvLines(signed.signedUrl)
+    const lines = await readFileLines(signed.signedUrl)
     if (lines.length < 2) {
       await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'empty csv' }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
       return new Response(JSON.stringify({ error: 'CSV vide' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
