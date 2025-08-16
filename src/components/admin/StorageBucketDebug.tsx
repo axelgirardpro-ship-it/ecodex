@@ -73,18 +73,38 @@ export const StorageBucketDebug: React.FC = () => {
     try {
       setLoading(true);
       
+      // Vérifier d'abord les permissions supra admin
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: supraAdminCheck, error: roleError } = await supabase
+        .rpc('is_supra_admin', { user_uuid: user?.id });
+      
+      console.log('🔍 Supra admin check:', { supraAdminCheck, roleError });
+      
+      if (roleError) {
+        throw new Error(`Erreur vérification supra admin: ${roleError.message}`);
+      }
+      
+      if (!supraAdminCheck) {
+        throw new Error('Utilisateur non supra admin - permissions insuffisantes');
+      }
+      
       // Créer un fichier de test
       const testContent = 'test,upload\n1,working';
       const testFile = new Blob([testContent], { type: 'text/csv' });
       const fileName = `test_${Date.now()}.csv`;
+
+      console.log('🔍 Tentative upload:', { fileName, fileSize: testFile.size });
 
       const { data, error } = await supabase.storage
         .from('imports')
         .upload(fileName, testFile);
 
       if (error) {
+        console.error('🔍 Erreur upload détaillée:', error);
         throw error;
       }
+
+      console.log('🔍 Upload réussi:', data);
 
       toast({
         title: "Test upload réussi !",
@@ -95,6 +115,7 @@ export const StorageBucketDebug: React.FC = () => {
       await supabase.storage.from('imports').remove([fileName]);
 
     } catch (error: any) {
+      console.error('🔍 Erreur complète:', error);
       toast({
         variant: "destructive",
         title: "Test upload échoué",
@@ -174,16 +195,21 @@ export const StorageBucketDebug: React.FC = () => {
               <li>Allowed MIME types: <code className="bg-gray-200 px-1 rounded">text/csv</code></li>
             </ol>
             
-            <div className="mt-2"><strong>Option 2: Via SQL (recommandé)</strong></div>
+            <div className="mt-2"><strong>Option 2: Politiques Storage (CRITIQUE)</strong></div>
             <div className="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono">
-              {`-- Créer le bucket
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('imports', 'imports', false);
+              {`-- Si le bucket existe mais erreur 400, exécuter ces politiques:
+CREATE POLICY "Supra admins can upload imports" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'imports' AND is_supra_admin());
 
--- Créer les politiques pour supra admins
-CREATE POLICY "Supra admins can manage imports" 
-ON storage.objects FOR ALL 
+CREATE POLICY "Supra admins can read imports" 
+ON storage.objects FOR SELECT 
 USING (bucket_id = 'imports' AND is_supra_admin());`}
+            </div>
+            
+            <div className="mt-2"><strong>Option 3: Test manuel via Dashboard</strong></div>
+            <div className="text-xs">
+              Allez dans Storage → Files → imports et essayez d'upload un fichier directement depuis le dashboard pour vérifier les permissions.
             </div>
           </div>
         </div>
