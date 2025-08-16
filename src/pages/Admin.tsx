@@ -16,7 +16,7 @@ import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
-import { StorageBucketDebug } from "@/components/admin/StorageBucketDebug";
+
 import { AlgoliaPerformanceDashboard } from "@/components/admin/AlgoliaPerformanceDashboard";
 
 const Admin = () => {
@@ -109,10 +109,7 @@ const Admin = () => {
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>
-            <div className="space-y-4">
-              <StorageBucketDebug />
-              <AdminImportsPanel />
-            </div>
+            <AdminImportsPanel />
           </div>
 
           {/* Supra Admin Creation */}
