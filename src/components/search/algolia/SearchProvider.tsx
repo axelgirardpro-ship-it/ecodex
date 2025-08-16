@@ -34,18 +34,9 @@ function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string
   return client;
 }
 
-const cleaningWrapper = (rawSearchClient: any) => ({
-  ...rawSearchClient,
-  search: (requests: any[]) => {
-    const cleaned = (requests || []).map((r) => {
-      const params = Object.fromEntries(
-        Object.entries(r.params || {}).filter(([k]) => VALID_ALGOLIA_PARAMS.includes(k))
-      );
-      return { ...r, params };
-    });
-    return rawSearchClient.search(cleaned);
-  }
-});
+// Le nettoyage des paramètres est maintenant géré par UnifiedSearchClient
+// Cette fonction est conservée pour compatibilité mais n'est plus utilisée
+const cleaningWrapper = (rawSearchClient: any) => rawSearchClient;
 
 const QuotaContext = createContext<ReturnType<typeof useQuotas> | null>(null);
 export const useQuotaContext = () => {
