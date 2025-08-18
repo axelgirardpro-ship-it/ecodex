@@ -31,16 +31,25 @@ export const SearchBox: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Logs de debug pour traquer les hints vs origine
+  // Logs de debug pour traquer les hints vs origine - mais seulement quand nécessaire
+  const prevState = useRef({ origin, query, suggestions: 0 });
   React.useEffect(() => {
-    console.log('[OptimizedSearchBox] render', { 
-      origin, 
-      query, 
-      suggestions: highlightedSuggestions.length, 
-      isRecentSearches,
-      cacheStats: getCacheStats()
-    });
-  }, [origin, query, highlightedSuggestions, isRecentSearches, getCacheStats]);
+    const currentState = { origin, query, suggestions: highlightedSuggestions.length };
+    
+    // Log seulement si quelque chose d'important a changé
+    if (import.meta.env.DEV && (
+      prevState.current.origin !== currentState.origin ||
+      prevState.current.query !== currentState.query ||
+      Math.abs(prevState.current.suggestions - currentState.suggestions) > 5
+    )) {
+      console.log('[OptimizedSearchBox] state change:', { 
+        from: prevState.current,
+        to: currentState,
+        cacheStats: getCacheStats()
+      });
+      prevState.current = currentState;
+    }
+  }, [origin, query, highlightedSuggestions.length, getCacheStats]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

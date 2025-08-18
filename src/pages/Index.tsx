@@ -3,9 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, Facebook, Twitter, Linkedin, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MonoLogo } from "@/components/ui/MonoLogo";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
 const Index = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // Détecter si l'utilisateur arrive avec des tokens d'invitation
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    
+    const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+    const type = urlParams.get('type') || hashParams.get('type');
+    
+    // Si on détecte une invitation (tokens + type signup), rediriger vers /invitation
+    if (accessToken && (type === 'signup' || type === 'invite')) {
+      console.log('Invitation détectée sur la page d\'accueil, redirection...');
+      navigate('/invitation' + window.location.search + window.location.hash);
+      return;
+    }
+    
+    // Si l'utilisateur est connecté et a des métadonnées d'invitation, rediriger aussi
+    if (user?.user_metadata?.workspace_id && user?.user_metadata?.invitation_type === 'workspace') {
+      console.log('Utilisateur connecté avec invitation en attente, redirection...');
+      navigate('/invitation');
+      return;
+    }
+  }, [navigate, user]);
   return <div className="min-h-screen bg-background">
       {/* Navigation Bar */}
       <nav className="bg-background border-b border-border sticky top-0 z-50">
