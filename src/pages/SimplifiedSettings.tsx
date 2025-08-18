@@ -20,8 +20,11 @@ import {
   Shield,
   ExternalLink,
   Trash2,
-  Download
+  Download,
+  Users
 } from "lucide-react";
+import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
+import { RoleGuard } from "@/components/ui/RoleGuard";
 
 const SimplifiedSettings = () => {
   const { user, signOut } = useAuth();
@@ -130,6 +133,61 @@ const SimplifiedSettings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* DEBUG: Permissions (à supprimer après test) */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="pt-6">
+              <div className="text-sm">
+                <strong>🔍 DEBUG - Vos permissions :</strong>
+                <ul className="mt-2 space-y-1 text-xs">
+                  <li>Email: {user?.email}</li>
+                  <li>Rôle: {permissions.role || 'Aucun'}</li>
+                  <li>canManageUsers: {permissions.canManageUsers ? '✅' : '❌'}</li>
+                  <li>isSupraAdmin: {permissions.isSupraAdmin ? '✅' : '❌'}</li>
+                  <li>Workspace: {currentWorkspace?.name || 'Aucun'}</li>
+                  <li>Plan: {currentWorkspace?.plan_type || 'Aucun'}</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Gestion de l'équipe - Visible uniquement pour les admins */}
+        <RoleGuard requirePermission="canManageUsers">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                Gestion de l'équipe
+              </CardTitle>
+              <CardDescription>
+                Invitez et gérez les utilisateurs de votre workspace
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkspaceUsersManager />
+            </CardContent>
+          </Card>
+        </RoleGuard>
+
+        {/* Message informatif si pas admin */}
+        {!permissions.canManageUsers && !permissions.isSupraAdmin && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-3">
+                <Users className="h-5 w-5 text-orange-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-orange-800">Gestion d'équipe</h4>
+                  <p className="text-sm text-orange-700 mt-1">
+                    Seuls les administrateurs du workspace peuvent inviter et gérer des utilisateurs. 
+                    Votre rôle actuel : <strong>{permissions.role || 'Non défini'}</strong>
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Section Admin - visible seulement pour les supra admins */}
         {permissions.isSupraAdmin && (

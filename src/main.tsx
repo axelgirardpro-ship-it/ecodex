@@ -18,4 +18,8 @@ import './index.css'
 // Initialisation automatique du système Algolia optimisé
 import './lib/algolia/autoInit.ts'
 
+// Suppression temporaire des erreurs répétitives en développement
+import { initErrorSuppression } from './lib/errorSupression'
+initErrorSuppression()
+
 createRoot(document.getElementById("root")!).render(<App />);

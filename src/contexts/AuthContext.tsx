@@ -48,7 +48,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .eq('user_id', session.user.id)
                 .single();
 
-              if (userError || !userData) return;
+              // Gestion d'erreur silencieuse comme dans UserContext
+              if (userError) {
+                if (userError.code !== 'PGRST116') {
+                  // Log une seule fois par session les erreurs non-404
+                  const errorKey = `auth_user_fetch_error_${userError.code}_${session.user.id}`;
+                  if (!sessionStorage.getItem(errorKey)) {
+                    console.error('Error fetching user in auth:', userError);
+                    sessionStorage.setItem(errorKey, 'logged');
+                  }
+                }
+                return; // Sortir silencieusement en cas d'erreur
+              }
+
+              if (!userData) return;
 
               const { data: workspace, error: workspaceError } = await supabase
                 .from('workspaces')
@@ -71,7 +84,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 }
               }
             } catch (error) {
-              console.error('Error checking trial status:', error);
+              // Log global error une seule fois par session
+              const errorKey = `auth_trial_check_error_${session.user.id}`;
+              if (!sessionStorage.getItem(errorKey)) {
+                console.error('Error checking trial status:', error);
+                sessionStorage.setItem(errorKey, 'logged');
+              }
             }
           }, 0);
         }

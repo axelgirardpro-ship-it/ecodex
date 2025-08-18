@@ -57,20 +57,47 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         .limit(1)
         .single();
 
-      if (userError && userError.code !== 'PGRST116') {
-        console.error('Error fetching user profile:', userError);
-        setUserProfile(null);
-        setLoading(false);
-        return;
+      // Gérer les erreurs de récupération des données utilisateur
+      if (userError) {
+        if (userError.code === 'PGRST116') {
+          // Pas de données trouvées - Utilisateur dans auth.users mais pas dans public.users
+          // Cela peut indiquer un échec de la fonction handle_new_user
+          console.warn(`User ${user.id} exists in auth but not in public.users. This indicates data inconsistency.`);
+          
+          // Au lieu de créer un profil minimal avec workspace_id vide, 
+          // on se contente de définir le profil comme null
+          // Cela évite les appels API avec des IDs invalides
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        } else {
+          // Log une seule fois par session les erreurs non-404
+          const errorKey = `user_fetch_error_${userError.code}_${user.id}`;
+          if (!sessionStorage.getItem(errorKey)) {
+            console.error('Error fetching user profile:', userError);
+            sessionStorage.setItem(errorKey, 'logged');
+          }
+          
+          // Pour les autres erreurs, on ne crée pas de profil minimal non plus
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
       }
 
-      // Then get role data
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role, workspace_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .single();
+      // Then get role data with error handling
+      let roleData = null;
+      try {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role, workspace_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single();
+        roleData = data;
+      } catch (roleError) {
+        // Ignorer silencieusement les erreurs de rôle pour éviter la pollution des logs
+      }
 
       const profile: UserProfile = {
         user_id: user.id,
@@ -88,7 +115,15 @@ export const UserProvider = ({ children }: UserProviderProps) => {
 
       setUserProfile(profile);
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      // Log global error une seule fois par session
+      const errorKey = `profile_fetch_error_${user.id}`;
+      if (!sessionStorage.getItem(errorKey)) {
+        console.error('Error in fetchProfile:', error);
+        sessionStorage.setItem(errorKey, 'logged');
+      }
+      
+      // En cas d'erreur globale, ne pas créer de profil minimal
+      // Cela évite de créer des utilisateurs avec workspace_id vide
       setUserProfile(null);
     }
 

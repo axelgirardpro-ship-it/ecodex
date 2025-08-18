@@ -15,6 +15,7 @@ import { SourcesPanel } from "@/components/admin/SourcesPanel";
 import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
 import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
+import { OrphanUsersRepair } from "@/components/admin/OrphanUsersRepair";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
 
 import { AlgoliaPerformanceDashboard } from "@/components/admin/AlgoliaPerformanceDashboard";
@@ -118,6 +119,7 @@ const Admin = () => {
             <div className="grid gap-6 lg:grid-cols-2">
               <CreateSupraAdmin />
               <OrphanUsersCleanup />
+              <OrphanUsersRepair />
             </div>
           </div>
         </div>

@@ -7,16 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings as SettingsIcon, Bell, Shield, CreditCard, Download, User, Building } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Shield, CreditCard, Download, User, Building, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
+import { RoleGuard } from "@/components/ui/RoleGuard";
 
 const Settings = () => {
   const { user } = useAuth();
   const { userProfile, loading: userLoading } = useUser();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
+  const permissions = usePermissions();
   
   const [notifications, setNotifications] = useState({
     email: true,
@@ -183,6 +187,13 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Gestion de l'équipe - Visible uniquement pour les admins */}
+          <RoleGuard requirePermission="canManageUsers">
+            <div className="mb-6">
+              <WorkspaceUsersManager />
+            </div>
+          </RoleGuard>
 
           {/* Notifications */}
           <Card className="mb-6">

@@ -307,7 +307,10 @@ const OriginFilter: React.FC = () => {
   // On passe par ruleContexts pour ne pas polluer facetFilters
   const ruleContexts = React.useMemo(() => {
     const rc = origin === 'all' ? undefined : [`origin:${origin}`];
-    if (import.meta.env.DEV) console.log('[OriginFilter] ruleContexts', rc);
+    // Log seulement si ruleContexts change et n'est pas undefined
+    if (import.meta.env.DEV && rc !== undefined) {
+      debug('ruleContexts:', rc);
+    }
     return rc;
   }, [origin]);
 
