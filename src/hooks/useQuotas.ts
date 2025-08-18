@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuotaSync, type PlanType } from "@/hooks/useQuotaSync";
+import { useQuotaRealtime } from "@/hooks/useOptimizedRealtime";
 
 interface QuotaData {
   user_id: string;
@@ -80,46 +81,21 @@ export const useQuotas = () => {
     }
   }, [user, syncUserQuotas]);
 
-  // Supabase Realtime subscription
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Callback optimisé pour les mises à jour Realtime
+  const handleQuotaUpdate = useCallback((payload: any) => {
+    if (payload.eventType === 'UPDATE' && payload.new && payload.new.user_id === user?.id) {
+      setQuotaData(payload.new as QuotaData);
+    }
+  }, [user?.id]);
+
+  // Subscription Realtime optimisée
+  useQuotaRealtime(user?.id, handleQuotaUpdate);
 
   useEffect(() => {
     loadQuotaData();
   }, [loadQuotaData]);
 
-  // Set up Realtime subscription (silenced logs)
-  useEffect(() => {
-    if (!user) return;
 
-    const channel = supabase
-      .channel('quota-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'search_quotas',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            setQuotaData(payload.new as QuotaData);
-          }
-        }
-      )
-      .subscribe((status) => {
-        // silence noisy status logs in production
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [user]);
 
   // Logique simplifiée et cohérente pour les quotas (recherches illimitées)
   const canExport = quotaData ? 

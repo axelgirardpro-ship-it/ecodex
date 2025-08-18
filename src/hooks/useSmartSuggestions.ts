@@ -54,7 +54,11 @@ export const useSmartSuggestions = (
   useEffect(() => {
     // Désactiver le préchargement en développement si Algolia peut être bloqué
     if (import.meta.env.DEV) {
-      console.log('🔄 Préchargement suggestions désactivé en développement');
+      // Log une seule fois par session
+      if (!sessionStorage.getItem('suggestions_preload_disabled_logged')) {
+        console.log('🔄 Préchargement suggestions désactivé en développement (Algolia restrictions)');
+        sessionStorage.setItem('suggestions_preload_disabled_logged', 'true');
+      }
       return;
     }
     

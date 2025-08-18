@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { assignFeSourceToWorkspace, unassignFeSourceFromWorkspace, syncWorkspaceAssignments } from '@/lib/adminApi'
 import { useFeSources } from '@/contexts/FeSourcesContext'
+import { useWorkspaceAssignmentsRealtime } from "@/hooks/useOptimizedRealtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,16 @@ export const SourceWorkspaceAssignments = () => {
     setAssignedSet(new Set((data || []).map((r: any)=>r.source_name)))
   }, [])
 
+  // Callback optimisé pour les mises à jour Realtime
+  const handleAssignmentUpdate = useCallback(() => {
+    if (selectedWorkspaceId) {
+      fetchAssignments(selectedWorkspaceId).catch(() => {});
+    }
+  }, [selectedWorkspaceId, fetchAssignments]);
+
+  // Subscription Realtime optimisée
+  useWorkspaceAssignmentsRealtime(selectedWorkspaceId, handleAssignmentUpdate);
+
   useEffect(() => { setSources((ctxSources || []) as any) }, [ctxSources])
 
   useEffect(() => {
@@ -71,19 +82,7 @@ export const SourceWorkspaceAssignments = () => {
     })()
   }, [selectedWorkspaceId, fetchAssignments])
 
-  // Realtime: suivre les changements d'assignation pour le workspace sélectionné
-  useEffect(() => {
-    if (!selectedWorkspaceId) return
-    const ch = supabase
-      .channel(`fsw-${selectedWorkspaceId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'fe_source_workspace_assignments', filter: `workspace_id=eq.${selectedWorkspaceId}` },
-        () => { fetchAssignments(selectedWorkspaceId).catch(()=>{}) }
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [selectedWorkspaceId, fetchAssignments])
+
 
   const toggle = useCallback(async (sourceName: string, enable: boolean) => {
     if (!selectedWorkspaceId) return

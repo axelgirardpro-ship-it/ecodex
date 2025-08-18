@@ -151,7 +151,7 @@ export const useOptimizedSearch = (
       }
 
       const searchTime = Date.now() - startTime;
-      const searchResult = result.results[0] || { hits: [], nbHits: 0 };
+      const searchResult = (result as any)?.results?.[0] || { hits: [], nbHits: 0 };
 
       setSearchState({
         loading: false,
