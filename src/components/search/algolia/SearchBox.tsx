@@ -173,8 +173,8 @@ export const SearchBox: React.FC = () => {
                           >
                             <span 
                               className="truncate flex-1"
-                              dangerouslySetInnerHTML={{ 
-                                __html: suggestion.highlightedLabel || suggestion.label 
+                            dangerouslySetInnerHTML={{ 
+                                __html: suggestion.label 
                               }}
                             />
                             {suggestion.isPrivate && (

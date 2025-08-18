@@ -65,7 +65,11 @@ export const EmissionFactorAccessManager = () => {
 
       // Rebuild unifié pour refléter le nouveau tier sur ef_all
       try {
-        await supabase.rpc('refresh_ef_all_for_source', { p_source: source });
+        // Call the refresh function using admin API
+        const { error: refreshError } = await supabase.functions.invoke('refresh-ef-all-for-source', { 
+          body: { source } 
+        });
+        if (refreshError) console.warn('Refresh ef_all failed:', refreshError);
       } catch (e) {
         console.warn('Refresh ef_all failed (tier updated in DB):', e);
       }

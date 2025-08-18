@@ -60,7 +60,7 @@ export const useOptimizedRealtime = (
         }
       })
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: config.event || 'UPDATE',
           schema: config.schema || 'public',
@@ -71,7 +71,7 @@ export const useOptimizedRealtime = (
       )
       .subscribe((status) => {
         // Log d'erreur uniquement en cas de problème
-        if (status === 'SUBSCRIPTION_ERROR') {
+        if (status === 'CLOSED') {
           console.error(`Erreur subscription ${channelName}:`, status);
         }
       });

@@ -335,7 +335,7 @@ export const InvitationHandler = () => {
                     <span className="font-medium">
                       {invitation.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
                     </span>
-                    <Badge variant={getRoleBadgeVariant(invitation.role)} size="sm">
+                    <Badge variant={getRoleBadgeVariant(invitation.role)}>
                       {invitation.role === 'admin' ? 'Admin' : 'Gestionnaire'}
                     </Badge>
                   </div>

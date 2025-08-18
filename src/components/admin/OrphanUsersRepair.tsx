@@ -42,7 +42,7 @@ export const OrphanUsersRepair = () => {
         return;
       }
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/fix-orphan-users`, {
+      const response = await fetch(`https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/fix-orphan-users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

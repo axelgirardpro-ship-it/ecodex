@@ -543,7 +543,7 @@ export const WorkspaceUsersManager = () => {
                     <TableHead>Utilisateur</TableHead>
                     <TableHead>Rôle</TableHead>
                     <TableHead>Ajouté le</TableHead>
-                    <TableHead width="50px"></TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
