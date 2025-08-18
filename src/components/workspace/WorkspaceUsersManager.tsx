@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -77,21 +77,31 @@ export const WorkspaceUsersManager = () => {
     try {
       setIsInviting(true);
 
-      // Utiliser l'API native Supabase pour inviter
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(
-        inviteEmail.toLowerCase().trim(),
-        {
-          redirectTo: `${window.location.origin}/auth/callback?type=invite&workspaceId=${currentWorkspace.id}&role=${inviteRole}`,
-          data: {
-            workspace_id: currentWorkspace.id,
-            workspace_name: currentWorkspace.name,
-            role: inviteRole,
-            invitation_type: 'workspace'
-          }
-        }
-      );
+      // Utiliser l'Edge Function pour envoyer l'invitation
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        throw new Error('Session non trouvée');
+      }
 
-      if (error) throw error;
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/invite-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'apikey': supabase.supabaseKey
+        },
+        body: JSON.stringify({
+          email: inviteEmail.toLowerCase().trim(),
+          workspaceId: currentWorkspace.id,
+          role: inviteRole,
+          redirectTo: `${window.location.origin}/auth/callback?type=invite&workspaceId=${currentWorkspace.id}&role=${inviteRole}`
+        })
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de l\'invitation');
+      }
 
       toast({
         title: "Invitation envoyée !",
@@ -249,6 +259,9 @@ export const WorkspaceUsersManager = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Inviter un utilisateur</DialogTitle>
+                <DialogDescription>
+                  Invitez un nouvel utilisateur à rejoindre ce workspace
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>

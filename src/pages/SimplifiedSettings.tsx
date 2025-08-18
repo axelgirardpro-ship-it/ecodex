@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
+import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
 
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,7 +21,8 @@ import {
   Shield,
   ExternalLink,
   Trash2,
-  Download
+  Download,
+  Users
 } from "lucide-react";
 
 const SimplifiedSettings = () => {
@@ -130,6 +132,24 @@ const SimplifiedSettings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Section Équipe du workspace - visible pour les admins */}
+        {(permissions.role === 'admin' || permissions.isSupraAdmin) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                Équipe du workspace
+              </CardTitle>
+              <CardDescription>
+                Gérez les utilisateurs de votre workspace
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkspaceUsersManager />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Section Admin - visible seulement pour les supra admins */}
         {permissions.isSupraAdmin && (
