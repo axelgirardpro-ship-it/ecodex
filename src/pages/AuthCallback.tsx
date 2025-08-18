@@ -4,53 +4,42 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Gérer les tokens d'authentification depuis l'URL
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw new Error(`Erreur d'authentification: ${error.message}`);
+        }
+
         // Extraire les paramètres d'invitation
+        const type = searchParams.get('type');
         const workspaceId = searchParams.get('workspaceId');
         const role = searchParams.get('role');
-        
-        // Extraire les tokens d'authentification depuis l'URL ou le hash
-        const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-        const type = urlParams.get('type') || hashParams.get('type');
 
-        console.log('Callback params:', { workspaceId, role, accessToken: !!accessToken, type });
+        if (data.session?.user) {
+          console.log('Utilisateur authentifié:', data.session.user.email);
 
-        if (type === 'invite' && accessToken) {
-          // Établir la session avec les tokens reçus
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || ''
-          });
-
-          if (error) {
-            throw new Error(`Erreur d'authentification: ${error.message}`);
-          }
-
-          console.log('Session établie avec succès:', data.user?.email);
-
-          // Rediriger vers la page d'invitation avec les paramètres
-          if (workspaceId && role) {
-            navigate(`/invitation?workspaceId=${workspaceId}&role=${role}`);
+          // Si c'est une invitation à un workspace
+          if (type === 'invite' && workspaceId && role) {
+            await handleWorkspaceInvitation(data.session.user, workspaceId, role);
           } else {
-            // Pas de paramètres d'invitation, rediriger vers l'accueil
+            // Redirection normale vers le dashboard
             navigate('/search');
           }
         } else {
-          // Pas d'invitation, juste une authentification normale
-          navigate('/search');
+          throw new Error('Aucune session utilisateur trouvée');
         }
       } catch (error: any) {
         console.error('Erreur lors du callback auth:', error);
@@ -62,6 +51,95 @@ export const AuthCallback = () => {
 
     handleAuthCallback();
   }, [searchParams, navigate]);
+
+  const handleWorkspaceInvitation = async (user: any, workspaceId: string, role: string) => {
+    try {
+      // Vérifier si l'utilisateur existe déjà dans ce workspace
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('workspace_id', workspaceId)
+        .single();
+
+      if (existingUser) {
+        toast({
+          title: "Déjà membre",
+          description: "Vous êtes déjà membre de ce workspace",
+        });
+        navigate('/search');
+        return;
+      }
+
+      // Récupérer les informations du workspace
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('name')
+        .eq('id', workspaceId)
+        .single();
+
+      const workspaceName = workspace?.name || 'Workspace';
+
+      // Ajouter l'utilisateur au workspace
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          user_id: user.id,
+          workspace_id: workspaceId,
+          first_name: user.user_metadata?.first_name || '',
+          last_name: user.user_metadata?.last_name || '',
+          company: workspaceName,
+          email: user.email,
+          plan_type: 'freemium',
+          subscribed: false,
+          assigned_by: user.id
+        });
+
+      if (userError) throw userError;
+
+      // Assigner le rôle
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user.id,
+          workspace_id: workspaceId,
+          role: role,
+          assigned_by: user.id,
+          is_supra_admin: false
+        });
+
+      if (roleError) throw roleError;
+
+      // Créer les quotas par défaut
+      const { error: quotaError } = await supabase
+        .from('search_quotas')
+        .insert({
+          user_id: user.id,
+          exports_limit: 10,
+          clipboard_copies_limit: 50,
+          favorites_limit: 100,
+          plan_type: 'freemium'
+        });
+
+      if (quotaError) console.warn('Erreur quotas (non critique):', quotaError);
+
+      toast({
+        title: "Bienvenue !",
+        description: `Vous avez rejoint le workspace "${workspaceName}" avec succès`,
+      });
+
+      navigate('/search');
+
+    } catch (error: any) {
+      console.error('Erreur lors de l\'ajout au workspace:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de rejoindre le workspace",
+      });
+      navigate('/search');
+    }
+  };
 
   if (loading) {
     return (
@@ -93,7 +171,7 @@ export const AuthCallback = () => {
             <CardTitle className="text-destructive">Erreur d'authentification</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-sm text-muted-foreground text-center">{error}</p>
           </CardContent>
         </Card>
       </div>

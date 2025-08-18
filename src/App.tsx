@@ -12,7 +12,6 @@ import { ImpersonationBanner } from "@/components/ui/ImpersonationBanner";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Invitation from "./pages/Invitation";
 import AuthCallback from "./pages/AuthCallback";
 
 import { SearchDashboard } from "@/components/search/algolia/AlgoliaSearchDashboard";
@@ -87,7 +86,6 @@ const App = () => (
                     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                     <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route path="/invitation" element={<Invitation />} />
                     <Route path="/dev" element={<PublicRoute><DevLogin /></PublicRoute>} />
                     <Route path="/search" element={<ProtectedRoute><SearchDashboard /></ProtectedRoute>} />
                     <Route path="/favoris" element={<ProtectedRoute><FavorisAlgoliaDashboard /></ProtectedRoute>} />
