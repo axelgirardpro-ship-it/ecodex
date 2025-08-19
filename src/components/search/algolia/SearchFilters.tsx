@@ -104,16 +104,6 @@ const OriginFilter: React.FC = () => {
     <div className="flex flex-col gap-2">
       <Button
         size="sm"
-        variant={origin === 'all' ? 'default' : 'outline'}
-        onClick={() => {
-          debug('click all');
-          setOrigin('all');
-        }}
-      >
-        Tous
-      </Button>
-      <Button
-        size="sm"
         variant={origin === 'public' ? 'default' : 'outline'}
         onClick={() => {
           debug('click public');

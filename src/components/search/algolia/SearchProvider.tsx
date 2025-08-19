@@ -78,14 +78,18 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const { currentWorkspace } = useWorkspace();
   const { assignedSources } = useEmissionFactorAccess();
   const unifiedClient = useOptimizedAlgoliaClient(currentWorkspace?.id, assignedSources);
-  const [origin, setOrigin] = useState<Origin>('all');
-  const originRef = useRef<Origin>('all');
+  const [origin, setOrigin] = useState<Origin>('public');
+  const originRef = useRef<Origin>('public');
   useEffect(() => { originRef.current = origin; }, [origin]);
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
   // Client de recherche optimisé avec monitoring
   const searchClientRef = useRef<any>(null);
+  // Gestion du teaser différé: activé après un court délai d'inactivité sur la requête
+  const teaserAllowedRef = useRef<boolean>(false);
+  const lastQueryRef = useRef<string>('');
+  const teaserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   if (unifiedClient && !searchClientRef.current) {
     searchClientRef.current = {
       search: async (requests: any[]) => {
@@ -112,10 +116,40 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             }
           }));
 
+          // GATE: ne lance rien si la requête est réellement vide (pas de query ni de filtres)
+          const allEmpty = !enrichedRequests?.some(r => {
+            const p = r?.params || {};
+            const hasQuery = typeof p.query === 'string' && p.query.trim().length > 0;
+            const hasFilters = !!(p.filters && String(p.filters).trim());
+            const hasFacetFilters = Array.isArray(p.facetFilters) && p.facetFilters.length > 0;
+            const hasNumericFilters = Array.isArray(p.numericFilters) && p.numericFilters.length > 0;
+            const hasTagFilters = Array.isArray(p.tagFilters) && p.tagFilters.length > 0;
+            const hasFacetSearch = !!(p.facetName || p.facetQuery);
+            return hasQuery || hasFilters || hasFacetFilters || hasNumericFilters || hasTagFilters || hasFacetSearch;
+          });
+          if (allEmpty) {
+            const emptyRes: any = { 
+              hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' 
+            };
+            return { results: (requests || []).map(() => emptyRes) };
+          }
+
+          // Teaser différé: autoriser le teaser seulement après un délai d'inactivité sur la requête
+          const q = enrichedRequests?.[0]?.params?.query ?? '';
+          if ((q || '') !== (lastQueryRef.current || '')) {
+            lastQueryRef.current = q;
+            teaserAllowedRef.current = false;
+            if (teaserTimerRef.current) clearTimeout(teaserTimerRef.current);
+            teaserTimerRef.current = setTimeout(() => {
+              teaserAllowedRef.current = true;
+            }, 400);
+          }
+
           const result = await unifiedClient.search(enrichedRequests, {
             enableCache: true,
             enableDeduplication: true,
-            enableBatching: true
+            enableBatching: true,
+            teaserAllowed: teaserAllowedRef.current
           });
 
           return result;
