@@ -2,7 +2,7 @@
 import { algoliaCache } from './cacheManager';
 import { requestDeduplicator } from './requestDeduplicator';
 import { Origin, VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, buildPrivateFilters, buildPublicFiltersBySources, mergeFederatedPair } from './searchClient';
-import { debugFacetFilters, analyzeFilterConflicts } from './debugFilters';
+import { debugFacetFilters, analyzeFilterConflicts } from './debugFilters.ts';
 import { createProxyClient } from './proxySearchClient';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 
