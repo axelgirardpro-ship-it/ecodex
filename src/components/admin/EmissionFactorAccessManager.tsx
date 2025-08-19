@@ -63,17 +63,7 @@ export const EmissionFactorAccessManager = () => {
 
       console.log(`✅ Successfully updated source ${source} to ${newTier}`);
 
-      // Déclencher une synchronisation Algolia optimisée pour cette source
-      try {
-        const { error: syncError } = await supabase.functions.invoke('db-webhooks-optimized', {
-          body: [
-            { type: 'UPDATE', table: 'public:fe_sources', record: { source_name: source } }
-          ]
-        });
-        if (syncError) console.warn('db-webhooks-optimized sync failed:', syncError);
-      } catch (e) {
-        console.warn('db-webhooks-optimized sync failed (tier updated in DB):', e);
-      }
+      // Laisser la Edge Function/cron gérer la synchro (suppression de l'appel direct)
 
       // Mark as successful
       setUpdateStates(prev => ({

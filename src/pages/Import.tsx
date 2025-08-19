@@ -178,55 +178,31 @@ const Import = () => {
         // non bloquant mais important pour éviter le floutage
       }
 
-      // Traiter et insérer les facteurs d'émissions
-      // La Source est toujours le nom du dataset, pour être conservée dans la projection
-      const emissionFactors = data.map(row => ({
-        workspace_id: currentWorkspace.id,
-        dataset_id: dataset.id,
-        "Nom": row.nom || row.name || 'Sans nom',
-        "Nom_en": row.nom_en || row.name_en || null,
-        "Description": row.description || '',
-        "Description_en": row.description_en || null,
-        "FE": parseFloat((row.fe || row.factor || '0').toString().replace(',','.')),
-        "Unité donnée d'activité": row.unite || row.unit || '',
-        "Unite_en": row.unite_en || row.unit_en || null,
-        "Source": dataset.name,
-        "Secteur": row.secteur || row.sector || 'Non spécifié',
-        "Secteur_en": row.secteur_en || row.sector_en || null,
-        "Sous-secteur": row.categorie || row.category || 'Non spécifié',
-        "Sous-secteur_en": row.categorie_en || row.category_en || null,
-        "Localisation": row.localisation || row.location || 'Non spécifié',
-        "Localisation_en": row.localisation_en || row.location_en || null,
-        "Date": parseInt((row.date || new Date().getFullYear().toString()).toString()),
-        "Incertitude": row.incertitude || row.uncertainty || '',
-        "Périmètre": row.perimetre || row.perimeter || null,
-        "Périmètre_en": row.perimetre_en || row.perimeter_en || null,
-        "Contributeur": row.contributeur || row.contributor || null,
-        "Commentaires": row.commentaires || row.comments || null,
-        "Commentaires_en": row.commentaires_en || row.comments_en || null,
-      }));
-
-      const { data: insertedFactors, error: insertError } = await supabase
-        .from('emission_factors')
-        .insert(emissionFactors)
-        .select();
-
-      if (insertError) {
-        throw new Error(`Erreur lors de l'insertion: ${insertError.message}`);
+      // Upload du fichier vers Storage puis déléguer l'import au serveur (Edge Function import-csv-user)
+      // Sanitization du nom de fichier (reuse admin)
+      let cleanFileName = file.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9.]/g, '_')
+        .replace(/_{2,}/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 50);
+      const originalExtension = file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv';
+      if (!cleanFileName.endsWith(originalExtension)) {
+        cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + originalExtension;
       }
+      const finalPath = `${Date.now()}_${cleanFileName}`;
 
-      // Déclencher un full record updates Algolia pour le dataset importé (source = dataset.name)
-      try {
-        setIndexingStatus("indexing")
-        await supabase.functions.invoke('db-webhooks-optimized', {
-          body: [
-            { type: 'INSERT', table: 'public:fe_sources', record: { source_name: dataset.name } }
-          ]
-        })
-        setIndexingStatus("success")
-      } catch (_) {
-        setIndexingStatus("error")
-      }
+      const { error: upErr } = await supabase.storage.from('imports').upload(finalPath, file, { upsert: true });
+      if (upErr) throw upErr;
+
+      setIndexingStatus("indexing");
+      const { data: resp, error: invErr } = await supabase.functions.invoke('import-csv-user', {
+        body: { file_path: finalPath, dataset_name: dataset.name, language: 'fr' }
+      });
+      if (invErr) throw invErr;
+      setIndexingStatus("success");
 
       // Ajouter automatiquement aux favoris si demandé
       if (addToFavorites && insertedFactors && insertedFactors.length > 0) {
@@ -274,13 +250,13 @@ const Import = () => {
       setUploadProgress(100);
       setImportStatus("success");
       setImportResults({
-        success: insertedFactors?.length || 0,
+        success: (resp?.inserted as number) || 0,
         errors: []
       });
 
       toast({
         title: "Import réussi",
-        description: `${insertedFactors?.length || 0} facteurs d'émissions importés avec succès.`,
+        description: `Import lancé: traitement côté serveur (id: ${resp?.import_id || 'n/a'}).`,
       });
 
       // Reset form après succès
