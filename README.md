@@ -71,3 +71,22 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Supabase – Génération des types (TypeScript)
+
+Les types Supabase (tables, vues, RPC) sont générés dans `src/integrations/supabase/types.ts`.
+
+- Prérequis: Supabase CLI installé
+  - macOS: `brew install supabase/tap/supabase`
+- Projet distant: exporter l’ID du projet Supabase
+  - `export SUPABASE_PROJECT_ID=xxxxxxxxxxxxxxxxxxxx`
+
+Commandes:
+
+```bash
+# Générer depuis le projet Supabase distant (nécessite SUPABASE_PROJECT_ID)
+npm run gen:types
+
+# Générer depuis une instance locale (ex. supabase start)
+npm run gen:types:local
+```

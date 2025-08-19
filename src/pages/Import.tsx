@@ -218,7 +218,7 @@ const Import = () => {
       // Déclencher un full record updates Algolia pour le dataset importé (source = dataset.name)
       try {
         setIndexingStatus("indexing")
-        await supabase.functions.invoke('db-webhooks', {
+        await supabase.functions.invoke('db-webhooks-optimized', {
           body: [
             { type: 'INSERT', table: 'public:fe_sources', record: { source_name: dataset.name } }
           ]

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -52,45 +52,86 @@ export type Database = {
           completed_at: string | null
           created_at: string
           error_details: Json | null
+          error_samples: Json | null
+          failed: number | null
           file_name: string
           file_size: number | null
+          finished_at: string | null
           id: string
           imported_by: string
+          inserted: number | null
+          processed: number | null
           records_failed: number | null
           records_inserted: number | null
           records_processed: number | null
           records_updated: number | null
+          started_at: string | null
           status: string | null
+          storage_path: string | null
+          updated: number | null
+          user_id: string | null
+          version_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string
           error_details?: Json | null
+          error_samples?: Json | null
+          failed?: number | null
           file_name: string
           file_size?: number | null
+          finished_at?: string | null
           id?: string
           imported_by: string
+          inserted?: number | null
+          processed?: number | null
           records_failed?: number | null
           records_inserted?: number | null
           records_processed?: number | null
           records_updated?: number | null
+          started_at?: string | null
           status?: string | null
+          storage_path?: string | null
+          updated?: number | null
+          user_id?: string | null
+          version_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string
           error_details?: Json | null
+          error_samples?: Json | null
+          failed?: number | null
           file_name?: string
           file_size?: number | null
+          finished_at?: string | null
           id?: string
           imported_by?: string
+          inserted?: number | null
+          processed?: number | null
           records_failed?: number | null
           records_inserted?: number | null
           records_processed?: number | null
           records_updated?: number | null
+          started_at?: string | null
           status?: string | null
+          storage_path?: string | null
+          updated?: number | null
+          user_id?: string | null
+          version_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "data_imports_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "fe_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       datasets: {
         Row: {
@@ -145,62 +186,107 @@ export type Database = {
       emission_factors: {
         Row: {
           Commentaires: string | null
+          Commentaires_en: string | null
           Contributeur: string | null
           created_at: string | null
           dataset_id: string | null
           Date: number | null
           Description: string | null
+          Description_en: string | null
+          factor_key: string | null
           FE: number
           id: string
+          import_type: string | null
           Incertitude: string | null
+          is_latest: boolean | null
+          language: string
           Localisation: string | null
+          Localisation_en: string | null
           Nom: string
+          Nom_en: string | null
           Périmètre: string | null
+          Périmètre_en: string | null
           Secteur: string
+          Secteur_en: string | null
           Source: string
           "Sous-secteur": string | null
+          "Sous-secteur_en": string | null
           "Unité donnée d'activité": string
+          Unite_en: string | null
           updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+          version_id: string | null
           workspace_id: string | null
         }
         Insert: {
           Commentaires?: string | null
+          Commentaires_en?: string | null
           Contributeur?: string | null
           created_at?: string | null
           dataset_id?: string | null
           Date?: number | null
           Description?: string | null
+          Description_en?: string | null
+          factor_key?: string | null
           FE: number
           id?: string
+          import_type?: string | null
           Incertitude?: string | null
+          is_latest?: boolean | null
+          language?: string
           Localisation?: string | null
+          Localisation_en?: string | null
           Nom: string
+          Nom_en?: string | null
           Périmètre?: string | null
+          Périmètre_en?: string | null
           Secteur: string
+          Secteur_en?: string | null
           Source: string
           "Sous-secteur"?: string | null
+          "Sous-secteur_en"?: string | null
           "Unité donnée d'activité": string
+          Unite_en?: string | null
           updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          version_id?: string | null
           workspace_id?: string | null
         }
         Update: {
           Commentaires?: string | null
+          Commentaires_en?: string | null
           Contributeur?: string | null
           created_at?: string | null
           dataset_id?: string | null
           Date?: number | null
           Description?: string | null
+          Description_en?: string | null
+          factor_key?: string | null
           FE?: number
           id?: string
+          import_type?: string | null
           Incertitude?: string | null
+          is_latest?: boolean | null
+          language?: string
           Localisation?: string | null
+          Localisation_en?: string | null
           Nom?: string
+          Nom_en?: string | null
           Périmètre?: string | null
+          Périmètre_en?: string | null
           Secteur?: string
+          Secteur_en?: string | null
           Source?: string
           "Sous-secteur"?: string | null
+          "Sous-secteur_en"?: string | null
           "Unité donnée d'activité"?: string
+          Unite_en?: string | null
           updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          version_id?: string | null
           workspace_id?: string | null
         }
         Relationships: [
@@ -219,6 +305,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      emission_factors_all_search: {
+        Row: {
+          access_level: string
+          assigned_workspace_ids: string[] | null
+          Commentaires_en: string | null
+          Commentaires_fr: string | null
+          Date: number | null
+          Description_en: string | null
+          Description_fr: string | null
+          FE: number | null
+          Incertitude: string | null
+          languages: string[]
+          Localisation_en: string | null
+          Localisation_fr: string | null
+          Nom_en: string | null
+          Nom_fr: string | null
+          object_id: string
+          Périmètre_en: string | null
+          Périmètre_fr: string | null
+          record_id: string
+          scope: string
+          Secteur_en: string | null
+          Secteur_fr: string | null
+          Source: string
+          "Sous-secteur_en": string | null
+          "Sous-secteur_fr": string | null
+          Unite_en: string | null
+          Unite_fr: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          access_level: string
+          assigned_workspace_ids?: string[] | null
+          Commentaires_en?: string | null
+          Commentaires_fr?: string | null
+          Date?: number | null
+          Description_en?: string | null
+          Description_fr?: string | null
+          FE?: number | null
+          Incertitude?: string | null
+          languages: string[]
+          Localisation_en?: string | null
+          Localisation_fr?: string | null
+          Nom_en?: string | null
+          Nom_fr?: string | null
+          object_id: string
+          Périmètre_en?: string | null
+          Périmètre_fr?: string | null
+          record_id: string
+          scope: string
+          Secteur_en?: string | null
+          Secteur_fr?: string | null
+          Source: string
+          "Sous-secteur_en"?: string | null
+          "Sous-secteur_fr"?: string | null
+          Unite_en?: string | null
+          Unite_fr?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          access_level?: string
+          assigned_workspace_ids?: string[] | null
+          Commentaires_en?: string | null
+          Commentaires_fr?: string | null
+          Date?: number | null
+          Description_en?: string | null
+          Description_fr?: string | null
+          FE?: number | null
+          Incertitude?: string | null
+          languages?: string[]
+          Localisation_en?: string | null
+          Localisation_fr?: string | null
+          Nom_en?: string | null
+          Nom_fr?: string | null
+          object_id?: string
+          Périmètre_en?: string | null
+          Périmètre_fr?: string | null
+          record_id?: string
+          scope?: string
+          Secteur_en?: string | null
+          Secteur_fr?: string | null
+          Source?: string
+          "Sous-secteur_en"?: string | null
+          "Sous-secteur_fr"?: string | null
+          Unite_en?: string | null
+          Unite_fr?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       favorites: {
         Row: {
@@ -301,6 +477,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fe_versions: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          created_by: string
+          dataset_id: string | null
+          id: string
+          language: string
+          notes: string | null
+          version_label: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          created_by: string
+          dataset_id?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          version_label: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          created_by?: string
+          dataset_id?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          version_label?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           created_at: string
@@ -341,7 +550,6 @@ export type Database = {
           favorites_limit: number | null
           favorites_used: number | null
           id: string
-          plan_type: string
           reset_date: string | null
           updated_at: string
           user_id: string
@@ -355,7 +563,6 @@ export type Database = {
           favorites_limit?: number | null
           favorites_used?: number | null
           id?: string
-          plan_type?: string
           reset_date?: string | null
           updated_at?: string
           user_id: string
@@ -369,7 +576,6 @@ export type Database = {
           favorites_limit?: number | null
           favorites_used?: number | null
           id?: string
-          plan_type?: string
           reset_date?: string | null
           updated_at?: string
           user_id?: string
@@ -409,39 +615,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          ip_address: unknown | null
-          last_activity: string
-          session_token: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: unknown | null
-          last_activity?: string
-          session_token: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: unknown | null
-          last_activity?: string
-          session_token?: string
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       users: {
         Row: {
           assigned_by: string | null
@@ -453,7 +626,6 @@ export type Database = {
           last_name: string | null
           normalized_email: string | null
           phone: string | null
-          plan_type: string | null
           position: string | null
           subscribed: boolean | null
           subscription_end: string | null
@@ -472,7 +644,6 @@ export type Database = {
           last_name?: string | null
           normalized_email?: string | null
           phone?: string | null
-          plan_type?: string | null
           position?: string | null
           subscribed?: boolean | null
           subscription_end?: string | null
@@ -491,7 +662,6 @@ export type Database = {
           last_name?: string | null
           normalized_email?: string | null
           phone?: string | null
-          plan_type?: string | null
           position?: string | null
           subscribed?: boolean | null
           subscription_end?: string | null
@@ -631,12 +801,113 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      system_health_check: {
+        Row: {
+          component: string | null
+          healthy: number | null
+          issues: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      workspace_quotas_monitoring: {
+        Row: {
+          action_required: string | null
+          auth_status: string | null
+          clipboard_copies_limit: number | null
+          email: string | null
+          expected_clipboard_limit: number | null
+          expected_exports_limit: number | null
+          expected_favorites_limit: number | null
+          exports_limit: number | null
+          favorites_limit: number | null
+          quota_status: string | null
+          user_role: string | null
+          workspace_id: string | null
+          workspace_name: string | null
+          workspace_plan: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_summary: {
+        Row: {
+          plan_type: string | null
+          total_users: number | null
+          users_with_correct_quotas: number | null
+          users_with_quotas: number | null
+          valid_users: number | null
+          workspace_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      cleanup_expired_sessions: {
+      adjust_favorites_quota: {
+        Args: { p_delta: number; p_user: string }
+        Returns: undefined
+      }
+      audit_and_fix_all_quotas: {
         Args: Record<PropertyKey, never>
-        Returns: number
+        Returns: {
+          issues_fixed: number
+          issues_found: number
+          workspace_name: string
+        }[]
+      }
+      bulk_manage_fe_source_assignments: {
+        Args: {
+          p_assigned_source_names: string[]
+          p_unassigned_source_names: string[]
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
+      calculate_factor_key: {
+        Args: {
+          p_language?: string
+          p_localisation: string
+          p_nom: string
+          p_perimetre: string
+          p_source: string
+          p_unite: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      can_manage_user_roles: {
+        Args: { target_workspace_id: string }
+        Returns: boolean
+      }
+      can_view_user_roles: {
+        Args: { target_user_id: string; target_workspace_id: string }
+        Returns: boolean
+      }
+      cleanup_invalid_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          action: string
+          email: string
+        }[]
+      }
+      complete_webhook_batch: {
+        Args: {
+          p_batch_id: string
+          p_error_message?: string
+          p_success: boolean
+        }
+        Returns: boolean
+      }
+      ensure_user_quotas: {
+        Args: { user_uuid: string }
+        Returns: undefined
       }
       get_accessible_plan_tiers: {
         Args: { user_plan: string }
@@ -646,9 +917,47 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_next_webhook_batches: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          object_ids: string[]
+          operation_type: string
+          priority: number
+          scheduled_at: string
+          source_name: string
+        }[]
+      }
+      get_quota_limits: {
+        Args: { workspace_plan_type: string }
+        Returns: {
+          clipboard_copies_limit: number
+          exports_limit: number
+          favorites_limit: number
+        }[]
+      }
       get_user_workspace_plan: {
         Args: { user_uuid?: string }
         Returns: string
+      }
+      get_workspace_quotas: {
+        Args: { workspace_uuid: string }
+        Returns: {
+          clipboard_copies_limit: number
+          exports_limit: number
+          favorites_limit: number
+        }[]
+      }
+      get_workspace_users_with_roles: {
+        Args: { target_workspace_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string
+          last_name: string
+          user_id: string
+          user_roles: Json
+        }[]
       }
       has_company_access: {
         Args: { company_id: string }
@@ -663,7 +972,7 @@ export type Database = {
         Returns: boolean
       }
       is_supra_admin: {
-        Args: { user_uuid?: string }
+        Args: Record<PropertyKey, never> | { user_uuid?: string }
         Returns: boolean
       }
       is_workspace_owner: {
@@ -674,8 +983,63 @@ export type Database = {
         Args: { email_input: string }
         Returns: string
       }
+      queue_webhook_batch: {
+        Args: {
+          p_object_ids?: string[]
+          p_operation_type: string
+          p_priority?: number
+          p_source_name: string
+        }
+        Returns: string
+      }
+      rebuild_emission_factors_all_search: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      record_algolia_metric: {
+        Args: {
+          p_additional_data?: Json
+          p_metric_type: string
+          p_metric_value: number
+          p_user_id?: string
+          p_workspace_id?: string
+        }
+        Returns: string
+      }
+      refresh_ef_all_for_source: {
+        Args: { p_source: string }
+        Returns: undefined
+      }
+      refresh_projection_for_source: {
+        Args: { p_language?: string; p_source: string } | { p_source: string }
+        Returns: undefined
+      }
+      refresh_projection_for_source_fr: {
+        Args: { p_source: string }
+        Returns: undefined
+      }
+      refresh_projection_for_source_safe: {
+        Args: { p_source: string }
+        Returns: undefined
+      }
+      safe_to_int: {
+        Args: { v: string }
+        Returns: number
+      }
+      safe_to_numeric: {
+        Args: { v: number } | { v: string }
+        Returns: number
+      }
       sync_user_quotas_with_plans: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      sync_workspace_user_quotas: {
+        Args: { target_workspace_id: string }
+        Returns: number
+      }
+      update_user_quotas_from_workspace: {
+        Args: { target_user_id: string }
         Returns: undefined
       }
       workspace_has_access: {
@@ -814,3 +1178,5 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+ 

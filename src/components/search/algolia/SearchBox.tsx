@@ -21,7 +21,8 @@ export const SearchBox: React.FC = () => {
     getCacheStats
   } = useSearchBoxSuggestions(query, origin, {
     maxSuggestions: 8,
-    enablePreloading: true,
+    enablePreloading: false,
+    debounceDelay: 250,
     showCategories: true,
     groupByCategory: true,
     highlightMatches: true

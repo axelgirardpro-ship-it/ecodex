@@ -2,11 +2,12 @@
 import { algoliaCache } from './cacheManager';
 import { requestDeduplicator } from './requestDeduplicator';
 import { Origin, VALID_ALGOLIA_PARAMS, sanitizeFacetFilters, buildPrivateFilters, buildPublicFiltersBySources, mergeFederatedPair } from './searchClient';
+import { debugFacetFilters, analyzeFilterConflicts } from './debugFilters';
 import { createProxyClient } from './proxySearchClient';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 
-const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
-const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID;
+const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY;
 
 export interface SearchRequest {
   indexName?: string;
@@ -28,7 +29,6 @@ export class UnifiedAlgoliaClient {
   private clients: {
     fullPublic: any;
     fullPrivate: any;
-    teaser: any;
   } | null = null;
   
   private initPromise: Promise<void> | null = null;
@@ -48,17 +48,17 @@ export class UnifiedAlgoliaClient {
       const isLocalhost = typeof window !== 'undefined' && 
         /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 
-      if (isLocalhost) {
+      if (isLocalhost && FALLBACK_APP_ID && FALLBACK_SEARCH_KEY) {
+        // Utiliser les clés directes seulement si elles sont définies
         this.clients = {
           fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
-          fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
-          teaser: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
+          fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
         };
       } else {
+        // Toujours utiliser les clients proxy sinon (dev sans clés ou production)
         this.clients = {
           fullPublic: createProxyClient('fullPublic'),
-          fullPrivate: createProxyClient('fullPrivate'),
-          teaser: createProxyClient('teaserPublic')
+          fullPrivate: createProxyClient('fullPrivate')
         };
       }
     })();
@@ -205,41 +205,149 @@ export class UnifiedAlgoliaClient {
       forceRefresh = false
     } = options;
 
-    const results: any[] = [];
+    if (requests.length <= 1) {
+      // Chemin existant (simple) pour conserver toute la logique de dédup/cache
+      const results: any[] = [];
+      for (const request of requests) {
+        if (enableCache && !forceRefresh) {
+          const cached = algoliaCache.get(request);
+          if (cached) { results.push(cached.data); continue; }
+        }
+        const result = enableDeduplication
+          ? await requestDeduplicator.deduplicateRequest(request, () => this.executeSingleRequest(request))
+          : await this.executeSingleRequest(request);
+        results.push(result);
+        if (enableCache) algoliaCache.set(request, result, request.origin);
+      }
+      return { results };
+    }
 
-    for (const request of requests) {
-      // Vérifier le cache d'abord
-      if (enableCache && !forceRefresh) {
-        const cached = algoliaCache.get(request);
-        if (cached) {
-          results.push(cached.data);
-          continue;
+    // Regrouper en un minimum d'appels réseau
+    const origin: Origin = (requests[0]?.origin as Origin) || 'all';
+
+    // Hits cache et misses
+    const hits: Array<{ index: number; data: any }> = [];
+    const misses: Array<{ index: number; req: SearchRequest }> = [];
+    if (enableCache && !forceRefresh) {
+      requests.forEach((r, idx) => {
+        const c = algoliaCache.get(r);
+        if (c) hits.push({ index: idx, data: c.data });
+        else misses.push({ index: idx, req: r });
+      });
+    } else {
+      requests.forEach((r, idx) => misses.push({ index: idx, req: r }));
+    }
+
+    const assembled: any[] = new Array(requests.length);
+    hits.forEach(h => { assembled[h.index] = h.data; });
+
+    if (misses.length > 0) {
+      // Construire les requêtes Algolia groupées
+      const buildBase = (r: SearchRequest) => {
+        const baseParams = { ...(r.params || {}) };
+        const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+        return { baseParams, safeFacetFilters };
+      };
+
+      const publicRequests: any[] = [];
+      const privateRequests: any[] = [];
+      const missOrder: Array<{ index: number; which: 'public'|'private'|'both' }> = [];
+
+      for (const m of misses) {
+        const { baseParams, safeFacetFilters } = buildBase(m.req);
+        if (origin === 'public') {
+          const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
+            ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+            : [['access_level:standard']];
+          publicRequests.push({
+            indexName: 'ef_all',
+            params: {
+              ...baseParams,
+              facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
+              filters: baseParams.filters
+            }
+          });
+          missOrder.push({ index: m.index, which: 'public' });
+        } else if (origin === 'private') {
+          const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
+          privateRequests.push({
+            indexName: 'ef_all',
+            params: {
+              ...baseParams,
+              facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+              filters: baseParams.filters
+            }
+          });
+          missOrder.push({ index: m.index, which: 'private' });
+        } else { // all
+          const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
+            ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+            : [['access_level:standard']];
+          publicRequests.push({
+            indexName: 'ef_all',
+            params: {
+              ...baseParams,
+              facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
+              filters: baseParams.filters
+            }
+          });
+          const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
+          privateRequests.push({
+            indexName: 'ef_all',
+            params: {
+              ...baseParams,
+              facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+              filters: baseParams.filters
+            }
+          });
+          missOrder.push({ index: m.index, which: 'both' });
         }
       }
 
-      // Déduplication si activée
-      if (enableDeduplication) {
-        const result = await requestDeduplicator.deduplicateRequest(
-          request,
-          () => this.executeSingleRequest(request)
-        );
-        results.push(result);
-        
-        // Mettre en cache le résultat
-        if (enableCache) {
-          algoliaCache.set(request, result, request.origin);
-        }
+      // Exécuter en 1 ou 2 appels
+      let resPublic: any[] = [];
+      let resPrivate: any[] = [];
+      if (origin === 'public') {
+        const rp = await this.clients!.fullPublic.search(publicRequests);
+        resPublic = rp.results || [];
+      } else if (origin === 'private') {
+        const rpr = await this.clients!.fullPrivate.search(privateRequests);
+        resPrivate = rpr.results || [];
       } else {
-        const result = await this.executeSingleRequest(request);
-        results.push(result);
-        
-        if (enableCache) {
-          algoliaCache.set(request, result, request.origin);
+        const [rp, rr] = await Promise.all([
+          this.clients!.fullPublic.search(publicRequests),
+          this.clients!.fullPrivate.search(privateRequests)
+        ]);
+        resPublic = rp.results || [];
+        resPrivate = rr.results || [];
+      }
+
+      // Reconstituer résultats des misses selon l'ordre
+      let iPub = 0, iPriv = 0;
+      for (const m of missOrder) {
+        let value: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
+        if (m.which === 'public') {
+          value = resPublic[iPub++] || value;
+        } else if (m.which === 'private') {
+          value = resPrivate[iPriv++] || value;
+        } else {
+          const a = resPublic[iPub++] || value;
+          const b = resPrivate[iPriv++] || value;
+          value = mergeFederatedPair(a, b, { sumNbHits: true });
         }
+        assembled[m.index] = value;
+      }
+
+      // Mettre en cache les misses
+      if (enableCache) {
+        misses.forEach((m) => {
+          const val = assembled[m.index];
+          if (val) algoliaCache.set(m.req, val, m.req.origin);
+        });
       }
     }
 
-    return { results };
+    return { results: assembled };
   }
 
   private async executeSingleRequest(request: SearchRequest): Promise<any> {
@@ -247,7 +355,14 @@ export class UnifiedAlgoliaClient {
 
     const origin = request.origin || 'all';
     const baseParams = { ...(request.params || {}) };
+    
+    // Debug des filtres entrants
+    debugFacetFilters('1. Raw incoming facetFilters', baseParams.facetFilters, { origin });
+    
     const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+    
+    // Debug après sanitization
+    debugFacetFilters('2. After sanitizeFacetFilters', safeFacetFilters);
 
     // Optimisation intelligente selon l'origine
     switch (origin) {
@@ -263,37 +378,34 @@ export class UnifiedAlgoliaClient {
   }
 
   private async searchPublicOnly(baseParams: any, safeFacetFilters: any): Promise<any> {
-    const publicFilters = buildPublicFiltersBySources(this.assignedSources);
+    // Utiliser facetFilters au lieu de filters pour éviter les syntaxes complexes
+    const accessFilters = this.assignedSources && this.assignedSources.length > 0
+      ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+      : [['access_level:standard']];
     
     const publicRequest = {
       indexName: 'ef_all',
       params: {
         ...baseParams,
-        facetFilters: [['scope:public'], ...(safeFacetFilters || [])],
-        filters: this.combineFilters(baseParams.filters, publicFilters)
+        facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
+        filters: baseParams.filters // Garder seulement les filtres utilisateur
       }
     };
 
-    const [publicResult, teaserResult] = await Promise.all([
-      this.clients!.fullPublic.search([publicRequest]),
-      this.clients!.teaser.search([publicRequest])
-    ]);
-
-    return mergeFederatedPair(
-      publicResult.results[0], 
-      teaserResult.results[0]
-    );
+    const publicResult = await this.clients!.fullPublic.search([publicRequest]);
+    return publicResult.results[0];
   }
 
   private async searchPrivateOnly(baseParams: any, safeFacetFilters: any): Promise<any> {
-    const privateFilters = buildPrivateFilters(this.workspaceId);
+    // Utiliser facetFilters au lieu de filters complexes
+    const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
     
     const privateRequest = {
       indexName: 'ef_all',
       params: {
         ...baseParams,
-        facetFilters: [['scope:private'], ...(safeFacetFilters || [])],
-        filters: this.combineFilters(baseParams.filters, privateFilters)
+        facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+        filters: baseParams.filters // Garder seulement les filtres utilisateur
       }
     };
 
@@ -302,15 +414,25 @@ export class UnifiedAlgoliaClient {
   }
 
   private async searchFederated(baseParams: any, safeFacetFilters: any): Promise<any> {
-    const publicFilters = buildPublicFiltersBySources(this.assignedSources);
-    const privateFilters = buildPrivateFilters(this.workspaceId);
+    // Utiliser facetFilters au lieu de filters complexes
+    const publicAccessFilters = this.assignedSources && this.assignedSources.length > 0
+      ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+      : [['access_level:standard']];
+    
+    const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
 
+    const finalPublicFacetFilters = [['scope:public'], ...publicAccessFilters, ...(safeFacetFilters || [])];
+    
+    // Debug des filtres finaux pour public
+    debugFacetFilters('3. Final PUBLIC facetFilters', finalPublicFacetFilters);
+    analyzeFilterConflicts(finalPublicFacetFilters);
+    
     const publicRequest = {
       indexName: 'ef_all',
       params: {
         ...baseParams,
-        facetFilters: [['scope:public'], ...(safeFacetFilters || [])],
-        filters: this.combineFilters(baseParams.filters, publicFilters)
+        facetFilters: finalPublicFacetFilters,
+        filters: baseParams.filters // Garder seulement les filtres utilisateur
       }
     };
 
@@ -318,27 +440,20 @@ export class UnifiedAlgoliaClient {
       indexName: 'ef_all',
       params: {
         ...baseParams,
-        facetFilters: [['scope:private'], ...(safeFacetFilters || [])],
-        filters: this.combineFilters(baseParams.filters, privateFilters)
+        facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+        filters: baseParams.filters // Garder seulement les filtres utilisateur
       }
     };
 
     // Exécution en parallèle optimisée
-    const [publicResult, privateResult, teaserResult] = await Promise.all([
+    const [publicResult, privateResult] = await Promise.all([
       this.clients!.fullPublic.search([publicRequest]),
-      this.clients!.fullPrivate.search([privateRequest]),
-      this.clients!.teaser.search([publicRequest])
+      this.clients!.fullPrivate.search([privateRequest])
     ]);
 
-    // Merger les résultats public + teaser d'abord
-    const mergedPublic = mergeFederatedPair(
-      publicResult.results[0], 
-      teaserResult.results[0]
-    );
-
-    // Puis merger avec private
+    // Merger public + private
     return mergeFederatedPair(
-      mergedPublic, 
+      publicResult.results[0], 
       privateResult.results[0], 
       { sumNbHits: true }
     );
