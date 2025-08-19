@@ -65,19 +65,18 @@ Deno.serve(async (req) => {
 
     const origin = req.headers.get('Origin')
     
-    // Vérifier l'authentification
+    // Vérifier l'authentification (souple: public autorisé sans auth, privé interdit)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return jsonResponse(401, { error: 'Authorization header required' }, origin)
-    }
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
+      global: authHeader ? { headers: { Authorization: authHeader } } : undefined
     })
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return jsonResponse(401, { error: 'Invalid authentication' }, origin)
+    let userId: string | null = null
+    if (authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (!authError && user) {
+        userId = user.id
+      }
     }
 
     // Récupérer le body de la requête
@@ -85,14 +84,16 @@ Deno.serve(async (req) => {
     const isBatch = Array.isArray(rawBody?.requests)
     const incomingRequests = isBatch ? rawBody.requests : [rawBody]
 
-    // Récupérer le workspace de l'utilisateur
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('workspace_id')
-      .eq('id', user.id)
-      .single()
-
-    const workspaceId = profile?.workspace_id
+    // Récupérer le workspace de l'utilisateur (table users)
+    let workspaceId: string | null = null
+    if (userId) {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('workspace_id')
+        .eq('user_id', userId)
+        .single()
+      workspaceId = userRow?.workspace_id ?? null
+    }
 
     // Helper pour bâtir les paramètres appliqués selon le type
     const buildApplied = (searchType: string) => {
@@ -113,9 +114,14 @@ Deno.serve(async (req) => {
           appliedFacetFilters = [[ 'access_level:premium' ]]
           break
         case 'fullPrivate':
-          appliedFilters = workspaceId
-            ? `scope:private AND workspace_id:${workspaceId}`
-            : `scope:private AND workspace_id:_none_`
+          if (!userId) {
+            // Non authentifié: accès privé interdit
+            appliedFilters = `scope:private AND workspace_id:_none_`
+          } else {
+            appliedFilters = workspaceId
+              ? `scope:private AND workspace_id:${workspaceId}`
+              : `scope:private AND workspace_id:_none_`
+          }
           break
         default:
           appliedFilters = `scope:public`

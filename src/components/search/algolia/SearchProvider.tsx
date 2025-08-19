@@ -10,6 +10,7 @@ import { DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 import { createUnifiedClient } from '@/lib/algolia/unifiedSearchClient';
 import { performanceMonitor } from '@/lib/algolia/performanceMonitor';
 import AlgoliaFallback from '@/components/search/AlgoliaFallback';
+import { useAuth } from '@/contexts/AuthContext';
 import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
 import DebugSearchState from '@/components/search/DebugSearchState';
 
@@ -72,6 +73,7 @@ export const OriginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 interface SearchProviderProps { children: React.ReactNode; }
 
 export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
+  const { user, loading: authLoading } = useAuth();
   const quotaHook = useQuotas();
   const { currentWorkspace } = useWorkspace();
   const { assignedSources } = useEmissionFactorAccess();
@@ -155,7 +157,12 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
     <AlgoliaErrorBoundary>
       <QuotaContext.Provider value={quotaHook}>
         <OriginContext.Provider value={{ origin, setOrigin }}>
-                  {searchClient ? (
+          {authLoading || !user ? (
+            <AlgoliaFallback 
+              error="Initialisation de l'authentification..." 
+              showOptimizationInfo={true}
+            />
+          ) : searchClient ? (
           <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
             {children}
             <DebugSearchState />

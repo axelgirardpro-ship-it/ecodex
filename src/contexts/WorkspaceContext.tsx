@@ -40,16 +40,23 @@ interface WorkspaceProviderProps {
 
 export const WorkspaceProvider = ({ children }: WorkspaceProviderProps) => {
   const { user } = useAuth();
-  const { userProfile } = useUser();
+  const { userProfile, loading: userLoading } = useUser();
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchWorkspace = async () => {
-    // Validation renforcée : s'assurer que userProfile et workspace_id sont valides
-    if (!user || !userProfile || !userProfile.workspace_id || userProfile.workspace_id.trim() === '') {
-      if (!userProfile) {
-        console.warn('WorkspaceContext: userProfile is null, this indicates data inconsistency');
-      }
+    // Attendre que le profil soit chargé
+    if (!user) {
+      setCurrentWorkspace(null);
+      setLoading(false);
+      return;
+    }
+    if (userLoading) {
+      setLoading(true);
+      return;
+    }
+    // Validation : workspace_id requis
+    if (!userProfile || !userProfile.workspace_id || userProfile.workspace_id.trim() === '') {
       setCurrentWorkspace(null);
       setLoading(false);
       return;
@@ -79,7 +86,7 @@ export const WorkspaceProvider = ({ children }: WorkspaceProviderProps) => {
 
   useEffect(() => {
     fetchWorkspace();
-  }, [user, userProfile]);
+  }, [user, userProfile?.workspace_id, userLoading]);
 
   const refreshWorkspace = async () => {
     setLoading(true);
