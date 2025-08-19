@@ -99,6 +99,31 @@ export function initErrorSuppression(): void {
     const suppressor = ErrorSuppressor.getInstance();
     suppressor.suppressSupabaseErrors();
     
+    // Filtrer certaines erreurs de navigateurs/extensions très bruyantes
+    if (typeof window !== 'undefined') {
+      const isExtensionPortError = (msg: string) => {
+        const lower = (msg || '').toLowerCase();
+        return lower.includes('disconnected port object');
+      };
+
+      // Empêcher l'affichage d'erreurs non actionnables (extensions)
+      window.addEventListener('error', (ev: ErrorEvent) => {
+        const msg = String(ev.message || '');
+        if (isExtensionPortError(msg)) {
+          ev.preventDefault?.();
+        }
+      });
+
+      // Eviter les Uncaught (in promise) pour Algolia bloqué
+      window.addEventListener('unhandledrejection', (ev: PromiseRejectionEvent) => {
+        const reason: any = ev.reason;
+        const msg = String(reason?.message || reason || '').toLowerCase();
+        if (msg.includes('application is blocked') || msg.includes('forbidden') || msg.includes('blocked')) {
+          ev.preventDefault?.();
+        }
+      });
+    }
+    
     // Ajouter aux outils de debug
     if (typeof window !== 'undefined') {
       (window as any).errorSuppressor = {
