@@ -163,8 +163,16 @@ export const AdminImportsPanel: React.FC = () => {
       });
       if (importErr) throw importErr;
       toast({ title: 'Import lancé', description: `Job: ${importData?.import_id || 'en file'}` });
-      setImportStatus('success');
-      setImportMessage('Import terminé. Indexation Algolia effectuée par source.');
+      // Reindex atomique complet après import admin
+      try {
+        const { data: reindexRes, error: reindexErr } = await supabase.functions.invoke('reindex-ef-all-atomic', { body: {} })
+        if (reindexErr) throw reindexErr
+        setImportStatus('success');
+        setImportMessage('Import terminé. Reindex Algolia atomique effectué.');
+      } catch (e: any) {
+        setImportStatus('error');
+        setImportMessage(`Import OK mais reindex Algolia a échoué: ${e?.message || String(e)}`);
+      }
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
@@ -192,8 +200,15 @@ export const AdminImportsPanel: React.FC = () => {
       });
       if (error) throw error;
       toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });
-      setImportStatus('success');
-      setImportMessage('Import terminé. Indexation Algolia effectuée par source.');
+      try {
+        const { error: reindexErr } = await supabase.functions.invoke('reindex-ef-all-atomic', { body: {} })
+        if (reindexErr) throw reindexErr
+        setImportStatus('success');
+        setImportMessage('Import terminé. Reindex Algolia atomique effectué.');
+      } catch (e: any) {
+        setImportStatus('error');
+        setImportMessage(`Import OK mais reindex Algolia a échoué: ${e?.message || String(e)}`);
+      }
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });

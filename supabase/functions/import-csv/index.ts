@@ -1,4 +1,4 @@
-// Edge Function pour Supabase - Compatible Deno Runtime
+// Edge Function ADMIN (renommée): analyse + import SCD2, puis reindex atomique déclenché côté admin
 // @ts-ignore - Import ESM valide pour Deno/Edge Functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @ts-ignore - Import XLSX pour parsing Excel
@@ -258,100 +258,12 @@ Deno.serve(async (req) => {
         if (!insertError) inserted++
       }
 
-      // Déclencher rebuild des projections (public/private FR)
-      const { error: rebuildError } = await supabase.rpc('rebuild_after_import_fr', { p_import_id: importRecord.id })
-      if (rebuildError) {
-        await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'rebuild failed', details: rebuildError.message }, finished_at: new Date().toISOString(), processed: processed, inserted: inserted }).eq('id', importRecord.id)
-        return new Response(JSON.stringify({ error: 'Rebuild projections failed', details: rebuildError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      // Rafraîchir projection par source (évite gros rebuild si ciblé)
+      for (const [sourceName] of sourcesCount) {
+        await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
       }
 
-      // Full record updates Algolia par source
-      try {
-        const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
-        const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
-        const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
-        if (ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY) {
-          // Utiliser l'API REST Algolia directement avec fetch (compatible Deno/Edge Functions)
-          const algoliaHeaders = {
-            'X-Algolia-API-Key': ALGOLIA_ADMIN_KEY,
-            'X-Algolia-Application-Id': ALGOLIA_APP_ID,
-            'Content-Type': 'application/json'
-          }
-
-          for (const [sourceName] of sourcesCount) {
-            await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
-
-            const { data: rows, error } = await supabase
-              .from('emission_factors_all_search')
-              .select('*')
-              .eq('Source', sourceName)
-            if (error) continue
-
-            const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
-            const currentIds = new Set(records.map((r: any) => r.objectID))
-
-            // Récupérer les objectID existants pour cette Source via API REST
-            const existingIds: string[] = []
-            const searchUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/query`
-            const searchBody = {
-              query: '',
-              filters: `Source:"${sourceName}"`,
-              attributesToRetrieve: ['objectID', 'Source'],
-              hitsPerPage: 1000
-            }
-            
-            const searchResponse = await fetch(searchUrl, {
-              method: 'POST',
-              headers: algoliaHeaders,
-              body: JSON.stringify(searchBody)
-            })
-            
-            if (searchResponse.ok) {
-              const searchData = await searchResponse.json()
-              if (searchData.hits) {
-                searchData.hits.forEach((hit: any) => {
-                  existingIds.push(String(hit.objectID))
-                })
-              }
-            }
-
-            const toDelete = existingIds.filter((id) => !currentIds.has(id))
-            
-            // Supprimer les objets obsolètes via API REST
-            if (toDelete.length > 0) {
-              const deleteUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/deleteByQuery`
-              const deleteBody = {
-                filters: `Source:"${sourceName}" AND objectID:${toDelete.map(id => `"${id}"`).join(' OR objectID:')}`
-              }
-              
-              await fetch(deleteUrl, {
-                method: 'POST',
-                headers: algoliaHeaders,
-                body: JSON.stringify(deleteBody)
-              })
-            }
-            
-            // Sauvegarder les nouveaux objets via API REST
-            if (records.length > 0) {
-              const saveUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/batch`
-              const saveBody = {
-                requests: records.map((record: any) => ({
-                  action: 'updateObject',
-                  body: record
-                }))
-              }
-              
-              await fetch(saveUrl, {
-                method: 'POST',
-                headers: algoliaHeaders,
-                body: JSON.stringify(saveBody)
-              })
-            }
-          }
-        }
-      } catch (_) {
-        // Ne pas bloquer l'import si la synchro Algolia échoue
-      }
+      // L'indexation Algolia se fera via reindex atomique déclenché côté admin (pas ici)
 
       await supabase.from('data_imports').update({ status: 'completed', finished_at: new Date().toISOString(), processed: processed, inserted: inserted }).eq('id', importRecord.id)
       return new Response(JSON.stringify({ import_id: importRecord.id, processed, inserted, status: 'completed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

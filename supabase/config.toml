@@ -78,5 +78,10 @@ vector_port = 54329
 [functions.import-csv]
 verify_jwt = true
 
-[functions.db-webhooks]
-verify_jwt = false
+[functions.import-csv-user]
+verify_jwt = true
+
+[functions.reindex-ef-all-atomic]
+verify_jwt = true
+
+# Legacy db-webhooks removed
