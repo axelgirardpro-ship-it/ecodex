@@ -6,8 +6,8 @@ import { debugFacetFilters, analyzeFilterConflicts } from './debugFilters';
 import { createProxyClient } from './proxySearchClient';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 
-const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID;
-const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY;
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
+const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
 
 export interface SearchRequest {
   indexName?: string;

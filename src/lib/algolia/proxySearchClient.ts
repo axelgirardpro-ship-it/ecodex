@@ -25,30 +25,21 @@ export interface ProxySearchResponse {
 class ProxySearchClient {
   async search(requests: ProxySearchRequest[]): Promise<{ results: ProxySearchResponse[] }> {
     try {
+      // Utiliser le SDK supabase pour invoquer l'Edge Function, en forçant le JWT si disponible
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('No authentication token');
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
-
-      // Multi-queries: envoyer toutes les requêtes en un seul appel
-      const response = await fetch('/functions/v1/algolia-search-proxy', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ requests })
+      const { data, error } = await supabase.functions.invoke('algolia-search-proxy', {
+        body: { requests },
+        headers
       });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Search proxy error: ${error}`);
+      if (error) {
+        throw new Error(`Search proxy error: ${error.message || JSON.stringify(error)}`);
       }
-
-      const json = await response.json();
-      // L'Edge renvoie { results: [...] }
+      const json = data as any;
       if (Array.isArray(json?.results)) return { results: json.results };
-      // Compatibilité si l'Edge renvoie une seule réponse
       return { results: [json] };
     } catch (error) {
       console.error('Proxy search client error:', error);
