@@ -110,15 +110,14 @@ export const AuthCallback = () => {
 
       if (roleError) throw roleError;
 
-      // Créer les quotas par défaut
+      // Créer les quotas par défaut (sans plan_type)
       const { error: quotaError } = await supabase
         .from('search_quotas')
         .insert({
           user_id: user.id,
           exports_limit: 10,
           clipboard_copies_limit: 50,
-          favorites_limit: 100,
-          plan_type: 'freemium'
+          favorites_limit: 100
         });
 
       if (quotaError) console.warn('Erreur quotas (non critique):', quotaError);

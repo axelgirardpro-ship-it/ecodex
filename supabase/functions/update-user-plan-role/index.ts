@@ -83,13 +83,13 @@ serve(async (req) => {
         let quotaUpdates: Record<string, any> = {}
         switch (newPlan) {
           case 'freemium':
-            quotaUpdates = { plan_type: 'freemium', exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
+            quotaUpdates = { exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
             break
           case 'standard':
-            quotaUpdates = { plan_type: 'standard', exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
+            quotaUpdates = { exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
             break
           case 'premium':
-            quotaUpdates = { plan_type: 'premium', exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
+            quotaUpdates = { exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
             break
         }
 
@@ -143,13 +143,13 @@ serve(async (req) => {
       let quotaUpdates: Record<string, any> = {}
       switch (newPlan) {
         case 'freemium':
-          quotaUpdates = { plan_type: 'freemium', exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
+          quotaUpdates = { exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
           break
         case 'standard':
-          quotaUpdates = { plan_type: 'standard', exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
+          quotaUpdates = { exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
           break
         case 'premium':
-          quotaUpdates = { plan_type: 'premium', exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
+          quotaUpdates = { exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
           break
       }
 

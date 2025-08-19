@@ -6,7 +6,7 @@ import { useQuotaRealtime } from "@/hooks/useOptimizedRealtime";
 
 interface QuotaData {
   user_id: string;
-  plan_type: PlanType;
+  plan_type?: PlanType; // optionnel, non stocké dans search_quotas
   exports_limit: number | null; // null = unlimited
   clipboard_copies_limit: number | null; // null = unlimited
   favorites_limit: number | null; // null = unlimited
@@ -54,7 +54,6 @@ export const useQuotas = () => {
           .from('search_quotas')
           .insert({
             user_id: user.id,
-            plan_type: 'freemium',
             exports_limit: 0,
             clipboard_copies_limit: 10,
             favorites_limit: 10,

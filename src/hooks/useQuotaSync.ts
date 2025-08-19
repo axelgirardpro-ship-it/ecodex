@@ -14,19 +14,20 @@ interface PlanQuotaRules {
 
 const PLAN_QUOTA_RULES: Record<PlanType, PlanQuotaRules> = {
   freemium: {
-    exports_limit: 10, // 10 exports par mois
+    exports_limit: 10,
     clipboard_copies_limit: 10,
     favorites_limit: 10,
   },
   standard: {
-    exports_limit: 100, // 100 exports par mois
-    clipboard_copies_limit: 100, // 100 copies par mois
-    favorites_limit: 100, // 100 favoris max
+    exports_limit: 100,
+    clipboard_copies_limit: 100,
+    favorites_limit: 100,
   },
   premium: {
-    exports_limit: 1000, // 1000 exports par mois
-    clipboard_copies_limit: 1000, // 1000 copies par mois
-    favorites_limit: null, // Illimité pour premium
+    // Illimité pour premium
+    exports_limit: null,
+    clipboard_copies_limit: null,
+    favorites_limit: null,
   },
 };
 
@@ -59,7 +60,6 @@ export const useQuotaSync = () => {
         .from('search_quotas')
         .upsert({
           user_id: user.id,
-          plan_type: effectivePlanType,
           exports_limit: rules.exports_limit,
           clipboard_copies_limit: rules.clipboard_copies_limit,
           favorites_limit: rules.favorites_limit,
