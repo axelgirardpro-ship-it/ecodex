@@ -1,11 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
 import { useSupraAdmin } from "@/hooks/useSupraAdmin";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export const usePermissions = () => {
   const { user } = useAuth();
   const { userProfile } = useUser();
   const { isSupraAdmin } = useSupraAdmin();
+  const { currentWorkspace } = useWorkspace();
 
   // Can import data: supra_admin or admin (Premium plan only)
   const canImportData = isSupraAdmin || userProfile?.role === 'admin';
@@ -42,6 +44,7 @@ export const usePermissions = () => {
     canDeleteData,
     canAddUsers, // Backward compatibility
     role: userProfile?.role,
-    planType: userProfile?.plan_type
+    // La source de vérité pour le plan est le workspace
+    planType: currentWorkspace?.plan_type || userProfile?.plan_type
   };
 };
