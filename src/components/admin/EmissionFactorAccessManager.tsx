@@ -63,15 +63,16 @@ export const EmissionFactorAccessManager = () => {
 
       console.log(`✅ Successfully updated source ${source} to ${newTier}`);
 
-      // Rebuild unifié pour refléter le nouveau tier sur ef_all
+      // Déclencher une synchronisation Algolia optimisée pour cette source
       try {
-        // Call the refresh function using admin API
-        const { error: refreshError } = await supabase.functions.invoke('refresh-ef-all-for-source', { 
-          body: { source } 
+        const { error: syncError } = await supabase.functions.invoke('db-webhooks-optimized', {
+          body: [
+            { type: 'UPDATE', table: 'public:fe_sources', record: { source_name: source } }
+          ]
         });
-        if (refreshError) console.warn('Refresh ef_all failed:', refreshError);
+        if (syncError) console.warn('db-webhooks-optimized sync failed:', syncError);
       } catch (e) {
-        console.warn('Refresh ef_all failed (tier updated in DB):', e);
+        console.warn('db-webhooks-optimized sync failed (tier updated in DB):', e);
       }
 
       // Mark as successful

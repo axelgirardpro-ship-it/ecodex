@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { FavorisSearchProvider } from './FavorisSearchProvider';
 import { OriginProvider } from '@/components/search/algolia/SearchProvider';
+import { SearchProvider } from '@/components/search/algolia/SearchProvider';
 import { FavorisSearchBox } from './FavorisSearchBox';
 import { FavorisSearchResults } from './FavorisSearchResults';
 import { SearchFilters } from '@/components/search/algolia/SearchFilters';
 import { FavorisSearchStats } from './FavorisSearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
+import { Configure } from 'react-instantsearch';
+import { buildFavoriteIdsFilter } from '@/lib/algolia/searchClient';
 import { EmissionFactor } from '@/types/emission-factor';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -75,6 +77,8 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
   const availableLocations = [...new Set(favorites.map(f => f.localisation))].filter(Boolean);
   const availableDates = [...new Set(favorites.map(f => f.date.toString()))].filter(Boolean).sort((a, b) => parseInt(b) - parseInt(a));
 
+  const favoriteIdsFilter = buildFavoriteIdsFilter(favoriteIds);
+
   return (
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
@@ -133,6 +137,7 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
 
             {/* Results Section */}
             <section className="lg:col-span-3">
+              <Configure filters={favoriteIdsFilter} />
               <FavorisSearchStats />
               <FavorisSearchResults
                 selectedItems={selectedItems}
@@ -157,9 +162,9 @@ export const FavorisAlgoliaDashboard: React.FC = () => {
 
   return (
     <OriginProvider>
-      <FavorisSearchProvider favoriteIds={favoriteIds}>
+      <SearchProvider>
         <FavorisAlgoliaContent favoriteIds={favoriteIds} />
-      </FavorisSearchProvider>
+      </SearchProvider>
     </OriginProvider>
   );
 };

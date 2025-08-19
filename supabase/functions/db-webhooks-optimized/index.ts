@@ -251,11 +251,6 @@ class WebhookBatcher {
     };
 
     try {
-      // Garantir l'existence de la source
-      await supabase
-        .from('fe_sources')
-        .upsert({ source_name: sourceName, access_level: 'standard', is_global: false }, 
-                { onConflict: 'source_name' });
 
       // Optimisation: ne rafraîchir la projection que si nécessaire
       const needsFullRefresh = batch.operations.has('insert') || 
@@ -275,6 +270,13 @@ class WebhookBatcher {
 
         const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }));
         
+        // Purge totale de la Source avant réinjection (évite l'appel /query)
+        await fetch(`https://${appId}-dsn.algolia.net/1/indexes/${indexName}/deleteByQuery`, {
+          method: 'POST',
+          headers: algoliaHeaders,
+          body: JSON.stringify({ filters: `Source:"${sourceName}"` })
+        });
+
         if (records.length > 0) {
           // Batch update optimisé
           const batchRequests = records.map((record: any) => ({
