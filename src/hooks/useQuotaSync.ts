@@ -24,9 +24,9 @@ const PLAN_QUOTA_RULES: Record<PlanType, PlanQuotaRules> = {
     favorites_limit: 100,
   },
   premium: {
-    // Illimité pour premium
-    exports_limit: null,
-    clipboard_copies_limit: null,
+    // Premium: quotas élevés mais bornés (favoris illimités)
+    exports_limit: 1000,
+    clipboard_copies_limit: 1000,
     favorites_limit: null,
   },
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuotaSync, type PlanType } from "@/hooks/useQuotaSync";
 import { useQuotaRealtime } from "@/hooks/useOptimizedRealtime";
@@ -17,6 +18,7 @@ interface QuotaData {
 
 export const useQuotas = () => {
   const { user } = useAuth();
+  const { planType: effectivePlanType } = usePermissions();
   const [quotaData, setQuotaData] = useState<QuotaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,14 +73,16 @@ export const useQuotas = () => {
         
         setQuotaData(newQuota as QuotaData);
       } else {
-        setQuotaData(data as QuotaData);
+        // Injecter plan_type depuis les permissions si disponible
+        const withPlan: QuotaData = { ...(data as QuotaData), plan_type: (effectivePlanType as any) };
+        setQuotaData(withPlan);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [user, syncUserQuotas]);
+  }, [user, syncUserQuotas, effectivePlanType]);
 
   // Callback optimisé pour les mises à jour Realtime
   const handleQuotaUpdate = useCallback((payload: any) => {

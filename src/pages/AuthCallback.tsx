@@ -115,9 +115,10 @@ export const AuthCallback = () => {
         .from('search_quotas')
         .insert({
           user_id: user.id,
+          // Valeurs par défaut freemium
           exports_limit: 10,
-          clipboard_copies_limit: 50,
-          favorites_limit: 100
+          clipboard_copies_limit: 10,
+          favorites_limit: 10
         });
 
       if (quotaError) console.warn('Erreur quotas (non critique):', quotaError);
