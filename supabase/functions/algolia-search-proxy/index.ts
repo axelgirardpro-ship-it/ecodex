@@ -107,6 +107,11 @@ Deno.serve(async (req) => {
             appliedFacetFilters = [[ 'access_level:standard' ]]
           }
           break
+        case 'teaserPublic':
+          // Teaser: uniquement public + premium, affiché en mode flouté côté client
+          appliedFilters = `scope:public`
+          appliedFacetFilters = [[ 'access_level:premium' ]]
+          break
         case 'fullPrivate':
           appliedFilters = workspaceId
             ? `scope:private AND workspace_id:${workspaceId}`
@@ -143,6 +148,14 @@ Deno.serve(async (req) => {
         filters: combinedFilters,
         facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined,
         ...otherParams
+      }
+      // Pour le teaser, on limite strictement les attributs pour éviter toute fuite de contenu sensible
+      if (String(searchType) === 'teaserPublic') {
+        paramsObj.attributesToRetrieve = [
+          'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
+          'Nom_fr','Secteur_fr','Sous-secteur_fr','Localisation_fr','Périmètre_fr',
+          'Nom_en','Secteur_en','Sous-secteur_en','Localisation_en','Périmètre_en'
+        ]
       }
       const cacheKey = JSON.stringify({
         workspaceId,
