@@ -77,30 +77,18 @@ export const WorkspaceUsersManager = () => {
     try {
       setIsInviting(true);
 
-      // Utiliser l'Edge Function pour envoyer l'invitation
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.access_token) {
-        throw new Error('Session non trouvée');
-      }
-
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/invite-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`,
-          'apikey': supabase.supabaseKey
-        },
-        body: JSON.stringify({
+      // Utiliser l'Edge Function (auth et apikey gérées par le client supabase)
+      const { data: result, error } = await supabase.functions.invoke('invite-user', {
+        body: {
           email: inviteEmail.toLowerCase().trim(),
           workspaceId: currentWorkspace.id,
           role: inviteRole,
           redirectTo: `${window.location.origin}/auth/callback?type=invite&workspaceId=${currentWorkspace.id}&role=${inviteRole}`
-        })
+        }
       });
 
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de l\'invitation');
+      if (error || !(result as any)?.success) {
+        throw new Error(error?.message || (result as any)?.error || 'Erreur lors de l\'invitation');
       }
 
       toast({
