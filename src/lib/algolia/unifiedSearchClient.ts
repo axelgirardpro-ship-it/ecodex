@@ -29,6 +29,7 @@ export class UnifiedAlgoliaClient {
   private clients: {
     fullPublic: any;
     fullPrivate: any;
+    teaser: any;
   } | null = null;
   
   private initPromise: Promise<void> | null = null;
@@ -52,13 +53,15 @@ export class UnifiedAlgoliaClient {
         // Utiliser les clés directes seulement si elles sont définies
         this.clients = {
           fullPublic: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
-          fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
+          fullPrivate: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY),
+          teaser: algoliasearch(FALLBACK_APP_ID, FALLBACK_SEARCH_KEY)
         };
       } else {
         // Toujours utiliser les clients proxy sinon (dev sans clés ou production)
         this.clients = {
           fullPublic: createProxyClient('fullPublic'),
-          fullPrivate: createProxyClient('fullPrivate')
+          fullPrivate: createProxyClient('fullPrivate'),
+          teaser: createProxyClient('teaserPublic')
         };
       }
     })();
@@ -309,16 +312,21 @@ export class UnifiedAlgoliaClient {
       let resPrivate: any[] = [];
       if (origin === 'public') {
         const rp = await this.clients!.fullPublic.search(publicRequests);
-        resPublic = rp.results || [];
+        // Enrichir avec le teaser pour les mêmes requêtes (position miroir)
+        const rt = await this.clients!.teaser.search(publicRequests);
+        const teaserResults = rt.results || [];
+        resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
       } else if (origin === 'private') {
         const rpr = await this.clients!.fullPrivate.search(privateRequests);
         resPrivate = rpr.results || [];
       } else {
-        const [rp, rr] = await Promise.all([
+        const [rp, rr, rt] = await Promise.all([
           this.clients!.fullPublic.search(publicRequests),
-          this.clients!.fullPrivate.search(privateRequests)
+          this.clients!.fullPrivate.search(privateRequests),
+          this.clients!.teaser.search(publicRequests)
         ]);
-        resPublic = rp.results || [];
+        const teaserResults = rt.results || [];
+        resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
         resPrivate = rr.results || [];
       }
 
@@ -446,14 +454,21 @@ export class UnifiedAlgoliaClient {
     };
 
     // Exécution en parallèle optimisée
-    const [publicResult, privateResult] = await Promise.all([
+    const [publicResult, privateResult, teaserResult] = await Promise.all([
       this.clients!.fullPublic.search([publicRequest]),
-      this.clients!.fullPrivate.search([privateRequest])
+      this.clients!.fullPrivate.search([privateRequest]),
+      this.clients!.teaser.search([publicRequest])
     ]);
 
-    // Merger public + private
-    return mergeFederatedPair(
+    // Merger public + teaser d'abord
+    const mergedPublic = mergeFederatedPair(
       publicResult.results[0], 
+      teaserResult.results[0]
+    );
+
+    // Puis merger avec private
+    return mergeFederatedPair(
+      mergedPublic, 
       privateResult.results[0], 
       { sumNbHits: true }
     );

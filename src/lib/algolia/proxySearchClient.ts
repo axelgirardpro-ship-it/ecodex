@@ -4,7 +4,7 @@ export interface ProxySearchRequest {
   query?: string;
   filters?: string;
   facetFilters?: any;
-  searchType: 'fullPublic' | 'fullPrivate';
+  searchType: 'fullPublic' | 'fullPrivate' | 'teaserPublic';
   hitsPerPage?: number;
   page?: number;
   attributesToRetrieve?: string[];
@@ -65,7 +65,7 @@ class ProxySearchClient {
 export const proxySearchClient = new ProxySearchClient();
 
 // Fonction helper pour créer des clients compatibles avec l'interface existante
-export const createProxyClient = (searchType: 'fullPublic' | 'fullPrivate') => ({
+export const createProxyClient = (searchType: 'fullPublic' | 'fullPrivate' | 'teaserPublic') => ({
   search: async (requests: any[]) => {
     const proxyRequests = requests.map(req => ({
       ...req.params,
