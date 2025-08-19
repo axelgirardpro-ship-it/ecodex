@@ -32,6 +32,7 @@ export const useOptimizedRealtime = (
 ) => {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const didUnmountRef = useRef<boolean>(false);
 
   const debouncedCallback = useCallback((payload: any) => {
     if (timeoutRef.current) {
@@ -44,6 +45,7 @@ export const useOptimizedRealtime = (
   }, [callback, config.debounceMs]);
 
   useEffect(() => {
+    didUnmountRef.current = false;
     // Nettoyage préventif des anciens channels
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -70,15 +72,25 @@ export const useOptimizedRealtime = (
         debouncedCallback
       )
       .subscribe((status) => {
-        // Log d'erreur uniquement en cas de problème
+        // Réduire le bruit: ne pas logger les fermetures attendues (unmount/onglet caché)
         if (status === 'CLOSED') {
-          console.error(`Erreur subscription ${channelName}:`, status);
+          const expected = didUnmountRef.current || (typeof document !== 'undefined' && document.visibilityState !== 'visible');
+          if (!expected && import.meta.env.DEV) {
+            console.debug(`Realtime channel CLOSED: ${channelName}`);
+          }
+          return;
+        }
+        if ((status as any) === 'CHANNEL_ERROR' || (status as any) === 'TIMED_OUT') {
+          if (import.meta.env.DEV) {
+            console.debug(`Realtime channel status ${status}: ${channelName}`);
+          }
         }
       });
 
     channelRef.current = channel;
 
     return () => {
+      didUnmountRef.current = true;
       // Nettoyage des timeouts
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);

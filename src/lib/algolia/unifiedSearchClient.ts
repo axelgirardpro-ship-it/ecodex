@@ -9,6 +9,58 @@ import { liteClient as algoliasearch } from 'algoliasearch/lite';
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
 
+// --- Circuit breaker Algolia (blocage temporaire quand l'application Algolia est bloquée) ---
+let ALGOLIA_BLOCKED_UNTIL = 0;
+let ALGOLIA_BLOCK_CONSECUTIVE_COUNT = 0;
+
+function isAlgoliaTemporarilyBlocked(): boolean {
+  return Date.now() < ALGOLIA_BLOCKED_UNTIL;
+}
+
+function markAlgoliaBlocked(): void {
+  ALGOLIA_BLOCK_CONSECUTIVE_COUNT = Math.min(ALGOLIA_BLOCK_CONSECUTIVE_COUNT + 1, 6);
+  const baseBackoffMs = 10 * 60_000; // 10 minutes
+  const computed = Math.min(baseBackoffMs * Math.pow(2, ALGOLIA_BLOCK_CONSECUTIVE_COUNT - 1), 60 * 60 * 1000); // cap à 60 min
+  ALGOLIA_BLOCKED_UNTIL = Date.now() + computed;
+  if (typeof window !== 'undefined') {
+    (window as any).__algoliaBlockedUntil = ALGOLIA_BLOCKED_UNTIL;
+  }
+}
+
+function clearAlgoliaBlocked(): void {
+  ALGOLIA_BLOCKED_UNTIL = 0;
+  ALGOLIA_BLOCK_CONSECUTIVE_COUNT = 0;
+  if (typeof window !== 'undefined') {
+    (window as any).__algoliaBlockedUntil = 0;
+  }
+}
+
+function isAlgoliaBlockedError(error: any): boolean {
+  const status = error?.status ?? error?.httpStatusCode ?? error?.response?.status;
+  const message = String(error?.message || '').toLowerCase();
+  return status === 403 || message.includes('forbidden') || message.includes('blocked');
+}
+
+function buildEmptySingleResultFromRequest(req?: SearchRequest): any {
+  const hitsPerPage = (req as any)?.params?.hitsPerPage || 10;
+  const query = (req as any)?.params?.query || '';
+  return {
+    hits: [],
+    nbHits: 0,
+    page: 0,
+    nbPages: 0,
+    hitsPerPage,
+    processingTimeMS: 0,
+    query,
+    params: ''
+  };
+}
+
+function buildEmptyResultsForRequests(requests: SearchRequest[]): { results: any[] } {
+  const ref = requests[0];
+  return { results: requests.map(() => buildEmptySingleResultFromRequest(ref)) };
+}
+
 export interface SearchRequest {
   indexName?: string;
   params?: any;
@@ -74,6 +126,10 @@ export class UnifiedAlgoliaClient {
     options: OptimizedSearchOptions = {}
   ): Promise<{ results: any[] }> {
     await this.initializeClients();
+    // Court-circuit si l'application Algolia est bloquée pour éviter des erreurs non-capturées
+    if (isAlgoliaTemporarilyBlocked()) {
+      return buildEmptyResultsForRequests(requests || []);
+    }
     
     const {
       enableCache = true,
@@ -149,6 +205,18 @@ export class UnifiedAlgoliaClient {
     const batch = this.requestQueue.splice(0, this.maxBatchSize);
     
     try {
+      // Si bloqué, répondre immédiatement avec des résultats vides
+      if (isAlgoliaTemporarilyBlocked()) {
+        const empty = buildEmptyResultsForRequests(batch as any);
+        batch.forEach((request, index) => {
+          const resolve = (request as any).resolve;
+          if (resolve) {
+            resolve({ results: [empty.results[index]] });
+          }
+        });
+        return;
+      }
+
       const result = await this.processRequests(
         batch.map(r => ({ ...r, resolve: undefined, reject: undefined }))
       );
@@ -162,24 +230,14 @@ export class UnifiedAlgoliaClient {
       });
     } catch (error: any) {
       // Gestion spéciale pour les erreurs Algolia 403 (application bloquée)
-      if (error?.message?.includes('blocked') || error?.status === 403) {
+      if (isAlgoliaBlockedError(error)) {
+        markAlgoliaBlocked();
         console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
         // Résoudre avec des résultats vides plutôt que de rejeter
-        batch.forEach((request, index) => {
+        batch.forEach((request) => {
           const resolve = (request as any).resolve;
           if (resolve) {
-            resolve({
-              results: [{
-                hits: [],
-                nbHits: 0,
-                page: 0,
-                nbPages: 0,
-                hitsPerPage: request.params?.hitsPerPage || 10,
-                processingTimeMS: 0,
-                query: request.params?.query || '',
-                params: ''
-              }]
-            });
+            resolve({ results: [buildEmptySingleResultFromRequest(request as any)] });
           }
         });
         return;
@@ -208,180 +266,209 @@ export class UnifiedAlgoliaClient {
       forceRefresh = false
     } = options;
 
-    if (requests.length <= 1) {
-      // Chemin existant (simple) pour conserver toute la logique de dédup/cache
-      const results: any[] = [];
-      for (const request of requests) {
-        if (enableCache && !forceRefresh) {
-          const cached = algoliaCache.get(request);
-          if (cached) { results.push(cached.data); continue; }
-        }
-        const result = enableDeduplication
-          ? await requestDeduplicator.deduplicateRequest(request, () => this.executeSingleRequest(request))
-          : await this.executeSingleRequest(request);
-        results.push(result);
-        if (enableCache) algoliaCache.set(request, result, request.origin);
-      }
-      return { results };
+    // Court-circuit si bloqué
+    if (isAlgoliaTemporarilyBlocked()) {
+      return buildEmptyResultsForRequests(requests);
     }
 
-    // Regrouper en un minimum d'appels réseau
-    const origin: Origin = (requests[0]?.origin as Origin) || 'all';
-
-    // Hits cache et misses
-    const hits: Array<{ index: number; data: any }> = [];
-    const misses: Array<{ index: number; req: SearchRequest }> = [];
-    if (enableCache && !forceRefresh) {
-      requests.forEach((r, idx) => {
-        const c = algoliaCache.get(r);
-        if (c) hits.push({ index: idx, data: c.data });
-        else misses.push({ index: idx, req: r });
-      });
-    } else {
-      requests.forEach((r, idx) => misses.push({ index: idx, req: r }));
-    }
-
-    const assembled: any[] = new Array(requests.length);
-    hits.forEach(h => { assembled[h.index] = h.data; });
-
-    if (misses.length > 0) {
-      // Construire les requêtes Algolia groupées
-      const buildBase = (r: SearchRequest) => {
-        const baseParams = { ...(r.params || {}) };
-        const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-        return { baseParams, safeFacetFilters };
-      };
-
-      const publicRequests: any[] = [];
-      const privateRequests: any[] = [];
-      const missOrder: Array<{ index: number; which: 'public'|'private'|'both' }> = [];
-
-      for (const m of misses) {
-        const { baseParams, safeFacetFilters } = buildBase(m.req);
-        if (origin === 'public') {
-          const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
-            ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-            : [['access_level:standard']];
-          publicRequests.push({
-            indexName: 'ef_all',
-            params: {
-              ...baseParams,
-              facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
-              filters: baseParams.filters
-            }
-          });
-          missOrder.push({ index: m.index, which: 'public' });
-        } else if (origin === 'private') {
-          const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
-          privateRequests.push({
-            indexName: 'ef_all',
-            params: {
-              ...baseParams,
-              facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-              filters: baseParams.filters
-            }
-          });
-          missOrder.push({ index: m.index, which: 'private' });
-        } else { // all
-          const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
-            ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-            : [['access_level:standard']];
-          publicRequests.push({
-            indexName: 'ef_all',
-            params: {
-              ...baseParams,
-              facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
-              filters: baseParams.filters
-            }
-          });
-          const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
-          privateRequests.push({
-            indexName: 'ef_all',
-            params: {
-              ...baseParams,
-              facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-              filters: baseParams.filters
-            }
-          });
-          missOrder.push({ index: m.index, which: 'both' });
+    try {
+      if (requests.length <= 1) {
+        // Chemin existant (simple) pour conserver toute la logique de dédup/cache
+        const results: any[] = [];
+        for (const request of requests) {
+          if (enableCache && !forceRefresh) {
+            const cached = algoliaCache.get(request);
+            if (cached) { results.push(cached.data); continue; }
+          }
+          const result = enableDeduplication
+            ? await requestDeduplicator.deduplicateRequest(request, () => this.executeSingleRequest(request))
+            : await this.executeSingleRequest(request);
+          results.push(result);
+          if (enableCache) algoliaCache.set(request, result, request.origin);
         }
+        return { results };
       }
 
-      // Exécuter en 1 ou 2 appels
-      let resPublic: any[] = [];
-      let resPrivate: any[] = [];
-      if (origin === 'public') {
-        const rp = await this.clients!.fullPublic.search(publicRequests);
-        // Enrichir avec le teaser pour les mêmes requêtes (position miroir)
-        const rt = await this.clients!.teaser.search(publicRequests);
-        const teaserResults = rt.results || [];
-        resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
-      } else if (origin === 'private') {
-        const rpr = await this.clients!.fullPrivate.search(privateRequests);
-        resPrivate = rpr.results || [];
-      } else {
-        const [rp, rr, rt] = await Promise.all([
-          this.clients!.fullPublic.search(publicRequests),
-          this.clients!.fullPrivate.search(privateRequests),
-          this.clients!.teaser.search(publicRequests)
-        ]);
-        const teaserResults = rt.results || [];
-        resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
-        resPrivate = rr.results || [];
-      }
+      // Regrouper en un minimum d'appels réseau
+      const origin: Origin = (requests[0]?.origin as Origin) || 'all';
 
-      // Reconstituer résultats des misses selon l'ordre
-      let iPub = 0, iPriv = 0;
-      for (const m of missOrder) {
-        let value: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
-        if (m.which === 'public') {
-          value = resPublic[iPub++] || value;
-        } else if (m.which === 'private') {
-          value = resPrivate[iPriv++] || value;
-        } else {
-          const a = resPublic[iPub++] || value;
-          const b = resPrivate[iPriv++] || value;
-          value = mergeFederatedPair(a, b, { sumNbHits: true });
-        }
-        assembled[m.index] = value;
-      }
-
-      // Mettre en cache les misses
-      if (enableCache) {
-        misses.forEach((m) => {
-          const val = assembled[m.index];
-          if (val) algoliaCache.set(m.req, val, m.req.origin);
+      // Hits cache et misses
+      const hits: Array<{ index: number; data: any }> = [];
+      const misses: Array<{ index: number; req: SearchRequest }> = [];
+      if (enableCache && !forceRefresh) {
+        requests.forEach((r, idx) => {
+          const c = algoliaCache.get(r);
+          if (c) hits.push({ index: idx, data: c.data });
+          else misses.push({ index: idx, req: r });
         });
+      } else {
+        requests.forEach((r, idx) => misses.push({ index: idx, req: r }));
       }
-    }
 
-    return { results: assembled };
+      const assembled: any[] = new Array(requests.length);
+      hits.forEach(h => { assembled[h.index] = h.data; });
+
+      if (misses.length > 0) {
+        // Construire les requêtes Algolia groupées
+        const buildBase = (r: SearchRequest) => {
+          const baseParams = { ...(r.params || {}) };
+          const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+          return { baseParams, safeFacetFilters };
+        };
+
+        const publicRequests: any[] = [];
+        const privateRequests: any[] = [];
+        const missOrder: Array<{ index: number; which: 'public'|'private'|'both' }> = [];
+
+        for (const m of misses) {
+          const { baseParams, safeFacetFilters } = buildBase(m.req);
+          if (origin === 'public') {
+            const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
+              ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+              : [['access_level:standard']];
+            publicRequests.push({
+              indexName: 'ef_all',
+              params: {
+                ...baseParams,
+                facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
+                filters: baseParams.filters
+              }
+            });
+            missOrder.push({ index: m.index, which: 'public' });
+          } else if (origin === 'private') {
+            const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
+            privateRequests.push({
+              indexName: 'ef_all',
+              params: {
+                ...baseParams,
+                facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+                filters: baseParams.filters
+              }
+            });
+            missOrder.push({ index: m.index, which: 'private' });
+          } else { // all
+            const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
+              ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
+              : [['access_level:standard']];
+            publicRequests.push({
+              indexName: 'ef_all',
+              params: {
+                ...baseParams,
+                facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
+                filters: baseParams.filters
+              }
+            });
+            const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
+            privateRequests.push({
+              indexName: 'ef_all',
+              params: {
+                ...baseParams,
+                facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
+                filters: baseParams.filters
+              }
+            });
+            missOrder.push({ index: m.index, which: 'both' });
+          }
+        }
+
+        // Exécuter en 1 ou 2 appels
+        let resPublic: any[] = [];
+        let resPrivate: any[] = [];
+        if (origin === 'public') {
+          const rp = await this.clients!.fullPublic.search(publicRequests);
+          // Enrichir avec le teaser pour les mêmes requêtes (position miroir)
+          const rt = await this.clients!.teaser.search(publicRequests);
+          const teaserResults = rt.results || [];
+          resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
+        } else if (origin === 'private') {
+          const rpr = await this.clients!.fullPrivate.search(privateRequests);
+          resPrivate = rpr.results || [];
+        } else {
+          const [rp, rr, rt] = await Promise.all([
+            this.clients!.fullPublic.search(publicRequests),
+            this.clients!.fullPrivate.search(privateRequests),
+            this.clients!.teaser.search(publicRequests)
+          ]);
+          const teaserResults = rt.results || [];
+          resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
+          resPrivate = rr.results || [];
+        }
+
+        // Reconstituer résultats des misses selon l'ordre
+        let iPub = 0, iPriv = 0;
+        for (const m of missOrder) {
+          let value: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
+          if (m.which === 'public') {
+            value = resPublic[iPub++] || value;
+          } else if (m.which === 'private') {
+            value = resPrivate[iPriv++] || value;
+          } else {
+            const a = resPublic[iPub++] || value;
+            const b = resPrivate[iPriv++] || value;
+            value = mergeFederatedPair(a, b, { sumNbHits: true });
+          }
+          assembled[m.index] = value;
+        }
+
+        // Mettre en cache les misses
+        if (enableCache) {
+          misses.forEach((m) => {
+            const val = assembled[m.index];
+            if (val) algoliaCache.set(m.req, val, m.req.origin);
+          });
+        }
+      }
+
+      // Algolia disponible => réinitialiser le blocage
+      clearAlgoliaBlocked();
+      return { results: assembled };
+    } catch (error: any) {
+      if (isAlgoliaBlockedError(error)) {
+        markAlgoliaBlocked();
+        console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
+      }
+      // Ne jamais rejeter : retourner des résultats vides sûrs
+      return buildEmptyResultsForRequests(requests);
+    }
   }
 
   private async executeSingleRequest(request: SearchRequest): Promise<any> {
     if (!this.clients) throw new Error('Clients not initialized');
 
-    const origin = request.origin || 'all';
-    const baseParams = { ...(request.params || {}) };
-    
-    // Debug des filtres entrants
-    debugFacetFilters('1. Raw incoming facetFilters', baseParams.facetFilters, { origin });
-    
-    const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-    
-    // Debug après sanitization
-    debugFacetFilters('2. After sanitizeFacetFilters', safeFacetFilters);
+    // Court-circuit si bloqué
+    if (isAlgoliaTemporarilyBlocked()) {
+      return buildEmptySingleResultFromRequest(request);
+    }
 
-    // Optimisation intelligente selon l'origine
-    switch (origin) {
-      case 'public':
-        return this.searchPublicOnly(baseParams, safeFacetFilters);
+    try {
+      const origin = request.origin || 'all';
+      const baseParams = { ...(request.params || {}) };
       
-      case 'private':
-        return this.searchPrivateOnly(baseParams, safeFacetFilters);
+      // Debug des filtres entrants
+      debugFacetFilters('1. Raw incoming facetFilters', baseParams.facetFilters, { origin });
       
-      default: // 'all'
-        return this.searchFederated(baseParams, safeFacetFilters);
+      const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+      
+      // Debug après sanitization
+      debugFacetFilters('2. After sanitizeFacetFilters', safeFacetFilters);
+
+      // Optimisation intelligente selon l'origine
+      switch (origin) {
+        case 'public':
+          return this.searchPublicOnly(baseParams, safeFacetFilters);
+        
+        case 'private':
+          return this.searchPrivateOnly(baseParams, safeFacetFilters);
+        
+        default: // 'all'
+          return this.searchFederated(baseParams, safeFacetFilters);
+      }
+    } catch (error: any) {
+      if (isAlgoliaBlockedError(error)) {
+        markAlgoliaBlocked();
+        console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
+      }
+      return buildEmptySingleResultFromRequest(request);
     }
   }
 

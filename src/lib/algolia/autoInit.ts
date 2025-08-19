@@ -8,6 +8,8 @@ import { ALGOLIA_OPTIMIZATIONS } from '@/config/featureFlags';
 class AlgoliaAutoInitializer {
   private initialized = false;
   private initPromise: Promise<void> | null = null;
+  private lastAlertAt: Record<string, number> = {};
+  private metricsTimer: any = null;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -73,17 +75,21 @@ class AlgoliaAutoInitializer {
     });
 
     if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-      // En mode debug, afficher les métriques toutes les 30 secondes
-      setInterval(() => {
-        const metrics = performanceMonitor.getMetrics();
-        console.log('📈 Métriques Algolia:', {
-          requests: metrics.totalRequests,
-          successRate: ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(1) + '%',
-          cacheHit: metrics.cacheHitRate.toFixed(1) + '%',
-          avgTime: metrics.averageResponseTime.toFixed(0) + 'ms',
-          savings: metrics.totalRequestsSaved
-        });
-      }, 30000);
+      // En mode debug, afficher les métriques toutes les 30 secondes (sans spam si Algolia est bloqué)
+      if (!this.metricsTimer) {
+        this.metricsTimer = setInterval(() => {
+          const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
+          if (blockedUntil && Date.now() < blockedUntil) return;
+          const metrics = performanceMonitor.getMetrics();
+          console.log('📈 Métriques Algolia:', {
+            requests: metrics.totalRequests,
+            successRate: ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(1) + '%',
+            cacheHit: metrics.cacheHitRate.toFixed(1) + '%',
+            avgTime: metrics.averageResponseTime.toFixed(0) + 'ms',
+            savings: metrics.totalRequestsSaved
+          });
+        }, 30000);
+      }
     }
   }
 
@@ -160,21 +166,24 @@ class AlgoliaAutoInitializer {
   private setupAlerts(): void {
     // Vérification périodique de la santé du système
     setInterval(() => {
+      // Si Algolia est bloqué, ne pas émettre d'alertes périodiques
+      const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
+      if (blockedUntil && Date.now() < blockedUntil) return;
       const metrics = performanceMonitor.getMetrics();
       const cacheStats = algoliaCache.getCacheStats();
       
       // Alertes critiques
       if (metrics.cacheHitRate < currentConfig.monitoring.alertThresholds.cacheHitRatePercent) {
-        console.warn(`⚠️ Cache hit rate faible: ${metrics.cacheHitRate.toFixed(1)}%`);
+        if (this.shouldLogAlert('cacheHitRate')) console.warn(`⚠️ Cache hit rate faible: ${metrics.cacheHitRate.toFixed(1)}%`);
       }
       
       if (metrics.averageResponseTime > currentConfig.monitoring.alertThresholds.responseTimeMs) {
-        console.warn(`⚠️ Temps de réponse élevé: ${metrics.averageResponseTime.toFixed(0)}ms`);
+        if (this.shouldLogAlert('responseTime')) console.warn(`⚠️ Temps de réponse élevé: ${metrics.averageResponseTime.toFixed(0)}ms`);
       }
       
       const errorRate = (metrics.failedRequests / Math.max(metrics.totalRequests, 1)) * 100;
       if (errorRate > currentConfig.monitoring.alertThresholds.errorRatePercent) {
-        console.warn(`⚠️ Taux d'erreur élevé: ${errorRate.toFixed(1)}%`);
+        if (this.shouldLogAlert('errorRate')) console.warn(`⚠️ Taux d'erreur élevé: ${errorRate.toFixed(1)}%`);
       }
       
       // Auto-correction si nécessaire
@@ -183,6 +192,14 @@ class AlgoliaAutoInitializer {
       }
       
     }, 2 * 60 * 1000); // Toutes les 2 minutes
+  }
+
+  private shouldLogAlert(key: string, minIntervalMs: number = 60_000): boolean {
+    const now = Date.now();
+    const prev = this.lastAlertAt[key] || 0;
+    if (import.meta.env.DEV && now - prev < minIntervalMs) return false;
+    this.lastAlertAt[key] = now;
+    return true;
   }
 
   private recordSuccessfulInit(): void {
