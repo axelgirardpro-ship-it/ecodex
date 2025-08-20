@@ -301,7 +301,7 @@ export const WorkspaceUsersManager = () => {
           </Alert>
         ) : (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_auto_1fr_auto] gap-4 text-sm font-medium text-muted-foreground border-b pb-2 text-left">
               <div>Utilisateur</div>
               <div>Rôle</div>
               <div>Ajouté le</div>
@@ -309,26 +309,26 @@ export const WorkspaceUsersManager = () => {
             </div>
             
             {users.map((user) => (
-              <div key={user.user_id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
+              <div key={user.user_id} className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_auto_1fr_auto] gap-4 items-center p-4 border rounded-lg">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-sm font-medium">
                       {user.first_name?.[0] || user.email[0].toUpperCase()}
                     </span>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="font-medium">
                       {user.first_name && user.last_name ? 
                         `${user.first_name} ${user.last_name}` : 
                         'Utilisateur'
                       }
                     </div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Badge variant={getRoleBadgeVariant(user.user_roles[0]?.role)} className="flex items-center gap-1">
+                <div className="flex items-center gap-2 justify-start">
+                  <Badge variant={getRoleBadgeVariant(user.user_roles[0]?.role)} className="flex items-center gap-1 whitespace-nowrap">
                     {React.createElement(getRoleIcon(user.user_roles[0]?.role), { className: "h-3 w-3" })}
                     {user.user_roles[0]?.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
                   </Badge>

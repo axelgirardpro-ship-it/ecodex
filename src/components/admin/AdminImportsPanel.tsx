@@ -14,7 +14,7 @@ interface ImportJob {
   status: 'queued' | 'processing' | 'completed' | 'failed' | 'analyzing' | 'analyzed' | 'rebuilding' | string | null;
   processed: number | null;
   failed: number | null;
-  created_at: string;
+  started_at: string;
 }
 
 type AccessLevel = 'standard' | 'premium';
@@ -224,16 +224,16 @@ export const AdminImportsPanel: React.FC = () => {
       setLoadingJobs(true);
       const { data, error } = await supabase
         .from('data_imports')
-        .select('id,status,records_processed,records_failed,created_at,completed_at')
-        .order('created_at', { ascending: false })
+        .select('id,status,processed,failed,started_at,finished_at')
+        .order('started_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       const mapped: ImportJob[] = (data || []).map((d: any) => ({
         id: d.id,
         status: d.status,
-        processed: d.records_processed ?? null,
-        failed: d.records_failed ?? null,
-        created_at: d.created_at,
+        processed: d.processed ?? null,
+        failed: d.failed ?? null,
+        started_at: d.started_at,
       }));
       setJobs(mapped);
     } catch (e) {
@@ -421,7 +421,7 @@ export const AdminImportsPanel: React.FC = () => {
                   <tr><td className="p-2" colSpan={4}>Aucun import pour le moment.</td></tr>
                 ) : jobs.map((j) => (
                   <tr key={j.id} className="border-t">
-                    <td className="p-2 whitespace-nowrap">{new Date(j.created_at).toLocaleString()}</td>
+                    <td className="p-2 whitespace-nowrap">{new Date(j.started_at).toLocaleString()}</td>
                     <td className="p-2">{j.status ?? '-'}</td>
                     <td className="p-2 text-right">{j.processed ?? '-'}</td>
                     <td className="p-2 text-right">{j.failed ?? '-'}</td>
