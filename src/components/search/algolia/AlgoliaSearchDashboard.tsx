@@ -6,8 +6,10 @@ import { SearchResults } from './SearchResults';
 import { SearchFilters } from './SearchFilters';
 import { SearchStats } from './SearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
+import { useOrigin } from './SearchProvider';
 
 const AlgoliaSearchContent: React.FC = () => {
+  const { origin } = useOrigin();
   return (
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
@@ -34,7 +36,7 @@ const AlgoliaSearchContent: React.FC = () => {
 
           {/* Results Section */}
           <section className="lg:col-span-3">
-            <Configure hitsPerPage={36} />
+            <Configure hitsPerPage={36} ruleContexts={[`origin:${origin}`]} />
             <SearchStats />
             <SearchResults />
           </section>
