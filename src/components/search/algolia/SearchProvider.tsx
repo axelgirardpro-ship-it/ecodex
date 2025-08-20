@@ -13,6 +13,7 @@ import AlgoliaFallback from '@/components/search/AlgoliaFallback';
 import { useAuth } from '@/contexts/AuthContext';
 import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
 import DebugSearchState from '@/components/search/DebugSearchState';
+import { resolveOrigin } from '@/lib/algolia/searchClient';
 
 const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6SRUR7BWK6';
 const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'fc0765efc9e509bd25acc5207150f32f';
@@ -101,20 +102,24 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             console.log('[OptimizedSearchProvider] incoming requests', requests?.length);
           }
 
-          // Enrichir les requêtes avec l'origine actuelle
-          const enrichedRequests = requests.map(r => ({
-            ...r,
-            origin: originRef.current,
-            params: {
-              ...r.params,
-              // Ajouter des métadonnées pour le monitoring
-              _search_context: {
-                workspace_id: workspaceIdRef.current,
-                origin: originRef.current,
-                timestamp: Date.now()
+          // Enrichir chaque requête avec une origine dérivée des ruleContexts (fallback sur la ref)
+          const enrichedRequests = requests.map(r => {
+            const baseParams = r?.params || {};
+            const computedOrigin = resolveOrigin(baseParams) || originRef.current;
+            return {
+              ...r,
+              origin: computedOrigin,
+              params: {
+                ...baseParams,
+                // Ajouter des métadonnées pour le monitoring
+                _search_context: {
+                  workspace_id: workspaceIdRef.current,
+                  origin: computedOrigin,
+                  timestamp: Date.now()
+                }
               }
-            }
-          }));
+            };
+          });
 
           // GATE: ne lance rien si la requête est réellement vide (pas de query ni de filtres)
           const allEmpty = !enrichedRequests?.some(r => {

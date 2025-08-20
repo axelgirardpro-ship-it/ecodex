@@ -7,6 +7,7 @@ import { SearchFilters } from '@/components/search/algolia/SearchFilters';
 import { FavorisSearchStats } from './FavorisSearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
 import { Configure } from 'react-instantsearch';
+import { useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
 import { buildFavoriteIdsFilter } from '@/lib/algolia/searchClient';
 import { EmissionFactor } from '@/types/emission-factor';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -78,6 +79,8 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
   const availableDates = [...new Set(favorites.map(f => f.date.toString()))].filter(Boolean).sort((a, b) => parseInt(b) - parseInt(a));
 
   const favoriteIdsFilter = buildFavoriteIdsFilter(favoriteIds);
+  const originCtx = useOptionalOrigin();
+  const currentOrigin = originCtx?.origin || 'all';
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,7 +140,7 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
 
             {/* Results Section */}
             <section className="lg:col-span-3">
-              <Configure filters={favoriteIdsFilter} />
+              <Configure filters={favoriteIdsFilter} ruleContexts={[`origin:${currentOrigin}`]} />
               <FavorisSearchStats />
               <FavorisSearchResults
                 selectedItems={selectedItems}
