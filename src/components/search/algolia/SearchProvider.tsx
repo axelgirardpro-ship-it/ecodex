@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useEffect, useState, useRef } from 'react';
-import { InstantSearch } from 'react-instantsearch';
+import { InstantSearch, useInstantSearch } from 'react-instantsearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuotas } from '@/hooks/useQuotas';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -187,6 +187,19 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
 
   const searchClient = unifiedClient ? searchClientRef.current : null;
 
+  // Rafraîchir InstantSearch lorsqu'on change d'origine (public/private)
+  const RefreshOnOriginChange: React.FC<{ origin: Origin }> = ({ origin }) => {
+    const { refresh } = useInstantSearch();
+    const lastRef = useRef<Origin | null>(null);
+    useEffect(() => {
+      if (lastRef.current !== origin) {
+        lastRef.current = origin;
+        refresh();
+      }
+    }, [origin, refresh]);
+    return null;
+  };
+
   return (
     <AlgoliaErrorBoundary>
       <QuotaContext.Provider value={quotaHook}>
@@ -198,6 +211,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             />
           ) : searchClient ? (
           <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
+            <RefreshOnOriginChange origin={origin} />
             {children}
             <DebugSearchState />
           </InstantSearch>
