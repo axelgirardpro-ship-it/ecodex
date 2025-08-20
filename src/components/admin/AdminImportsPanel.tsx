@@ -37,6 +37,7 @@ export const AdminImportsPanel: React.FC = () => {
 
   const [importStatus, setImportStatus] = React.useState<'idle'|'importing'|'success'|'error'>('idle');
   const [importMessage, setImportMessage] = React.useState<string | null>(null);
+  const [replaceAll, setReplaceAll] = React.useState(true);
 
   const downloadTemplate = () => {
     const headers = [
@@ -159,7 +160,7 @@ export const AdminImportsPanel: React.FC = () => {
       setImportStatus('importing');
       setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
       const { data: importData, error: importErr } = await supabase.functions.invoke('import-csv', {
-        body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
+        body: { file_path: filePath, language: 'fr', dry_run: false, mapping, replace_all: replaceAll }
       });
       if (importErr) throw importErr;
       toast({ title: 'Import lancé', description: `Job: ${importData?.import_id || 'en file'}` });
@@ -196,7 +197,7 @@ export const AdminImportsPanel: React.FC = () => {
       setImportStatus('importing');
       setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
       const { data, error } = await supabase.functions.invoke('import-csv', {
-        body: { file_path: filePath, language: 'fr', dry_run: false, mapping }
+        body: { file_path: filePath, language: 'fr', dry_run: false, mapping, replace_all: replaceAll }
       });
       if (error) throw error;
       toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });

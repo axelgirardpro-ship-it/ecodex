@@ -11,20 +11,21 @@ export class RequestDeduplicator {
   private readonly timeout = 5000; // 5 secondes timeout
 
   private generateRequestKey(request: any): string {
-    // Même logique que le cache pour cohérence
-    const {
-      query = '',
-      filters = '',
-      facetFilters = [],
-      origin = 'all',
-      hitsPerPage = 20,
-      page = 0,
-      indexName = ''
-    } = request;
+    // Même logique que le cache pour cohérence, avec fallback sur request.params
+    const req = request || {};
+    const p = (req.params || {}) as any;
 
-    const normalizedFacets = Array.isArray(facetFilters) 
-      ? facetFilters.flat().sort().join('|') 
-      : String(facetFilters);
+    const query = (req.query ?? p.query ?? '') as string;
+    const filters = (req.filters ?? p.filters ?? '') as string;
+    const facetFiltersRaw = (req.facetFilters ?? p.facetFilters ?? []) as any;
+    const origin = (req.origin ?? 'all') as string;
+    const hitsPerPage = (req.hitsPerPage ?? p.hitsPerPage ?? 20) as number;
+    const page = (req.page ?? p.page ?? 0) as number;
+    const indexName = (req.indexName ?? '') as string;
+
+    const normalizedFacets = Array.isArray(facetFiltersRaw) 
+      ? facetFiltersRaw.flat().sort().join('|') 
+      : String(facetFiltersRaw);
 
     return `${indexName}:${origin}:${query}:${filters}:${normalizedFacets}:${hitsPerPage}:${page}`;
   }
@@ -121,11 +122,12 @@ export class RequestDeduplicator {
 
   private generateBatchKey(request: any): string {
     // Clé simplifiée pour regrouper les requêtes similaires
-    const {
-      origin = 'all',
-      indexName = '',
-      query = ''
-    } = request;
+    const req = request || {};
+    const p = (req.params || {}) as any;
+
+    const origin = (req.origin ?? 'all') as string;
+    const indexName = (req.indexName ?? '') as string;
+    const query = (req.query ?? p.query ?? '') as string;
     
     // Grouper par origine, index et préfixe de requête
     const queryPrefix = query.substring(0, 3);

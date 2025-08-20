@@ -35,34 +35,40 @@ export class AlgoliaCacheManager {
   private maxCacheSize = 1000;
 
   private generateCacheKey(request: any): string {
-    const {
-      query = '',
-      filters = '',
-      facetFilters = [],
-      origin = 'all',
-      hitsPerPage = 20,
-      page = 0
-    } = request;
+    // Supporter les paramètres passés dans request.params (InstantSearch)
+    const req = request || {};
+    const p = (req.params || {}) as any;
+
+    const query = (req.query ?? p.query ?? '') as string;
+    const filters = (req.filters ?? p.filters ?? '') as string;
+    const facetFiltersRaw = (req.facetFilters ?? p.facetFilters ?? []) as any;
+    const origin = (req.origin ?? 'all') as string;
+    const hitsPerPage = (req.hitsPerPage ?? p.hitsPerPage ?? 20) as number;
+    const page = (req.page ?? p.page ?? 0) as number;
 
     // Normaliser les facetFilters pour un cache cohérent
-    const normalizedFacets = Array.isArray(facetFilters) 
-      ? facetFilters.flat().sort().join('|') 
-      : String(facetFilters);
+    const normalizedFacets = Array.isArray(facetFiltersRaw) 
+      ? facetFiltersRaw.flat().sort().join('|') 
+      : String(facetFiltersRaw);
 
     return `${origin}:${query}:${filters}:${normalizedFacets}:${hitsPerPage}:${page}`;
   }
 
   private calculateAdaptiveTTL(request: any): number {
-    const query = request.query || '';
-    const hasFilters = request.filters || request.facetFilters?.length > 0;
+    const p = (request?.params || {}) as any;
+    const q = (request?.query ?? p.query ?? '') as string;
+    const hasFilters =
+      !!(request?.filters ?? p.filters ?? '').toString().trim() ||
+      (Array.isArray(request?.facetFilters ?? p.facetFilters) &&
+        (request?.facetFilters ?? p.facetFilters).length > 0);
     
     // TTL plus long pour requêtes complexes (moins susceptibles de changer)
-    if (query.length > 6 && hasFilters) {
+    if (q.length > 6 && hasFilters) {
       return this.baseTTL * 2; // 10 minutes
     }
     
     // TTL plus court pour requêtes simples (plus volatiles)
-    if (query.length < 3) {
+    if (q.length < 3) {
       return this.baseTTL * 0.5; // 2.5 minutes
     }
     
