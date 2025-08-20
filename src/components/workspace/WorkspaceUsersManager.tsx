@@ -50,14 +50,46 @@ export const WorkspaceUsersManager = () => {
       setLoading(true);
       
       // Utiliser directement la RPC function existante
-      const { data: users, error } = await supabase
+      const { data: rawUsers, error } = await supabase
         .rpc('get_workspace_users_with_roles', {
           target_workspace_id: currentWorkspace.id
         });
 
       if (error) throw error;
-      
-      setUsers(users || []);
+
+      // Normaliser les rôles renvoyés en JSON vers le type attendu par l'UI
+      const normalizedUsers: WorkspaceUser[] = (rawUsers || []).map((u: unknown) => {
+        const unsafeUser = u as Record<string, unknown>;
+
+        let rolesUnknown = unsafeUser?.user_roles as unknown;
+        if (typeof rolesUnknown === 'string') {
+          try {
+            rolesUnknown = JSON.parse(rolesUnknown);
+          } catch {
+            rolesUnknown = [];
+          }
+        }
+
+        const normalizedRoles = Array.isArray(rolesUnknown)
+          ? rolesUnknown
+              .map((r: any) => ({
+                role: String(r?.role ?? r?.role_name ?? ''),
+                created_at: String(r?.created_at ?? ''),
+              }))
+              .filter((r: { role: string }) => r.role.length > 0)
+          : [];
+
+        return {
+          user_id: String(unsafeUser?.user_id ?? ''),
+          first_name: String(unsafeUser?.first_name ?? ''),
+          last_name: String(unsafeUser?.last_name ?? ''),
+          email: String(unsafeUser?.email ?? ''),
+          created_at: String(unsafeUser?.created_at ?? ''),
+          user_roles: normalizedRoles,
+        };
+      });
+
+      setUsers(normalizedUsers);
     } catch (error: any) {
       console.error('Error fetching workspace users:', error);
       toast({
