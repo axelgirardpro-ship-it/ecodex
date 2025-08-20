@@ -34,6 +34,8 @@ Deno.serve(async (req) => {
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
+    const REINDEX_PAGE_SIZE = Number(Deno.env.get('REINDEX_PAGE_SIZE') || '5000')
+    const SELECT_COLS = (Deno.env.get('REINDEX_SELECT_COLUMNS') || '*')
     const TMP = `${ALGOLIA_INDEX_ALL}_tmp`
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
@@ -65,13 +67,14 @@ Deno.serve(async (req) => {
     })
 
     // Stream de la projection et push vers TMP
-    const pageSize = 5000
+    const pageSize = REINDEX_PAGE_SIZE
     let from = 0
     let total = 0
+    let lastTaskID: number | null = null
     while (true) {
       const { data: rows, error } = await supabase
         .from('emission_factors_all_search')
-        .select('*')
+        .select(SELECT_COLS)
         .range(from, from + pageSize - 1)
       if (error) return json(500, { step: 'fetch_projection', from, error: error.message })
       if (!rows || rows.length === 0) break
@@ -82,10 +85,15 @@ Deno.serve(async (req) => {
         const resp = await fetch(`${baseUrl}/${TMP}/batch`, { method: 'POST', headers, body: JSON.stringify({ requests: chunk }) })
         const j = await resp.json()
         if (!resp.ok) return json(500, { step: 'save_chunk', from, error: j })
-        if (typeof j.taskID === 'number') await waitTask(`${baseUrl}/${TMP}`, headers, j.taskID)
+        if (typeof j.taskID === 'number') lastTaskID = j.taskID
       }
       total += rows.length
       from += pageSize
+    }
+
+    // Attendre la fin de l'indexation des derniers chunks seulement
+    if (typeof lastTaskID === 'number') {
+      await waitTask(`${baseUrl}/${TMP}`, headers, lastTaskID)
     }
 
     // Move index (atomique)

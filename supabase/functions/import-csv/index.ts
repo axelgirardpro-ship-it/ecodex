@@ -111,9 +111,18 @@ Deno.serve(async (req) => {
 
     if (!filePath) return new Response(JSON.stringify({ error: 'file_path is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+    const fileNameOnly = (filePath || '').split('/').pop() || filePath
+
     const { data: importRecord, error: importError } = await supabase
       .from('data_imports')
-      .insert({ user_id: user.id, file_path: filePath, status: dryRun ? 'analyzing' : 'processing', language, started_at: new Date().toISOString() })
+      .insert({
+        user_id: user.id,
+        storage_path: filePath,
+        file_name: fileNameOnly,
+        status: dryRun ? 'analyzing' : 'processing',
+        language,
+        started_at: new Date().toISOString()
+      })
       .select()
       .single()
 
@@ -195,67 +204,66 @@ Deno.serve(async (req) => {
       }
 
       let inserted = 0
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',')
-        const row: Record<string,string> = {}
-        headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').trim().replace(/"/g, '') })
-        const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
-        if (!rowOk) continue
+      const chunkSize = 1000
+      for (let i = 1; i < lines.length; i += chunkSize) {
+        const slice = lines.slice(i, i + chunkSize)
+        const batch: any[] = []
+        const keys: string[] = []
 
-        const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
+        for (let j = 0; j < slice.length; j++) {
+          const values = slice[j].split(',')
+          const row: Record<string,string> = {}
+          headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').trim().replace(/\"/g, '') })
+          const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
+          if (!rowOk) continue
 
-        // Close previous latest
-        await supabase
-          .from('emission_factors')
-          .update({ is_latest: false, valid_to: new Date().toISOString() })
-          .eq('factor_key', factorKey)
-          .eq('language', language)
-          .eq('is_latest', true)
+          const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
+          keys.push(factorKey)
 
-        const toNumber = (s: string) => {
-          const n = parseFloat(String(s).replace(',', '.'))
-          return Number.isFinite(n) ? n : null
-        }
-        const toInt = (s: string) => {
-          const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10)
-          return Number.isFinite(n) ? n : null
-        }
+          const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
+          const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
 
-        const versionId = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`
-
-        const record: any = {
-          factor_key: factorKey,
-          version_id: versionId,
-          is_latest: true,
-          valid_from: new Date().toISOString(),
-          language,
-          // Colonnes métier (respecter la casse/accents côté Postgres)
-          "Nom": row['Nom'],
-          "Description": row['Description'] || null,
-          "FE": toNumber(row['FE']),
-          "Unité donnée d'activité": row["Unité donnée d'activité"],
-          "Source": row['Source'],
-          "Secteur": row['Secteur'] || null,
-          "Sous-secteur": row['Sous-secteur'] || null,
-          "Localisation": row['Localisation'],
-          "Date": toInt(row['Date']),
-          "Incertitude": row['Incertitude'] || null,
-          "Périmètre": row['Périmètre'] || null,
-          "Contributeur": row['Contributeur'] || null,
-          "Commentaires": row['Commentaires'] || null,
-          // Champs EN (optionnels)
-          "Nom_en": row['Nom_en'] || null,
-          "Description_en": row['Description_en'] || null,
-          "Commentaires_en": row['Commentaires_en'] || null,
-          "Secteur_en": row['Secteur_en'] || null,
-          "Sous-secteur_en": row['Sous-secteur_en'] || null,
-          "Périmètre_en": row['Périmètre_en'] || null,
-          "Localisation_en": row['Localisation_en'] || null,
-          "Unite_en": row['Unite_en'] || null,
+          batch.push({
+            factor_key: factorKey,
+            version_id: (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`,
+            is_latest: true,
+            valid_from: new Date().toISOString(),
+            language,
+            "Nom": row['Nom'],
+            "Description": row['Description'] || null,
+            "FE": toNumber(row['FE']),
+            "Unité donnée d'activité": row["Unité donnée d'activité"],
+            "Source": row['Source'],
+            "Secteur": row['Secteur'] || null,
+            "Sous-secteur": row['Sous-secteur'] || null,
+            "Localisation": row['Localisation'],
+            "Date": toInt(row['Date']),
+            "Incertitude": row['Incertitude'] || null,
+            "Périmètre": row['Périmètre'] || null,
+            "Contributeur": row['Contributeur'] || null,
+            "Commentaires": row['Commentaires'] || null,
+            "Nom_en": row['Nom_en'] || null,
+            "Description_en": row['Description_en'] || null,
+            "Commentaires_en": row['Commentaires_en'] || null,
+            "Secteur_en": row['Secteur_en'] || null,
+            "Sous-secteur_en": row['Sous-secteur_en'] || null,
+            "Périmètre_en": row['Périmètre_en'] || null,
+            "Localisation_en": row['Localisation_en'] || null,
+            "Unite_en": row['Unite_en'] || null,
+          })
         }
 
-        const { error: insertError } = await supabase.from('emission_factors').insert(record)
-        if (!insertError) inserted++
+        if (keys.length) {
+          await supabase
+            .from('emission_factors')
+            .update({ is_latest: false, valid_to: new Date().toISOString() })
+            .in('factor_key', keys)
+            .eq('language', language)
+            .eq('is_latest', true)
+
+          const { error: insErr } = await supabase.from('emission_factors').insert(batch)
+          if (!insErr) inserted += batch.length
+        }
       }
 
       // Rafraîchir projection par source (évite gros rebuild si ciblé)

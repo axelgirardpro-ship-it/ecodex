@@ -107,7 +107,14 @@ Deno.serve(async (req) => {
 
     const importInsert = await supabase
       .from('data_imports')
-      .insert({ imported_by: user.id, file_name: filePath.split('/').pop(), status: 'processing', started_at: new Date().toISOString() })
+      .insert({
+        user_id: user.id,
+        storage_path: filePath,
+        file_name: filePath.split('/').pop(),
+        language,
+        status: 'processing',
+        started_at: new Date().toISOString()
+      })
       .select('*')
       .single()
     if (importInsert.error) return json(500, { error: 'Failed to create import record' })
