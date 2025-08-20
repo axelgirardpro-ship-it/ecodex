@@ -14,8 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
 import DebugSearchState from '@/components/search/DebugSearchState';
 
-const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
-const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6SRUR7BWK6';
+const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'fc0765efc9e509bd25acc5207150f32f';
 
 function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string[] = []) {
   const [client, setClient] = useState<any>(null);
