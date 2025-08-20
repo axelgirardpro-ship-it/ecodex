@@ -47,6 +47,27 @@ async function readCsvLines(url: string) {
   return lines.filter(l => l !== '');
 }
 
+async function readGzipCsvLines(url: string) {
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error('Cannot fetch GZ CSV from storage');
+  // @ts-ignore
+  const decompressed = res.body.pipeThrough(new DecompressionStream('gzip'));
+  const reader = decompressed.getReader();
+  const decoder = new TextDecoder();
+  let { value, done } = await reader.read();
+  let buffer = value ? decoder.decode(value, { stream: true }) : '';
+  const lines: string[] = [];
+  while (!done) {
+    const parts = buffer.split(/\r?\n/);
+    buffer = parts.pop() || '';
+    lines.push(...parts);
+    ({ value, done } = await reader.read());
+    if (value) buffer += decoder.decode(value, { stream: true });
+  }
+  if (buffer.length > 0) lines.push(buffer);
+  return lines.filter(l => l !== '');
+}
+
 async function readXlsxLines(url: string) {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
@@ -59,8 +80,12 @@ async function readXlsxLines(url: string) {
 }
 
 async function readFileLines(url: string) {
-  const isXlsx = url.toLowerCase().includes('.xlsx');
-  return isXlsx ? readXlsxLines(url) : readCsvLines(url);
+  const lower = url.toLowerCase();
+  const isXlsx = lower.includes('.xlsx');
+  const isGz = lower.endsWith('.gz') || lower.includes('.csv.gz');
+  if (isXlsx) return readXlsxLines(url);
+  if (isGz) return readGzipCsvLines(url);
+  return readCsvLines(url);
 }
 
 Deno.serve(async (req) => {

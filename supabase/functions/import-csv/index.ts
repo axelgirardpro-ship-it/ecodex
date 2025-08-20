@@ -50,6 +50,28 @@ async function readCsvLines(url: string, maxErrors = 50) {
   return lines.filter(l => l !== '');
 }
 
+async function readGzipCsvLines(url: string, maxErrors = 50) {
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error('Cannot fetch GZ CSV from storage');
+  // Décompresser en streaming
+  // @ts-ignore - DecompressionStream est dispo en Deno Edge
+  const decompressed = res.body.pipeThrough(new DecompressionStream('gzip'));
+  const reader = decompressed.getReader();
+  const decoder = new TextDecoder();
+  let { value, done } = await reader.read();
+  let buffer = value ? decoder.decode(value, { stream: true }) : '';
+  const lines: string[] = [];
+  while (!done) {
+    const parts = buffer.split(/\r?\n/);
+    buffer = parts.pop() || '';
+    lines.push(...parts);
+    ({ value, done } = await reader.read());
+    if (value) buffer += decoder.decode(value, { stream: true });
+  }
+  if (buffer.length > 0) lines.push(buffer);
+  return lines.filter(l => l !== '');
+}
+
 async function readXlsxLines(url: string, maxErrors = 50) {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
@@ -73,11 +95,16 @@ async function readXlsxLines(url: string, maxErrors = 50) {
 
 async function readFileLines(url: string, maxErrors = 50) {
   // Détecter le type de fichier par l'URL
-  const isXlsx = url.toLowerCase().includes('.xlsx');
+  const lower = url.toLowerCase();
+  const isXlsx = lower.includes('.xlsx');
+  const isGz = lower.endsWith('.gz') || lower.includes('.csv.gz');
   
   if (isXlsx) {
     console.log('📊 Détection fichier XLSX, parsing Excel...');
     return await readXlsxLines(url, maxErrors);
+  } else if (isGz) {
+    console.log('🗜️ Détection fichier CSV GZ, décompression streaming...');
+    return await readGzipCsvLines(url, maxErrors);
   } else {
     console.log('📄 Détection fichier CSV, parsing texte...');
     return await readCsvLines(url, maxErrors);
@@ -107,6 +134,7 @@ Deno.serve(async (req) => {
     const filePath = body?.file_path as string;
     const language = (body?.language as string) || 'fr';
     const dryRun = Boolean(body?.dry_run);
+    const replaceAll = Boolean(body?.replace_all);
     const mapping = (body?.mapping || {}) as Record<string, { access_level: 'standard' | 'premium'; is_global?: boolean }>;
 
     if (!filePath) return new Response(JSON.stringify({ error: 'file_path is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -178,6 +206,14 @@ Deno.serve(async (req) => {
 
     // Non dry-run – pipeline: upsert fe_sources + SCD2 par factor_key (ID prioritaire)
     try {
+      // Mode remplacement intégral: remettre à false tous les is_latest pour la langue visée
+      if (replaceAll) {
+        await supabase
+          .from('emission_factors')
+          .update({ is_latest: false, valid_to: new Date().toISOString() })
+          .eq('language', language)
+          .eq('is_latest', true)
+      }
       // Récupérer le workspace de l'utilisateur pour les assignations
       const { data: profile } = await supabase
         .from('profiles')
@@ -266,9 +302,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Rafraîchir projection par source (évite gros rebuild si ciblé)
-      for (const [sourceName] of sourcesCount) {
-        await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
+      if (replaceAll) {
+        // Rebuild complet de la projection pour refléter uniquement le nouveau dataset
+        await supabase.rpc('rebuild_emission_factors_all_search')
+      } else {
+        // Rafraîchir projection par source (évite gros rebuild si ciblé)
+        for (const [sourceName] of sourcesCount) {
+          await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
+        }
       }
 
       // L'indexation Algolia se fera via reindex atomique déclenché côté admin (pas ici)
