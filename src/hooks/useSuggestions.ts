@@ -7,8 +7,8 @@ import { useOrigin } from "@/components/search/algolia/SearchProvider";
 
 import { createProxyClient } from "@/lib/algolia/proxySearchClient";
 
-const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6BGAS85TYS';
-const FALLBACK_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'e06b7614aaff866708fbd2872de90d37';
+const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6SRUR7BWK6';
+const FALLBACK_SEARCH_API_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'fc0765efc9e509bd25acc5207150f32f';
 
 type HitMinimal = { Nom_fr?: string; Nom_en?: string };
 
