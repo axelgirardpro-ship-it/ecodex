@@ -230,30 +230,7 @@ export const AlgoliaPerformanceDashboard: React.FC = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cache Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance du Cache</CardTitle>
-                <CardDescription>Efficacité du système de cache</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Taux de hit</span>
-                    <span className="font-bold">{metrics.cacheHitRate.toFixed(1)}%</span>
-                  </div>
-                  <Progress value={metrics.cacheHitRate} />
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Déduplication</span>
-                    <span className="font-bold">{metrics.deduplicationRate.toFixed(1)}%</span>
-                  </div>
-                  <Progress value={metrics.deduplicationRate} />
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 gap-4">
             {/* Top Search Terms */}
             <Card>
               <CardHeader>
