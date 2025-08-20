@@ -356,6 +356,11 @@ export const SearchResults: React.FC = () => {
     return { __html: '' };
   };
 
+  // Helper: déterminer si un hit est flouté (supporte le flag proxy is_blurred et le fallback UI)
+  const isHitBlurred = (hit: AlgoliaHit) => {
+    return ((hit as any).is_blurred === true) || shouldBlurPremiumContent(hit.Source);
+  };
+
   const handleItemSelect = (id: string) => {
     const newSelected = new Set(selectedItems);
     if (newSelected.has(id)) {
@@ -367,10 +372,14 @@ export const SearchResults: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedItems.size === hits.length) {
+    const nonBlurredIds = hits.filter(h => !isHitBlurred(h)).map(h => h.objectID);
+    if (selectedItems.size === nonBlurredIds.length && nonBlurredIds.length > 0) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(hits.map(hit => hit.objectID)));
+      setSelectedItems(new Set(nonBlurredIds));
+      if (nonBlurredIds.length === 0) {
+        toast({ title: "Sélection vide", description: "Les éléments floutés ne sont pas sélectionnables." });
+      }
     }
   };
 
@@ -385,7 +394,12 @@ export const SearchResults: React.FC = () => {
     }
 
     const selectedResults = hits.filter(hit => selectedItems.has(hit.objectID));
-    const success = await quotaHandleCopyToClipboard(selectedResults);
+    const allowed = selectedResults.filter(h => !isHitBlurred(h));
+    if (allowed.length === 0) {
+      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être copiés." });
+      return;
+    }
+    const success = await quotaHandleCopyToClipboard(allowed);
     if (success) {
       setSelectedItems(new Set());
     }
@@ -402,7 +416,12 @@ export const SearchResults: React.FC = () => {
     }
 
     const selectedResults = hits.filter(hit => selectedItems.has(hit.objectID));
-    const success = await quotaHandleExport(selectedResults, 'facteurs_emissions_recherche');
+    const allowed = selectedResults.filter(h => !isHitBlurred(h));
+    if (allowed.length === 0) {
+      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être exportés." });
+      return;
+    }
+    const success = await quotaHandleExport(allowed, 'facteurs_emissions_recherche');
     if (success) {
       setSelectedItems(new Set());
     }
@@ -427,7 +446,10 @@ export const SearchResults: React.FC = () => {
 
   const handleFavoriteToggle = async (hit: AlgoliaHit) => {
     const emissionFactor = mapHitToEmissionFactor(hit);
-    
+    if (isHitBlurred(hit)) {
+      toast({ title: "Contenu verrouillé", description: "Vous ne pouvez pas ajouter aux favoris un facteur flouté." });
+      return;
+    }
     if (isFavorite(hit.objectID)) {
       await removeFromFavorites(hit.objectID);
     } else {
@@ -446,6 +468,7 @@ export const SearchResults: React.FC = () => {
 
     const selectedHits = hits.filter((h) => selectedItems.has(h.objectID));
     const toAdd = selectedHits.filter((h) => !isFavorite(h.objectID));
+    const allowed = toAdd.filter(h => !isHitBlurred(h));
 
     if (toAdd.length === 0) {
       toast({
@@ -455,11 +478,15 @@ export const SearchResults: React.FC = () => {
       return;
     }
 
-    await Promise.all(toAdd.map((h) => addToFavorites(mapHitToEmissionFactor(h))));
+    if (allowed.length === 0) {
+      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être ajoutés aux favoris." });
+      return;
+    }
+    await Promise.all(allowed.map((h) => addToFavorites(mapHitToEmissionFactor(h))));
 
     toast({
       title: "Favoris mis à jour",
-      description: `${toAdd.length} élément${toAdd.length > 1 ? 's' : ''} ajouté${toAdd.length > 1 ? 's' : ''} aux favoris`,
+      description: `${allowed.length} élément${allowed.length > 1 ? 's' : ''} ajouté${allowed.length > 1 ? 's' : ''} aux favoris`,
     });
   };
   return (
@@ -527,7 +554,7 @@ export const SearchResults: React.FC = () => {
               const isExpanded = expandedRows.has(hit.objectID);
               const isFav = isFavorite(hit.objectID);
               const canView = hasAccess(hit.Source);
-              const shouldBlur = shouldBlurPremiumContent(hit.Source);
+              const shouldBlur = isHitBlurred(hit);
               const isPrivateHit = Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
 
               return (
@@ -539,6 +566,8 @@ export const SearchResults: React.FC = () => {
                            checked={selectedItems.has(hit.objectID)}
                            onCheckedChange={() => handleItemSelect(hit.objectID)}
                            onClick={(e) => e.stopPropagation()}
+                           disabled={shouldBlur}
+                           title={shouldBlur ? "Contenu verrouillé: non sélectionnable" : ""}
                            className="mt-1 cursor-pointer border-indigo-950 data-[state=checked]:bg-indigo-950 data-[state=checked]:border-indigo-950"
                          />
                         <div className="flex-1">
@@ -560,11 +589,11 @@ export const SearchResults: React.FC = () => {
                                size="sm"
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 canUseFavorites() ? handleFavoriteToggle(hit) : undefined;
+                                 (canUseFavorites() && !shouldBlur) ? handleFavoriteToggle(hit) : undefined;
                                }}
-                               disabled={!canUseFavorites()}
-                               className={`${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${!canUseFavorites() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                               title={!canUseFavorites() ? "Fonctionnalité disponible uniquement avec le plan Premium" : ""}
+                               disabled={!canUseFavorites() || shouldBlur}
+                               className={`${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                               title={!canUseFavorites() ? "Fonctionnalité disponible uniquement avec le plan Premium" : (shouldBlur ? "Contenu flouté: non ajoutable aux favoris" : "")}
                              >
                                {!canUseFavorites() ? (
                                  <Lock className="h-4 w-4" />
