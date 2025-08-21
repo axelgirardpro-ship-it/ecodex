@@ -332,71 +332,89 @@ export const WorkspaceUsersManager = () => {
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_auto_1fr_auto] gap-4 text-sm font-medium text-muted-foreground border-b pb-2 text-left">
-              <div>Utilisateur</div>
-              <div>Rôle</div>
-              <div>Ajouté le</div>
-              <div></div>
-            </div>
-            
-            {users.map((user) => (
-              <div key={user.user_id} className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_auto_1fr_auto] gap-4 items-center p-4 border rounded-lg">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-medium">
-                      {user.first_name?.[0] || user.email[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium">
-                      {user.first_name && user.last_name ? 
-                        `${user.first_name} ${user.last_name}` : 
-                        'Utilisateur'
-                      }
-                    </div>
-                    <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 justify-start">
-                  <Badge variant={getRoleBadgeVariant(user.user_roles[0]?.role)} className="flex items-center gap-1 whitespace-nowrap">
-                    {React.createElement(getRoleIcon(user.user_roles[0]?.role), { className: "h-3 w-3" })}
-                    {user.user_roles[0]?.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
-                  </Badge>
-                </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  {new Date(user.created_at).toLocaleDateString('fr-FR')}
-                </div>
-                
-                <div className="flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleUpdateUserRole(
-                        user.user_id, 
-                        user.user_roles[0]?.role === 'admin' ? 'gestionnaire' : 'admin'
-                      )}>
-                        <Crown className="h-4 w-4 mr-2" />
-                        {user.user_roles[0]?.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleRemoveUser(user.user_id)}
-                        className="text-destructive"
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">
+                    Utilisateur
+                  </th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground w-36">
+                    Rôle
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground w-28">
+                    Ajouté le
+                  </th>
+                  <th className="w-16"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.user_id} className="border-b hover:bg-muted/50">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium">
+                            {user.first_name?.[0] || user.email[0].toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium">
+                            {user.first_name && user.last_name ? 
+                              `${user.first_name} ${user.last_name}` : 
+                              'Utilisateur'
+                            }
+                          </div>
+                          <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="py-4 px-2 text-center">
+                      <Badge 
+                        variant={getRoleBadgeVariant(user.user_roles[0]?.role)} 
+                        className="flex items-center gap-1 whitespace-nowrap text-xs px-3 py-1.5"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Retirer du workspace
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
+                        {React.createElement(getRoleIcon(user.user_roles[0]?.role), { className: "h-3 w-3" })}
+                        {user.user_roles[0]?.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
+                      </Badge>
+                    </td>
+                    
+                    <td className="py-4 px-4 text-sm text-muted-foreground">
+                      {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                    </td>
+                    
+                    <td className="py-4 px-4">
+                      <div className="flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleUpdateUserRole(
+                              user.user_id, 
+                              user.user_roles[0]?.role === 'admin' ? 'gestionnaire' : 'admin'
+                            )}>
+                              <Crown className="h-4 w-4 mr-2" />
+                              {user.user_roles[0]?.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleRemoveUser(user.user_id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Retirer du workspace
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>
