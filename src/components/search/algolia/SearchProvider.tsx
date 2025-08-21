@@ -85,6 +85,37 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
+  // Clés de persistance par workspace
+  const uiKey = useMemo(() => `ais:ui:${workspaceIdRef.current || 'anon'}`, [workspaceIdRef.current]);
+  const originKey = useMemo(() => `ais:origin:${workspaceIdRef.current || 'anon'}`, [workspaceIdRef.current]);
+
+  // Restauration de l'origine au montage
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(originKey);
+      if (saved === 'public' || saved === 'private') {
+        setOrigin(saved as Origin);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persistance de l'origine
+  useEffect(() => {
+    try { sessionStorage.setItem(originKey, originRef.current); } catch {}
+  }, [originKey, origin]);
+
+  // Helpers de persistance d'UI state InstantSearch
+  const loadUiState = useMemo(() => {
+    return () => {
+      try { return JSON.parse(sessionStorage.getItem(uiKey) || 'null') || undefined; } catch { return undefined; }
+    };
+  }, [uiKey]);
+
+  const saveUiState = useMemo(() => {
+    return (uiState: any) => { try { sessionStorage.setItem(uiKey, JSON.stringify(uiState)); } catch {} };
+  }, [uiKey]);
+
   // Client de recherche optimisé avec monitoring
   const searchClientRef = useRef<any>(null);
   // Gestion du teaser différé: activé après un court délai d'inactivité sur la requête
@@ -202,7 +233,13 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
               showOptimizationInfo={true}
             />
           ) : searchClient ? (
-          <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
+          <InstantSearch 
+            searchClient={searchClient as any}
+            indexName={INDEX_ALL}
+            initialUiState={loadUiState()}
+            onStateChange={({ uiState }) => saveUiState(uiState)}
+            future={{ preserveSharedStateOnUnmount: true }}
+          >
             {children}
             <DebugSearchState />
           </InstantSearch>
