@@ -85,6 +85,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
+  // (Rollback) Ne pas persister l'état UI pour éviter toute incompatibilité de widgets
+
   // Client de recherche optimisé avec monitoring
   const searchClientRef = useRef<any>(null);
   // Gestion du teaser différé: activé après un court délai d'inactivité sur la requête

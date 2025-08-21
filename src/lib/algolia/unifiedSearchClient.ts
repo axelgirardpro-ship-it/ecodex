@@ -610,7 +610,6 @@ export class UnifiedAlgoliaClient {
       this.batchTimer = null;
     }
     this.requestQueue = [];
-    algoliaCache.clear();
     requestDeduplicator.clear();
   }
 }
