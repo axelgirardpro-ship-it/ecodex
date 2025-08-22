@@ -61,6 +61,14 @@ export const useOptionalOrigin = () => {
   return useContext(OriginContext);
 };
 
+// Contrôles de recherche (override Enter)
+export const SearchControlContext = createContext<{ forceNextSearch: () => void } | null>(null);
+export const useSearchControls = () => {
+  const ctx = useContext(SearchControlContext);
+  if (!ctx) throw new Error('useSearchControls must be used within SearchProvider');
+  return ctx;
+};
+
 // Provider autonome d'origine (sans InstantSearch). Utile pour /favoris
 export const OriginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [origin, setOrigin] = useState<Origin>('all');
@@ -84,6 +92,16 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   useEffect(() => { originRef.current = origin; }, [origin]);
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
+
+  // Forçage temporaire (< 3 chars) avec fenêtre temporelle pour éviter les courses
+  const forceUntilTsRef = useRef<number>(0);
+  const controlsValue = useMemo(() => ({
+    forceNextSearch: () => { forceUntilTsRef.current = Date.now() + 1000; }
+  }), []);
+  // Exposer un fallback global en runtime pour les composants non-contextualisés (sécurité)
+  if (typeof window !== 'undefined') {
+    (window as any).algoliaSearchControls = controlsValue;
+  }
 
   // (Rollback) Ne pas persister l'état UI pour éviter toute incompatibilité de widgets
 
@@ -139,6 +157,40 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
               hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' 
             };
             return { results: (requests || []).map(() => emptyRes) };
+          }
+
+          // Gate: exécuter la recherche seulement à partir de 3 caractères
+          // Exceptions: si des filtres/facettes/numériques/tags ou une recherche de facette sont actifs
+          const forcedActive = false; // override Enter désactivé (règle stricte)
+          const belowThresholdForAll = enrichedRequests.every(r => {
+            const p = r?.params || {};
+            const q = String(p.query || '').trim();
+            const queryLen = q.length;
+            const hasFilters = !!(p.filters && String(p.filters).trim());
+            const hasFacetFilters = Array.isArray(p.facetFilters) && p.facetFilters.length > 0;
+            const hasNumericFilters = Array.isArray(p.numericFilters) && p.numericFilters.length > 0;
+            const hasTagFilters = Array.isArray(p.tagFilters) && p.tagFilters.length > 0;
+            const hasFacetSearch = !!(p.facetName || p.facetQuery);
+            return (q.length > 0 && queryLen < 3) && !hasFilters && !hasFacetFilters && !hasNumericFilters && !hasTagFilters && !hasFacetSearch;
+          });
+          if (!forcedActive && belowThresholdForAll) {
+            const emptyRes: any = { 
+              hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' 
+            };
+            return { results: (requests || []).map(() => emptyRes) };
+          }
+          // Consommer le forçage uniquement quand il débloque réellement une requête < 3 chars
+          if (forcedActive && belowThresholdForAll) {
+            forceUntilTsRef.current = 0;
+          }
+
+          // Si forçage actif, autoriser immédiatement le teaser pour maximiser les résultats visibles
+          if (forcedActive) {
+            teaserAllowedRef.current = true;
+            if (teaserTimerRef.current) {
+              clearTimeout(teaserTimerRef.current);
+              teaserTimerRef.current = null;
+            }
           }
 
           // Teaser différé: autoriser le teaser seulement après un délai d'inactivité sur la requête
@@ -198,6 +250,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
     <AlgoliaErrorBoundary>
       <QuotaContext.Provider value={quotaHook}>
         <OriginContext.Provider value={{ origin, setOrigin }}>
+          <SearchControlContext.Provider value={controlsValue}>
           {authLoading || !user ? (
             <AlgoliaFallback 
               error="Initialisation de l'authentification..." 
@@ -214,6 +267,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             showOptimizationInfo={true}
           />
         )}
+          </SearchControlContext.Provider>
         </OriginContext.Provider>
       </QuotaContext.Provider>
     </AlgoliaErrorBoundary>

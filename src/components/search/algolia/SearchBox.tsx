@@ -1,19 +1,29 @@
 import React from 'react';
-import { useSearchBox, useStats } from 'react-instantsearch';
+import { useSearchBox, useStats, useInstantSearch } from 'react-instantsearch';
 import { Search, X } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useSearchControls } from './SearchProvider';
 
 export const SearchBox: React.FC = () => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
+  const { refresh } = useInstantSearch();
+  const controls = (() => { try { return useSearchControls(); } catch { return null; } })();
 
   const handleClear = () => {
     refine("");
   };
 
   const handleSearch = () => {
-    // Recherche déclenchée via Enter ou bouton (InstantSearch gère refine)
+    const trimmed = (query || '').trim();
+    if (trimmed.length < 3) {
+      // Ne pas déclencher de recherche réseau (UX stricte 3+)
+      return;
+    }
+    try { controls?.forceNextSearch(); } catch {}
+    refine(trimmed);
+    refresh();
   };
 
   return (
