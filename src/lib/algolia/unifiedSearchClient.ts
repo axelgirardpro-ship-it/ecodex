@@ -89,11 +89,23 @@ export class UnifiedAlgoliaClient {
   private initPromise: Promise<void> | null = null;
   private requestQueue: SearchRequest[] = [];
   private batchTimer: NodeJS.Timeout | null = null;
-  private readonly batchDelay = 50; // 50ms de batching
+  private readonly batchDelay = 130; // 130ms de batching (regroupe mieux les frappes)
   private readonly maxBatchSize = 10;
 
   constructor(private workspaceId?: string, private assignedSources: string[] = []) {
     this.initializeClients();
+  }
+
+  private ensureObjectIdOnHits<T extends any>(res: any): any {
+    if (!res || !Array.isArray(res.hits)) return res;
+    const patched = res.hits.map((h: any) => {
+      if (h && (h.objectID === undefined || h.objectID === null || h.objectID === '')) {
+        const fallback = h.object_id ?? h.objectId ?? h.id;
+        return fallback ? { ...h, objectID: String(fallback) } : h;
+      }
+      return h;
+    });
+    return { ...res, hits: patched };
   }
 
   private async initializeClients(): Promise<void> {
@@ -428,9 +440,11 @@ export class UnifiedAlgoliaClient {
         }
       }
 
+      // Normaliser les hits (assurer objectID) avant de retourner
+      const normalized = assembled.map(res => this.ensureObjectIdOnHits(res));
       // Algolia disponible => réinitialiser le blocage
       clearAlgoliaBlocked();
-      return { results: assembled };
+      return { results: normalized };
     } catch (error: any) {
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
@@ -497,7 +511,7 @@ export class UnifiedAlgoliaClient {
     };
 
     const publicResult = await this.clients!.fullPublic.search([publicRequest]);
-    return publicResult.results[0];
+    return this.ensureObjectIdOnHits(publicResult.results[0]);
   }
 
   private async searchPrivateOnly(baseParams: any, safeFacetFilters: any): Promise<any> {
@@ -514,7 +528,7 @@ export class UnifiedAlgoliaClient {
     };
 
     const result = await this.clients!.fullPrivate.search([privateRequest]);
-    return result.results[0];
+    return this.ensureObjectIdOnHits(result.results[0]);
   }
 
   private async searchFederated(baseParams: any, safeFacetFilters: any): Promise<any> {
@@ -563,11 +577,12 @@ export class UnifiedAlgoliaClient {
     );
 
     // Puis merger avec private
-    return mergeFederatedPair(
+    const merged = mergeFederatedPair(
       mergedPublic, 
       privateResult.results[0], 
       { sumNbHits: true }
     );
+    return this.ensureObjectIdOnHits(merged);
   }
 
   private combineFilters(...filters: (string | undefined)[]): string | undefined {

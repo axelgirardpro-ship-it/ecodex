@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchBox, useStats } from 'react-instantsearch';
+import { useSearchBox, useStats, useInstantSearch } from 'react-instantsearch';
 import { Search, X } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useSearchControls } from '@/components/search/algolia/SearchProvider';
 
 interface FavorisSearchBoxProps {
   favoriteIds?: string[];
@@ -11,6 +12,8 @@ interface FavorisSearchBoxProps {
 export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds = [] }) => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
+  const controls = (() => { try { return useSearchControls(); } catch { return null; } })();
+  const { refresh } = useInstantSearch();
 
   // debug removed
 
@@ -20,6 +23,13 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
 
   const handleSearch = () => {
     // Pas d'enregistrement d'historique sur la page favoris
+    const trimmed = (query || '').trim();
+    if (trimmed.length < 3) {
+      return;
+    }
+    try { controls?.forceNextSearch(); } catch {}
+    refine(trimmed);
+    refresh();
   };
 
   return (

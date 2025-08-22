@@ -193,8 +193,33 @@ const PaginationComponent: React.FC = () => {
 const StateResults: React.FC = () => {
   const { query } = useSearchBox();
   const { hits } = useHits<AlgoliaHit>();
+  const trimmed = (query || '').trim();
 
-  if (hits.length === 0 && query) {
+  if (hits.length === 0 && trimmed.length > 0 && trimmed.length < 3) {
+    return (
+      <div className="text-center py-12">
+        <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">Commencez votre recherche</h3>
+        <p className="text-muted-foreground">
+          Commencez votre recherche en tapant au moins 3 caractères
+        </p>
+      </div>
+    );
+  }
+
+  if (hits.length === 0 && trimmed.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">Commencez votre recherche</h3>
+        <p className="text-muted-foreground">
+          Utilisez la barre de recherche ou les filtres pour explorer notre base de données
+        </p>
+      </div>
+    );
+  }
+
+  if (hits.length === 0 && trimmed.length >= 3) {
     return (
       <div className="text-center py-12">
         <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -210,18 +235,6 @@ const StateResults: React.FC = () => {
             <li>• Utilisez moins de filtres</li>
           </ul>
         </div>
-      </div>
-    );
-  }
-
-  if (hits.length === 0 && !query) {
-    return (
-      <div className="text-center py-12">
-        <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Commencez votre recherche</h3>
-        <p className="text-muted-foreground">
-          Utilisez la barre de recherche ou les filtres pour explorer notre base de données
-        </p>
       </div>
     );
   }
