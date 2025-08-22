@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { performanceMonitor, PerformanceMetrics, OptimizationRecommendation } from '@/lib/algolia/performanceMonitor';
 import { algoliaCache } from '@/lib/algolia/cacheManager';
 import { smartRequestManager } from '@/lib/algolia/smartThrottling';
-import { smartSuggestionManager } from '@/lib/algolia/smartSuggestions';
 import { TrendingUp, TrendingDown, Zap, Clock, Target, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 
 export const AlgoliaPerformanceDashboard: React.FC = () => {
@@ -23,15 +22,10 @@ export const AlgoliaPerformanceDashboard: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Récupérer les métriques
       const currentMetrics = performanceMonitor.getMetrics();
       setMetrics(currentMetrics);
-      
-      // Générer les recommandations
       const recs = performanceMonitor.generateRecommendations();
       setRecommendations(recs);
-      
     } catch (error) {
       console.error('Error loading performance data:', error);
     } finally {
@@ -41,50 +35,34 @@ export const AlgoliaPerformanceDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    
-    // Actualiser toutes les 30 secondes
     const interval = setInterval(loadData, 30000);
-    
-    // Écouter les alertes
     const handleAlert = (alert: any) => {
-      setAlerts(prev => [alert, ...prev.slice(0, 9)]); // Garder les 10 dernières alertes
+      setAlerts(prev => [alert, ...prev.slice(0, 9)]);
     };
-    
     performanceMonitor.onAlert(handleAlert);
-    
     return () => {
       clearInterval(interval);
       performanceMonitor.offAlert(handleAlert);
     };
   }, [loadData]);
 
-  // Auto-tuning
   const handleAutoTune = useCallback(async () => {
     const adjustments = performanceMonitor.autoTune();
-    
-    // Appliquer les ajustements
     if (adjustments.cacheAdjustments.increaseTTL) {
-      // Note: Dans une vraie implémentation, ces ajustements seraient appliqués
       console.log('Applying cache adjustments:', adjustments.cacheAdjustments);
     }
-    
     if (adjustments.throttlingAdjustments.reduceMaxRequestsPerSecond) {
       console.log('Applying throttling adjustments:', adjustments.throttlingAdjustments);
     }
-    
     if (adjustments.debounceAdjustments.increaseDelay) {
       console.log('Applying debounce adjustments:', adjustments.debounceAdjustments);
     }
-    
-    // Recharger les données
     await loadData();
   }, [loadData]);
 
-  // Reset des métriques
   const handleReset = useCallback(() => {
     performanceMonitor.reset();
     algoliaCache.clear();
-    smartSuggestionManager.clear();
     setAlerts([]);
     loadData();
   }, [loadData]);
@@ -310,7 +288,6 @@ export const AlgoliaPerformanceDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             ))}
-            
             {recommendations.length === 0 && (
               <Card>
                 <CardContent className="flex items-center justify-center py-8">
