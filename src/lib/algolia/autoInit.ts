@@ -1,7 +1,6 @@
 // Système d'initialisation automatique pour les optimisations Algolia
 import { performanceMonitor } from './performanceMonitor';
 import { algoliaCache } from './cacheManager';
-import { smartSuggestionManager } from './smartSuggestions';
 import { currentConfig } from './productionConfig';
 import { ALGOLIA_OPTIMIZATIONS } from '@/config/featureFlags';
 
@@ -38,15 +37,10 @@ class AlgoliaAutoInitializer {
         this.startAutoTuning();
       }
 
-      // 4. Précharger les données si nécessaire
-      if (currentConfig.suggestions.preloadingEnabled) {
-        await this.preloadCommonData();
-      }
-
-      // 5. Configurer les alertes
+      // 4. Configurer les alertes
       this.setupAlerts();
 
-      // 6. Enregistrer l'initialisation réussie
+      // 5. Enregistrer l'initialisation réussie
       this.recordSuccessfulInit();
 
       this.initialized = true;
@@ -67,15 +61,12 @@ class AlgoliaAutoInitializer {
     // Configurer les seuils d'alerte
     performanceMonitor.onAlert((alert) => {
       console.warn(`🚨 Alerte Algolia [${alert.severity}]:`, alert.message);
-      
-      // En production, on pourrait envoyer à un service de monitoring
       if (!import.meta.env.DEV) {
         this.sendToMonitoringService(alert);
       }
     });
 
     if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-      // En mode debug, afficher les métriques toutes les 30 secondes (sans spam si Algolia est bloqué)
       if (!this.metricsTimer) {
         this.metricsTimer = setInterval(() => {
           const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
@@ -94,21 +85,17 @@ class AlgoliaAutoInitializer {
   }
 
   private initializeCache(): void {
-    // Optimiser la configuration du cache
     algoliaCache.autoTune();
-    
     if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
       console.log('💾 Cache Algolia configuré:', algoliaCache.getCacheStats());
     }
   }
 
   private startAutoTuning(): void {
-    // Auto-tuning toutes les 5 minutes
     setInterval(() => {
       try {
         const adjustments = performanceMonitor.autoTune();
         algoliaCache.autoTune();
-        
         if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
           console.log('🔧 Auto-tuning appliqué:', adjustments);
         }
@@ -118,80 +105,26 @@ class AlgoliaAutoInitializer {
     }, 5 * 60 * 1000);
   }
 
-  private async preloadCommonData(): Promise<void> {
-    try {
-      // Précharger les termes de recherche les plus populaires
-      const commonSearchTerms = [
-        'électricité',
-        'transport',
-        'chauffage',
-        'gaz',
-        'fioul',
-        'bois',
-        'eau',
-        'déchets'
-      ];
-
-      // Configurer le contexte par défaut
-      smartSuggestionManager.updateContext({
-        origin: 'all',
-        assignedSources: [],
-        recentSearches: commonSearchTerms.slice(0, 3)
-      });
-
-      // Précharger en arrière-plan seulement si Algolia est disponible
-      // Désactiver temporairement le préchargement si API bloquée
-      if (import.meta.env.DEV) {
-        console.log('🔄 Préchargement désactivé en développement (Algolia peut être bloqué)');
-        return;
-      }
-      
-      try {
-        await smartSuggestionManager.preloadPopularPrefixes(commonSearchTerms);
-        if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-          console.log('🔄 Préchargement terminé:', commonSearchTerms.length, 'termes');
-        }
-      } catch (algoliaError: any) {
-        if (algoliaError?.message?.includes('blocked') || algoliaError?.status === 403) {
-          console.log('ℹ️ Algolia temporairement indisponible (plan payant requis), préchargement ignoré');
-        } else {
-          throw algoliaError;
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Erreur préchargement:', error);
-    }
-  }
-
   private setupAlerts(): void {
-    // Vérification périodique de la santé du système
     setInterval(() => {
-      // Si Algolia est bloqué, ne pas émettre d'alertes périodiques
       const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
       if (blockedUntil && Date.now() < blockedUntil) return;
       const metrics = performanceMonitor.getMetrics();
       const cacheStats = algoliaCache.getCacheStats();
-      
-      // Alertes critiques
       if (metrics.cacheHitRate < currentConfig.monitoring.alertThresholds.cacheHitRatePercent) {
         if (this.shouldLogAlert('cacheHitRate')) console.warn(`⚠️ Cache hit rate faible: ${metrics.cacheHitRate.toFixed(1)}%`);
       }
-      
       if (metrics.averageResponseTime > currentConfig.monitoring.alertThresholds.responseTimeMs) {
         if (this.shouldLogAlert('responseTime')) console.warn(`⚠️ Temps de réponse élevé: ${metrics.averageResponseTime.toFixed(0)}ms`);
       }
-      
       const errorRate = (metrics.failedRequests / Math.max(metrics.totalRequests, 1)) * 100;
       if (errorRate > currentConfig.monitoring.alertThresholds.errorRatePercent) {
         if (this.shouldLogAlert('errorRate')) console.warn(`⚠️ Taux d'erreur élevé: ${errorRate.toFixed(1)}%`);
       }
-      
-      // Auto-correction si nécessaire
       if (metrics.cacheHitRate < 30) {
         algoliaCache.autoTune();
       }
-      
-    }, 2 * 60 * 1000); // Toutes les 2 minutes
+    }, 2 * 60 * 1000);
   }
 
   private shouldLogAlert(key: string, minIntervalMs: number = 60_000): boolean {
@@ -204,7 +137,7 @@ class AlgoliaAutoInitializer {
 
   private recordSuccessfulInit(): void {
     performanceMonitor.recordRequest(
-      0, // pas de temps de réponse pour l'init
+      0,
       true,
       'system',
       'algolia_optimization_init'
@@ -212,11 +145,7 @@ class AlgoliaAutoInitializer {
   }
 
   private sendToMonitoringService(alert: any): void {
-    // En production, intégrer avec votre service de monitoring
-    // (Sentry, DataDog, New Relic, etc.)
-    
     if (typeof window !== 'undefined' && 'fetch' in window) {
-      // Exemple d'envoi vers un endpoint de monitoring
       fetch('/api/monitoring/algolia-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -232,7 +161,6 @@ class AlgoliaAutoInitializer {
     }
   }
 
-  // Méthodes utilitaires publiques
   getStatus() {
     return {
       initialized: this.initialized,
@@ -244,58 +172,41 @@ class AlgoliaAutoInitializer {
 
   async restart(): Promise<void> {
     console.log('🔄 Redémarrage du système Algolia optimisé...');
-    
     this.initialized = false;
     this.initPromise = null;
-    
-    // Reset des composants
     performanceMonitor.reset();
     algoliaCache.clear();
-    smartSuggestionManager.clear();
-    
-    // Réinitialiser
     await this.initialize();
   }
 
   forceOptimization(): void {
     if (!this.initialized) return;
-    
     console.log('🚀 Optimisation forcée du système Algolia...');
-    
-    // Appliquer immédiatement l'auto-tuning
     const adjustments = performanceMonitor.autoTune();
     algoliaCache.autoTune();
-    
     console.log('✅ Optimisation appliquée:', adjustments);
   }
 }
 
-// Instance globale
 export const algoliaAutoInit = new AlgoliaAutoInitializer();
 
-// Auto-initialisation au chargement du module
 if (typeof window !== 'undefined') {
-  // Démarrer l'initialisation après le chargement de la page
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       algoliaAutoInit.initialize();
     });
   } else {
-    // Page déjà chargée
     algoliaAutoInit.initialize();
   }
 }
 
-// Exposer dans le global pour debug en dev
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as any).algoliaOptimizations = {
     autoInit: algoliaAutoInit,
     performanceMonitor,
     cache: algoliaCache,
-    suggestions: smartSuggestionManager,
     config: currentConfig
   };
-  
   console.log('🔧 Outils de debug Algolia disponibles dans window.algoliaOptimizations');
 }
 
