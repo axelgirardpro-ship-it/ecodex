@@ -74,7 +74,7 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
   const { assignedSources } = useEmissionFactorAccess();
   const clients = useDualAlgoliaClients(currentWorkspace?.id);
   const originCtx = useOptionalOrigin();
-  const originRef = useRef<Origin>('all');
+  const originRef = useRef<Origin>('public'); // Fallback sur base commune
   useEffect(() => { if (originCtx?.origin) originRef.current = originCtx.origin; }, [originCtx?.origin]);
   const debug = (...args: any[]) => { if (import.meta.env.DEV) console.log('[FavorisProvider]', ...args); };
   const favoriteIdsRef = useRef<string[]>(favoriteIds);

@@ -92,33 +92,46 @@ const RefinementList: React.FC<RefinementListProps> = ({
   );
 };
 
-// Composant pour la sélection d'origine (IMPORTANT - à conserver)
+/**
+ * Composant de sélection d'origine avec auto-refresh
+ * 
+ * FONCTIONNEMENT :
+ * - 'public': Base commune (données publiques + premium selon assignations)
+ * - 'private': Base personnelle (données importées par le workspace)
+ * - Auto-refresh: changement d'origine relance automatiquement la recherche
+ */
 const OriginFilter: React.FC = () => {
   const { origin, setOrigin } = useOrigin();
 
   const debug = (action: string) => {
-    console.log(`[OriginFilter] ${action}`);
+    if (import.meta.env.DEV) {
+      console.log(`[OriginFilter] ${action} - Auto-refresh activé`);
+    }
   };
 
-    return (
+  const handleOriginChange = (newOrigin: 'public' | 'private') => {
+    if (newOrigin !== origin) {
+      debug(`Changement origine: ${origin} → ${newOrigin}`);
+      setOrigin(newOrigin);
+      // L'auto-refresh est géré par SearchProvider via useEffect sur origin
+    }
+  };
+
+  return (
     <div className="flex flex-col gap-2">
       <Button
         size="sm"
         variant={origin === 'public' ? 'default' : 'outline'}
-        onClick={() => {
-          debug('click public');
-          setOrigin('public');
-        }}
+        onClick={() => handleOriginChange('public')}
+        className="justify-start"
       >
         Base commune
       </Button>
       <Button
         size="sm"
         variant={origin === 'private' ? 'default' : 'outline'}
-        onClick={() => {
-          debug('click private');
-          setOrigin('private');
-        }}
+        onClick={() => handleOriginChange('private')}
+        className="justify-start"
       >
         Base personnelle
       </Button>

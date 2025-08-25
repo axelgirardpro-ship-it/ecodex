@@ -1,10 +1,82 @@
 // @ts-nocheck
+/**
+ * ALGOLIA SEARCH PROXY - Architecture de recherche unifiée
+ * 
+ * Cette Edge Function optimise les requêtes de recherche en :
+ * - Unification des requêtes : UNE SEULE requête Algolia par recherche
+ * - Gestion sécurisée du blur/teaser côté serveur
+ * - Support des origines : 'public' (base commune) et 'private' (base personnelle)
+ * - Validation des 3 caractères minimum
+ * 
+ * FLUX DE DONNÉES :
+ * 1. Frontend envoie { query, origin: 'public'|'private' }
+ * 2. Validation côté serveur (3 caractères minimum)
+ * 3. Construction requête Algolia unifiée avec facetFilters sécurisés
+ * 4. Post-traitement pour blur/teaser selon assignations workspace
+ * 5. Réponse avec flag is_blurred pour éléments premium non-assignés
+ */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 // Cache TTL (ms) pour les requêtes identiques
 const CACHE_TTL_MS = Number(Deno.env.get('EDGE_CACHE_TTL_MS') ?? '3000');
 type CacheEntry = { ts: number; data: any };
 const cacheStore = new Map<string, CacheEntry>();
+
+/**
+ * CONFIGURATION TEASER/BLUR - Sécurité côté serveur
+ * 
+ * Attributs visibles dans le teaser (utilisateurs sans assignation premium)
+ */
+const TEASER_ATTRIBUTES = [
+  'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
+  'Nom_fr', 'Secteur_fr', 'Sous-secteur_fr', 'Localisation_fr', 'Périmètre_fr',
+  'Nom_en', 'Secteur_en', 'Sous-secteur_en', 'Localisation_en', 'Périmètre_en'
+];
+
+/**
+ * Attributs sensibles masqués dans le teaser
+ */
+const SENSITIVE_ATTRIBUTES = [
+  'FE', 'Incertitude', 'Commentaires_fr', 'Commentaires_en', 
+  'Unite_fr', 'Unite_en', 'Description_fr', 'Description_en'
+];
+
+/**
+ * Validation de la requête - Règle des 3 caractères minimum
+ * Cette validation côté serveur empêche les requêtes Algolia vides/courtes
+ */
+function validateQuery(query: string): { valid: boolean; message?: string } {
+  const trimmed = (query || '').trim();
+  if (trimmed.length < 3) {
+    return { 
+      valid: false, 
+      message: 'Minimum 3 caractères requis pour la recherche' 
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Post-traitement sécurisé des résultats Algolia
+ * Applique le blur/teaser selon les assignations workspace
+ */
+function postProcessResults(results: any[], hasWorkspaceAccess: boolean, assignedSources: string[] = []): any[] {
+  return results.map(hit => {
+    const isPremium = hit.access_level === 'premium';
+    const isSourceAssigned = assignedSources.includes(hit.Source);
+    const shouldBlur = isPremium && !isSourceAssigned;
+    
+    if (shouldBlur) {
+      // Créer une copie avec seulement les attributs du teaser
+      const teaserHit = { ...hit };
+      SENSITIVE_ATTRIBUTES.forEach(attr => delete teaserHit[attr]);
+      teaserHit.is_blurred = true;
+      return teaserHit;
+    }
+    
+    return { ...hit, is_blurred: false };
+  });
+}
 
 function encodeParams(params: Record<string, any>): string {
   const flat: Record<string, string> = {};
@@ -85,8 +157,9 @@ Deno.serve(async (req) => {
     const isBatch = Array.isArray(rawBody?.requests)
     const incomingRequests = isBatch ? rawBody.requests : [rawBody]
 
-    // Récupérer le workspace de l'utilisateur (table users)
+    // Récupérer le workspace et les sources assignées de l'utilisateur
     let workspaceId: string | null = null
+    let assignedSources: string[] = []
     if (userId) {
       const { data: userRow } = await supabase
         .from('users')
@@ -94,44 +167,81 @@ Deno.serve(async (req) => {
         .eq('user_id', userId)
         .single()
       workspaceId = userRow?.workspace_id ?? null
+      
+      // Récupérer les sources premium assignées au workspace
+      if (workspaceId) {
+        const { data: sourcesData } = await supabase
+          .from('fe_source_workspace_assignments')
+          .select('source_name')
+          .eq('workspace_id', workspaceId)
+        assignedSources = sourcesData?.map(s => s.source_name) || []
+      }
     }
 
-    // Helper unifié: applique origin "public" ou "private" + sécurité premium
+    /**
+     * Construction unifiée des requêtes Algolia selon l'origine
+     * 
+     * ORIGINE 'public' (Base commune):
+     * - Scope: public uniquement
+     * - Access: standard (toujours) + premium si assigné au workspace
+     * - Teaser: si pas d'assignation workspace, retourne attributs limités
+     * 
+     * ORIGINE 'private' (Base personnelle):
+     * - Scope: private uniquement  
+     * - Workspace: filtré selon workspace_id de l'utilisateur
+     * - Pas de teaser: accès complet aux données du workspace
+     */
     const buildUnified = (originParam: 'public'|'private'|undefined, searchTypeParam?: string) => {
-      const origin = originParam || (searchTypeParam === 'fullPrivate' ? 'private' : 'public')
+      // Nettoyer les paramètres legacy
+      const origin = originParam || 'public' // Plus de support 'fullPrivate'
       let appliedFilters = ''
       let appliedFacetFilters: any[] = []
       let attributesToRetrieve: string[] | undefined
+      
       if (origin === 'public') {
         appliedFilters = `scope:public`
-        // Groupe d'accès sécurisé: standard OU premium
-        const premiumGroup = ['access_level:premium']
-        const standardGroup = ['access_level:standard']
         if (workspaceId) {
-          // OR entre standard et premium assigné au workspace
+          // Workspace authentifié: standard + premium assigné
           appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:${workspaceId}` ]]
-          attributesToRetrieve = undefined
+          attributesToRetrieve = undefined // Accès complet
         } else {
-          // OR entre standard et premium (teaser)
+          // Utilisateur non-authentifié: standard + premium (teaser)
           appliedFacetFilters = [[ 'access_level:standard', 'access_level:premium' ]]
-          attributesToRetrieve = [
-            'objectID','scope','languages','access_level','Source','Date',
-            'Nom_fr','Secteur_fr','Sous-secteur_fr','Localisation_fr','Périmètre_fr',
-            'Nom_en','Secteur_en','Sous-secteur_en','Localisation_en','Périmètre_en'
-          ]
+          attributesToRetrieve = TEASER_ATTRIBUTES // Teaser seulement
         }
       } else {
-        // private
+        // private: données du workspace uniquement
         if (!userId) {
-          appliedFilters = `scope:private AND workspace_id:_none_`
+          appliedFilters = `scope:private AND workspace_id:_none_` // Pas d'accès sans auth
         } else {
           appliedFilters = workspaceId
             ? `scope:private AND workspace_id:${workspaceId}`
             : `scope:private AND workspace_id:_none_`
         }
-        attributesToRetrieve = undefined
+        attributesToRetrieve = undefined // Accès complet aux données du workspace
       }
       return { appliedFilters, appliedFacetFilters, attributesToRetrieve }
+    }
+
+    // Validation des requêtes - Règle des 3 caractères minimum
+    for (const req of incomingRequests) {
+      const validation = validateQuery(req?.query)
+      if (!validation.valid) {
+        const emptyResponse = {
+          hits: [],
+          nbHits: 0,
+          page: 0,
+          nbPages: 0,
+          hitsPerPage: Number(req?.hitsPerPage || 20),
+          processingTimeMS: 0,
+          query: req?.query || '',
+          params: '',
+          message: validation.message
+        }
+        return isBatch 
+          ? jsonResponse(200, { results: incomingRequests.map(() => emptyResponse) }, origin)
+          : jsonResponse(200, emptyResponse, origin)
+      }
     }
 
     // Construire les requêtes Algolia (multi)
@@ -211,7 +321,21 @@ Deno.serve(async (req) => {
       const multiJson = await response.json()
       // multiJson.results est un array aligné sur misses
       remoteResults = (multiJson?.results || [])
-      // mettre en cache
+      
+      // Post-traitement sécurisé: appliquer le blur/teaser selon les assignations
+      remoteResults = remoteResults.map((result: any) => {
+        if (result?.hits) {
+          const processedHits = postProcessResults(
+            result.hits, 
+            !!workspaceId, 
+            assignedSources
+          )
+          return { ...result, hits: processedHits }
+        }
+        return result
+      })
+      
+      // mettre en cache (après post-traitement)
       remoteResults.forEach((res: any, i: number) => {
         const miss = misses[i]
         if (miss) setCache(miss.cacheKey, res)

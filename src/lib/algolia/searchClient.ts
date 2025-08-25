@@ -16,10 +16,20 @@ export const VALID_ALGOLIA_PARAMS = [
   'facetQuery','searchForFacetValues','attributesToHighlight','highlightPreTag','highlightPostTag'
 ];
 
-export type Origin = 'all' | 'public' | 'private';
+/**
+ * Type d'origine pour la recherche de facteurs d'émission
+ * 
+ * - 'public': Base commune - données publiques et premium selon assignations workspace
+ * - 'private': Base personnelle - données importées par le workspace
+ */
+export type Origin = 'public' | 'private';
 
+/**
+ * Résout l'origine depuis les facetFilters Algolia
+ * Fallback sur 'public' si aucune origine explicite trouvée
+ */
 export function resolveOriginFromFacetFilters(facetFilters: any): Origin {
-  let origin: Origin = 'all';
+  let origin: Origin = 'public'; // Fallback sur base commune
   const flat = Array.isArray(facetFilters) ? facetFilters.flat() : [];
   for (const f of flat) {
     if (typeof f === 'string' && f.startsWith('source_index:')) {
