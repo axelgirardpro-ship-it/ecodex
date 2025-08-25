@@ -36,7 +36,10 @@ const AlgoliaSearchContent: React.FC = () => {
 
           {/* Results Section */}
           <section className="lg:col-span-3">
-            <Configure hitsPerPage={36} ruleContexts={[`origin:${origin}`]} />
+            <Configure 
+              hitsPerPage={36} 
+              ruleContexts={[`origin:${origin}`]}
+            />
             <SearchStats />
             <SearchResults />
           </section>

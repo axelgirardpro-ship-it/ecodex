@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRefinementList, useClearRefinements } from 'react-instantsearch';
+import { useRefinementList, useClearRefinements, useSearchBox } from 'react-instantsearch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +8,36 @@ import { Input } from '@/components/ui/input';
 import { RotateCcw, Filter, X } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useOrigin, useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
+
+/**
+ * Composant pour initialiser les filtres avec une recherche vide
+ * Déclenche une recherche vide au chargement pour peupler les RefinementList
+ */
+const FiltersInitializer: React.FC = () => {
+  const { refine } = useSearchBox();
+  const { origin } = useOrigin();
+  const [initialized, setInitialized] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!initialized) {
+      // Déclencher une recherche vide pour peupler les filtres
+      setTimeout(() => {
+        refine('*'); // Recherche universelle qui retourne tout
+        setTimeout(() => {
+          refine(''); // Revenir à vide après initialisation
+          setInitialized(true);
+        }, 100);
+      }, 100);
+    }
+  }, [refine, initialized]);
+
+  // Se réinitialiser quand l'origine change
+  React.useEffect(() => {
+    setInitialized(false);
+  }, [origin]);
+
+  return null; // Composant invisible
+};
 
 interface RefinementListProps {
   attribute: string;
@@ -26,6 +56,13 @@ const RefinementList: React.FC<RefinementListProps> = ({
     attribute,
     limit
   });
+
+  // Debug pour comprendre pourquoi les items sont vides
+  React.useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(`[RefinementList ${attribute}] items:`, items.length, items.slice(0, 3));
+    }
+  }, [items, attribute]);
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -144,6 +181,7 @@ export const SearchFilters: React.FC = () => {
 
   return (
     <Card className="w-full">
+      <FiltersInitializer />
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">Filtres</CardTitle>

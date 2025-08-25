@@ -670,15 +670,15 @@ export const SearchResults: React.FC = () => {
                               )}
                               <div>
                                 <span className="text-sm font-semibold text-foreground">Source</span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                   {getSourceLogo(hit.Source) && (
                                     <img 
                                       src={getSourceLogo(hit.Source)!}
                                       alt={`Logo ${hit.Source}`}
-                                      className="w-6 h-6 object-contain flex-shrink-0"
+                                      className="w-[44px] h-[44px] md:w-[50px] md:h-[50px] object-contain flex-shrink-0"
                                     />
                                   )}
-                                  <p className="text-sm font-light"><Highlight hit={hit as any} attribute={'Source' as any} /></p>
+                                  <p className="text-sm font-medium text-foreground" dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Source')} />
                                 </div>
                               </div>
                           </div>
