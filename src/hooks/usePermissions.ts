@@ -9,8 +9,10 @@ export const usePermissions = () => {
   const { isSupraAdmin } = useSupraAdmin();
   const { currentWorkspace } = useWorkspace();
 
-  // Can import data: supra_admin or admin (Premium plan only)
-  const canImportData = isSupraAdmin || userProfile?.role === 'admin';
+  // Can import data: admin on Premium workspace, or supra_admin
+  const planType = currentWorkspace?.plan_type || userProfile?.plan_type;
+  const isPremiumPlan = planType === 'premium';
+  const canImportData = isSupraAdmin || (isPremiumPlan && userProfile?.role === 'admin');
   
   // Can export: gestionnaire or admin (will be managed by quota system)
   const canExport = isSupraAdmin || userProfile?.role === 'admin' || userProfile?.role === 'gestionnaire';
@@ -45,6 +47,6 @@ export const usePermissions = () => {
     canAddUsers, // Backward compatibility
     role: userProfile?.role,
     // La source de vérité pour le plan est le workspace
-    planType: currentWorkspace?.plan_type || userProfile?.plan_type
+    planType
   };
 };

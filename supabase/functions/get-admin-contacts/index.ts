@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, Authorization, x-client-info, X-Client-Info, apikey, content-type, Content-Type',
 }
 
 serve(async (req) => {
@@ -33,7 +33,9 @@ serve(async (req) => {
 
     // Check supra-admin via RPC authoritative function
     const { data: isSupra } = await supabase.rpc('is_supra_admin', { user_uuid: user.id })
-    if (!isSupra) return new Response('Forbidden', { status: 403, headers: corsHeaders })
+    if (!isSupra) {
+      return new Response('Forbidden', { status: 403, headers: corsHeaders })
+    }
 
     // Filters & pagination
     let workspaceFilter: string | null = null;

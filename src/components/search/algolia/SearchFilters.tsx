@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
-import { RotateCcw, Filter, X } from 'lucide-react';
+import { RotateCcw, Filter, X, Lock } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useOrigin, useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
+import { usePermissions } from '@/hooks/usePermissions';
 
 /**
  * Composant pour initialiser les filtres avec une recherche vide
@@ -139,6 +140,8 @@ const RefinementList: React.FC<RefinementListProps> = ({
  */
 const OriginFilter: React.FC = () => {
   const { origin, setOrigin } = useOrigin();
+  const { planType } = usePermissions();
+  const isPremium = planType === 'premium';
 
   const debug = (action: string) => {
     if (import.meta.env.DEV) {
@@ -160,16 +163,19 @@ const OriginFilter: React.FC = () => {
         size="sm"
         variant={origin === 'public' ? 'default' : 'outline'}
         onClick={() => handleOriginChange('public')}
-        className="justify-start"
+        className="justify-start w-56 px-4 text-sm whitespace-nowrap overflow-hidden text-ellipsis"
       >
         Base commune
       </Button>
       <Button
         size="sm"
         variant={origin === 'private' ? 'default' : 'outline'}
-        onClick={() => handleOriginChange('private')}
-        className="justify-start"
+        onClick={() => isPremium && handleOriginChange('private')}
+        disabled={!isPremium}
+        title={!isPremium ? "Réservé aux workspaces Premium" : undefined}
+        className="justify-start w-56 px-4 text-sm whitespace-nowrap overflow-hidden text-ellipsis"
       >
+        {!isPremium && <Lock className="h-3 w-3 mr-2" />}
         Base personnelle
       </Button>
     </div>

@@ -12,6 +12,7 @@ export const UnifiedNavbar = () => {
   const { user, signOut } = useAuth();
   const { isSupraAdmin } = useSupraAdmin();
   const { canUseFavorites } = useEmissionFactorAccess();
+  const { canImportData } = usePermissions();
   const { quotaData, isLoading, isAtLimit } = useQuotas();
   const navigate = useNavigate();
 
@@ -58,12 +59,22 @@ export const UnifiedNavbar = () => {
                 Favoris
               </Button>
             )}
-            {isSupraAdmin && (
+            {canImportData ? (
               <Link to="/import">
                 <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
                   Import
                 </Button>
               </Link>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="text-foreground opacity-50 cursor-not-allowed"
+                disabled
+                title="Réservé aux workspaces Premium"
+              >
+                <Lock className="h-4 w-4 mr-2" />
+                Import
+              </Button>
             )}
             <Link to="/settings">
               <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
