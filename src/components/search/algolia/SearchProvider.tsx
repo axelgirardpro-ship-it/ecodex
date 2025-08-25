@@ -9,14 +9,10 @@ import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { DEBUG_MULTI_INDEX } from '@/config/featureFlags';
 import { createUnifiedClient } from '@/lib/algolia/unifiedSearchClient';
 import { performanceMonitor } from '@/lib/algolia/performanceMonitor';
-import AlgoliaFallback from '@/components/search/AlgoliaFallback';
 import { useAuth } from '@/contexts/AuthContext';
 import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
 import DebugSearchState from '@/components/search/DebugSearchState';
 import { resolveOrigin } from '@/lib/algolia/searchClient';
-
-const FALLBACK_APP_ID = import.meta.env.VITE_ALGOLIA_APPLICATION_ID || '6SRUR7BWK6';
-const FALLBACK_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_API_KEY || 'fc0765efc9e509bd25acc5207150f32f';
 
 function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string[] = []) {
   const [client, setClient] = useState<any>(null);
@@ -39,9 +35,7 @@ function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string
   return client;
 }
 
-// Le nettoyage des paramètres est maintenant géré par UnifiedSearchClient
-// Cette fonction est conservée pour compatibilité mais n'est plus utilisée
-const cleaningWrapper = (rawSearchClient: any) => rawSearchClient;
+// Le nettoyage des paramètres est géré par UnifiedSearchClient
 
 const QuotaContext = createContext<ReturnType<typeof useQuotas> | null>(null);
 export const useQuotaContext = () => {
@@ -199,22 +193,15 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
       <QuotaContext.Provider value={quotaHook}>
         <OriginContext.Provider value={{ origin, setOrigin }}>
           <SearchControlContext.Provider value={controlsValue}>
-          {authLoading || !user ? (
-            <AlgoliaFallback 
-              error="Initialisation de l'authentification..." 
-              showOptimizationInfo={true}
-            />
-          ) : searchClient ? (
-          <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
-            {children}
-            <DebugSearchState />
-          </InstantSearch>
-        ) : (
-          <AlgoliaFallback 
-            error="Chargement du client de recherche..." 
-            showOptimizationInfo={true}
-          />
-        )}
+            {authLoading || !user || !searchClient ? (
+              // Rendre le container pour éviter le flash, mais pas de fallback UI legacy
+              <div />
+            ) : (
+              <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
+                {children}
+                <DebugSearchState />
+              </InstantSearch>
+            )}
           </SearchControlContext.Provider>
         </OriginContext.Provider>
       </QuotaContext.Provider>

@@ -20,7 +20,7 @@ graph TD
     G --> H[ProxySearchClient]
     H --> I[Edge Function]
     
-    J[FavorisSearchProvider] --> G
+    %% Favoris utilisent le client unifié via SearchProvider (pas de provider dédié)
 ```
 
 ## Composants principaux
@@ -188,61 +188,9 @@ const isHitBlurred = (hit: AlgoliaHit): boolean => {
 };
 ```
 
-### 4. FavorisSearchProvider
+### 4. Favoris
 
-**Fichier** : `src/components/search/favoris/FavorisSearchProvider.tsx`
-
-#### Simplification majeure
-
-```tsx
-// AVANT : Logique complexe multi-client
-const useDualAlgoliaClients = () => {
-  // ~200 lignes de logique complexe
-  const cleaningFullPublicRef = useRef();
-  const cleaningFullPrivateRef = useRef();
-  const cleaningTeaserRef = useRef();
-  // ... logique de merge complexe
-};
-
-// APRÈS : Logique simplifiée
-const useOptimizedAlgoliaClient = () => {
-  // ~20 lignes de logique simple
-  return unifiedClient;
-};
-```
-
-#### Intégration des favoris
-
-```tsx
-function FavorisSearchProvider({ children }: { children: React.ReactNode }) {
-  const unifiedClient = useOptimizedAlgoliaClient();
-  const originCtx = useOrigin();
-
-  const searchClientRef = useRef({
-    search: (requests) => {
-      const cleanRequests = requests.map(request => ({
-        ...request,
-        params: {
-          ...request.params,
-          origin: originCtx?.origin || 'public',
-          facetFilters: [
-            ...(request.params.facetFilters || []),
-            buildFavoriteIdsFilter(favoriteIds)  // Injection automatique
-          ]
-        }
-      }));
-      
-      return unifiedClient.search(cleanRequests);
-    }
-  });
-
-  return (
-    <InstantSearch searchClient={searchClientRef.current}>
-      {children}
-    </InstantSearch>
-  );
-}
-```
+Les favoris s’appuient désormais directement sur `SearchProvider` et injectent le filtre `favoriteIds` dans les composants Algolia (`FavorisSearchBox`, `FavorisSearchFilters`, `FavorisSearchResults`). Il n’existe plus de `FavorisSearchProvider` dédié.
 
 ## Clients de recherche
 
