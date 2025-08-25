@@ -18,9 +18,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 // Cache TTL (ms) pour les requêtes identiques
-const CACHE_TTL_MS = Number(Deno.env.get('EDGE_CACHE_TTL_MS') ?? '3000');
-type CacheEntry = { ts: number; data: any };
-const cacheStore = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = Number(Deno.env.get('ALGOLIA_CACHE_TTL_MS')) || 30000;
+
+// Cache simple en mémoire (limité à la durée de vie de l'instance)
+const cache = new Map<string, { data: any; timestamp: number }>();
 
 /**
  * CONFIGURATION TEASER/BLUR - Sécurité côté serveur
@@ -30,7 +31,9 @@ const cacheStore = new Map<string, CacheEntry>();
 const TEASER_ATTRIBUTES = [
   'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
   'Nom_fr', 'Secteur_fr', 'Sous-secteur_fr', 'Localisation_fr', 'Périmètre_fr',
-  'Nom_en', 'Secteur_en', 'Sous-secteur_en', 'Localisation_en', 'Périmètre_en'
+  'Nom_en', 'Secteur_en', 'Sous-secteur_en', 'Localisation_en', 'Périmètre_en',
+  'Description_fr', 'Description_en', 'Commentaires_fr', 'Commentaires_en',
+  'Incertitude', 'Contributeur', 'Unite_fr', 'Unite_en', 'FE'
 ];
 
 /**
@@ -44,10 +47,16 @@ const SENSITIVE_ATTRIBUTES = [
 /**
  * Validation de la requête - Règle des 3 caractères minimum
  * Cette validation côté serveur empêche les requêtes Algolia vides/courtes
+ * EXCEPTION: Permet les requêtes avec facettes pour initialiser les filtres
  */
-function validateQuery(query: string): { valid: boolean; message?: string } {
+function validateQuery(query: string, request: any): { valid: boolean; message?: string } {
   const trimmed = (query || '').trim();
-  if (trimmed.length < 3) {
+  
+  // Permettre les requêtes avec facettes même sans query (pour initialiser les filtres)
+  const hasFacets = Array.isArray(request?.facets) && request.facets.length > 0;
+  const hasFilters = request?.filters || request?.facetFilters;
+  
+  if (trimmed.length < 3 && !hasFacets && !hasFilters) {
     return { 
       valid: false, 
       message: 'Minimum 3 caractères requis pour la recherche' 
@@ -94,17 +103,17 @@ function encodeParams(params: Record<string, any>): string {
 }
 
 function getCache(key: string): any | null {
-  const it = cacheStore.get(key);
+  const it = cache.get(key);
   if (!it) return null;
-  if (Date.now() - it.ts > CACHE_TTL_MS) {
-    cacheStore.delete(key);
+  if (Date.now() - it.timestamp > CACHE_TTL_MS) {
+    cache.delete(key);
     return null;
   }
   return it.data;
 }
 
 function setCache(key: string, data: any): void {
-  cacheStore.set(key, { ts: Date.now(), data });
+  cache.set(key, { timestamp: Date.now(), data });
 }
 
 const corsHeaders = {
@@ -132,9 +141,19 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+    // Utiliser les noms de secrets Supabase
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID')!
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') || 'ef_all'
+    
+    // Debug des variables d'environnement
+    if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
+      console.error('Missing Algolia credentials:', { 
+        hasAppId: !!ALGOLIA_APP_ID, 
+        hasAdminKey: !!ALGOLIA_ADMIN_KEY 
+      });
+      return jsonResponse(500, { error: 'Missing Algolia credentials' }, req.headers.get('Origin'))
+    }
 
     const origin = req.headers.get('Origin')
     
@@ -223,26 +242,7 @@ Deno.serve(async (req) => {
       return { appliedFilters, appliedFacetFilters, attributesToRetrieve }
     }
 
-    // Validation des requêtes - Règle des 3 caractères minimum
-    for (const req of incomingRequests) {
-      const validation = validateQuery(req?.query)
-      if (!validation.valid) {
-        const emptyResponse = {
-          hits: [],
-          nbHits: 0,
-          page: 0,
-          nbPages: 0,
-          hitsPerPage: Number(req?.hitsPerPage || 20),
-          processingTimeMS: 0,
-          query: req?.query || '',
-          params: '',
-          message: validation.message
-        }
-        return isBatch 
-          ? jsonResponse(200, { results: incomingRequests.map(() => emptyResponse) }, origin)
-          : jsonResponse(200, emptyResponse, origin)
-      }
-    }
+    // Validation supprimée: permettre les requêtes vides/courtes pour initialiser les facettes
 
     // Construire les requêtes Algolia (multi)
     type BuiltReq = {
@@ -251,7 +251,22 @@ Deno.serve(async (req) => {
       index: number
     }
     const built: BuiltReq[] = incomingRequests.map((r: any, idx: number) => {
-      const { query, filters, facetFilters, origin: reqOrigin, searchType, hitsPerPage, page, attributesToRetrieve: attrsClient, restrictSearchableAttributes } = r || {}
+      const {
+        query,
+        filters,
+        facetFilters,
+        facets,
+        maxValuesPerFacet,
+        sortFacetValuesBy,
+        maxFacetHits,
+        ruleContexts,
+        origin: reqOrigin,
+        searchType,
+        hitsPerPage,
+        page,
+        attributesToRetrieve: attrsClient,
+        restrictSearchableAttributes
+      } = r || {}
       const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
         (reqOrigin as 'public'|'private'|undefined), String(searchType || '')
       )
@@ -269,6 +284,11 @@ Deno.serve(async (req) => {
         ...(typeof hitsPerPage === 'number' ? { hitsPerPage } : {}),
         ...(typeof page === 'number' ? { page } : {}),
         ...(restrictSearchableAttributes ? { restrictSearchableAttributes } : {}),
+        ...(facets ? { facets } : {}),
+        ...(typeof maxValuesPerFacet === 'number' ? { maxValuesPerFacet } : {}),
+        ...(sortFacetValuesBy ? { sortFacetValuesBy } : {}),
+        ...(typeof maxFacetHits === 'number' ? { maxFacetHits } : {}),
+        ...(Array.isArray(ruleContexts) ? { ruleContexts } : {}),
         // Balises de highlight attendues par React InstantSearch
         highlightPreTag: '__ais-highlight__',
         highlightPostTag: '__/ais-highlight__'

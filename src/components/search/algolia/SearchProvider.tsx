@@ -69,11 +69,7 @@ export const useSearchControls = () => {
   return ctx;
 };
 
-/**
- * Provider autonome d'origine (sans InstantSearch). 
- * Utilisé pour la page /favoris qui n'a pas besoin d'InstantSearch
- * Par défaut sur 'public' (base commune)
- */
+// Provider autonome d'origine (sans InstantSearch). Utile pour /favoris
 export const OriginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [origin, setOrigin] = useState<Origin>('public');
   return (
@@ -97,22 +93,6 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
-  /**
-   * AUTO-REFRESH sur changement d'origine
-   * Relance automatiquement la recherche quand l'utilisateur change d'origine
-   * Conserve la règle des 3 caractères minimum
-   */
-  const refreshSearchRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    // Si on a une recherche active et qu'on change d'origine, relancer la recherche
-    if (refreshSearchRef.current && lastQueryRef.current.trim().length >= 3) {
-      if (import.meta.env.DEV) {
-        console.log(`[SearchProvider] Auto-refresh sur changement origine vers: ${origin}`);
-      }
-      refreshSearchRef.current();
-    }
-  }, [origin]);
-
   // Forçage temporaire (< 3 chars) avec fenêtre temporelle pour éviter les courses
   const forceUntilTsRef = useRef<number>(0);
   const controlsValue = useMemo(() => ({
@@ -131,8 +111,6 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const teaserAllowedRef = useRef<boolean>(false);
   const lastQueryRef = useRef<string>('');
   const teaserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastRequestsRef = useRef<any[]>([]);
-  
   if (unifiedClient && !searchClientRef.current) {
     searchClientRef.current = {
       search: async (requests: any[]) => {
@@ -163,58 +141,6 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             };
           });
 
-          // GATE: ne lance rien si la requête est réellement vide (pas de query ni de filtres)
-          const allEmpty = !enrichedRequests?.some(r => {
-            const p = r?.params || {};
-            const hasQuery = typeof p.query === 'string' && p.query.trim().length > 0;
-            const hasFilters = !!(p.filters && String(p.filters).trim());
-            const hasFacetFilters = Array.isArray(p.facetFilters) && p.facetFilters.length > 0;
-            const hasNumericFilters = Array.isArray(p.numericFilters) && p.numericFilters.length > 0;
-            const hasTagFilters = Array.isArray(p.tagFilters) && p.tagFilters.length > 0;
-            const hasFacetSearch = !!(p.facetName || p.facetQuery);
-            return hasQuery || hasFilters || hasFacetFilters || hasNumericFilters || hasTagFilters || hasFacetSearch;
-          });
-          if (allEmpty) {
-            const emptyRes: any = { 
-              hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' 
-            };
-            return { results: (requests || []).map(() => emptyRes) };
-          }
-
-          // Gate: exécuter la recherche seulement à partir de 3 caractères
-          // Exceptions: si des filtres/facettes/numériques/tags ou une recherche de facette sont actifs
-          const forcedActive = false; // override Enter désactivé (règle stricte)
-          const belowThresholdForAll = enrichedRequests.every(r => {
-            const p = r?.params || {};
-            const q = String(p.query || '').trim();
-            const queryLen = q.length;
-            const hasFilters = !!(p.filters && String(p.filters).trim());
-            const hasFacetFilters = Array.isArray(p.facetFilters) && p.facetFilters.length > 0;
-            const hasNumericFilters = Array.isArray(p.numericFilters) && p.numericFilters.length > 0;
-            const hasTagFilters = Array.isArray(p.tagFilters) && p.tagFilters.length > 0;
-            const hasFacetSearch = !!(p.facetName || p.facetQuery);
-            return (q.length > 0 && queryLen < 3) && !hasFilters && !hasFacetFilters && !hasNumericFilters && !hasTagFilters && !hasFacetSearch;
-          });
-          if (!forcedActive && belowThresholdForAll) {
-            const emptyRes: any = { 
-              hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' 
-            };
-            return { results: (requests || []).map(() => emptyRes) };
-          }
-          // Consommer le forçage uniquement quand il débloque réellement une requête < 3 chars
-          if (forcedActive && belowThresholdForAll) {
-            forceUntilTsRef.current = 0;
-          }
-
-          // Si forçage actif, autoriser immédiatement le teaser pour maximiser les résultats visibles
-          if (forcedActive) {
-            teaserAllowedRef.current = true;
-            if (teaserTimerRef.current) {
-              clearTimeout(teaserTimerRef.current);
-              teaserTimerRef.current = null;
-            }
-          }
-
           // Teaser différé: autoriser le teaser seulement après un délai d'inactivité sur la requête
           const q = enrichedRequests?.[0]?.params?.query ?? '';
           if ((q || '') !== (lastQueryRef.current || '')) {
@@ -225,9 +151,6 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
               teaserAllowedRef.current = true;
             }, 400);
           }
-
-          // Sauvegarder les requêtes pour l'auto-refresh
-          lastRequestsRef.current = enrichedRequests;
 
           const result = await unifiedClient.search(enrichedRequests, {
             enableCache: true,
@@ -265,41 +188,6 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             false // pas depuis le cache ici, le cache est géré dans unifiedClient
           );
         }
-      }
-    };
-    
-    // Fonction de refresh pour l'auto-refresh sur changement d'origine
-    refreshSearchRef.current = () => {
-      if (lastRequestsRef.current.length > 0) {
-        // Relancer la dernière recherche avec la nouvelle origine
-        const refreshedRequests = lastRequestsRef.current.map(r => ({
-          ...r,
-          origin: originRef.current,
-          params: {
-            ...r.params,
-            _search_context: {
-              ...r.params._search_context,
-              origin: originRef.current,
-              timestamp: Date.now()
-            }
-          }
-        }));
-        
-        unifiedClient.search(refreshedRequests, {
-          enableCache: false, // Forcer le refresh sans cache
-          enableDeduplication: false,
-          enableBatching: false,
-          teaserAllowed: teaserAllowedRef.current
-        }).then(result => {
-          // Les résultats seront automatiquement propagés via InstantSearch
-          if (import.meta.env.DEV) {
-            console.log(`[SearchProvider] Auto-refresh terminé pour origine: ${originRef.current}`);
-          }
-        }).catch(error => {
-          if (import.meta.env.DEV) {
-            console.error('[SearchProvider] Erreur auto-refresh:', error);
-          }
-        });
       }
     };
   }

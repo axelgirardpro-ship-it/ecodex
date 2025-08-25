@@ -1,7 +1,12 @@
 import React from 'react';
+import { useSearchBox, useStats, useInstantSearch } from 'react-instantsearch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const DebugSearchState: React.FC = () => {
+  const { query } = useSearchBox();
+  const { nbHits, processingTimeMS } = useStats();
+  const { status } = useInstantSearch();
+  
   if (!import.meta.env.DEV) {
     return null; // Ne s'affiche qu'en développement
   }
@@ -14,7 +19,16 @@ export const DebugSearchState: React.FC = () => {
       <CardContent className="text-xs">
         <div className="space-y-2">
           <div>
-            <strong>Recherches récentes:</strong> désactivées
+            <strong>Query:</strong> "{query}"
+          </div>
+          <div>
+            <strong>Status:</strong> {status}
+          </div>
+          <div>
+            <strong>Hits:</strong> {nbHits}
+          </div>
+          <div>
+            <strong>Processing time:</strong> {processingTimeMS}ms
           </div>
         </div>
       </CardContent>
