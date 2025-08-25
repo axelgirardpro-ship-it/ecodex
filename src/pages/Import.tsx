@@ -205,43 +205,14 @@ const Import = () => {
       setIndexingStatus("success");
 
       // Ajouter automatiquement aux favoris si demandé
-      if (addToFavorites && insertedFactors && insertedFactors.length > 0) {
+      if (addToFavorites && resp?.inserted && resp.inserted > 0) {
         try {
-          let addedToFavorites = 0;
-          for (const factor of insertedFactors) {
-            try {
-              // Convertir le facteur au format EmissionFactor attendu par le contexte
-              const emissionFactor = {
-                id: factor.id,
-                nom: factor.Nom || '',
-                description: factor.Description || '',
-                fe: factor.FE || 0,
-                uniteActivite: factor["Unité donnée d'activité"] || '',
-                source: factor.Source || '',
-                secteur: factor.Secteur || '',
-                sousSecteur: factor["Sous-secteur"] || '',
-                localisation: factor.Localisation || '',
-                date: factor.Date || new Date().getFullYear(),
-                incertitude: factor.Incertitude || '',
-                perimetre: factor.Périmètre || '',
-                contributeur: factor.Contributeur || '',
-                commentaires: factor.Commentaires || ''
-              };
-              
-              await addItemToFavorites(emissionFactor);
-              addedToFavorites++;
-            } catch (favError) {
-              console.warn('Erreur ajout favori:', favError);
-              // Continue avec les autres éléments
-            }
-          }
-          
-          if (addedToFavorites > 0) {
-            toast({
-              title: "Favoris ajoutés",
-              description: `${addedToFavorites} éléments ajoutés aux favoris.`,
-            });
-          }
+          // Pour l'instant, on affiche juste un message car nous n'avons pas accès aux données détaillées
+          // des facteurs importés depuis la réponse de l'Edge Function
+          toast({
+            title: "Import avec favoris",
+            description: `${resp.inserted} facteurs importés. L'ajout aux favoris sera disponible prochainement.`,
+          });
         } catch (error) {
           console.warn('Erreur ajout favoris global:', error);
         }
