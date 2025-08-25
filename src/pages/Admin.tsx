@@ -14,11 +14,8 @@ import { ContactsTable } from "@/components/admin/ContactsTable";
 import { SourcesPanel } from "@/components/admin/SourcesPanel";
 import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
 import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
-import { OrphanUsersCleanup } from "@/components/admin/OrphanUsersCleanup";
 import { OrphanUsersRepair } from "@/components/admin/OrphanUsersRepair";
 import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
-
-import { AlgoliaPerformanceDashboard } from "@/components/admin/AlgoliaPerformanceDashboard";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -102,12 +99,6 @@ const Admin = () => {
             <SourcesPanel />
           </FeSourcesProvider>
 
-          {/* Performance Algolia Dashboard */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Performance Algolia</h2>
-            <AlgoliaPerformanceDashboard />
-          </div>
-
           <div>
             <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>
             <AdminImportsPanel />
@@ -118,7 +109,6 @@ const Admin = () => {
             <h2 className="text-2xl font-bold mb-4">Gestion des Comptes Admin</h2>
             <div className="grid gap-6 lg:grid-cols-2">
               <CreateSupraAdmin />
-              <OrphanUsersCleanup />
               <OrphanUsersRepair />
             </div>
           </div>

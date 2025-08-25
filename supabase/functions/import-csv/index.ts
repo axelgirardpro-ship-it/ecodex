@@ -3,6 +3,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @ts-ignore - Import XLSX pour parsing Excel
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
+// Import du parser CSV robuste
+import { RobustCsvParser } from './csv-parser.ts'
 
 // Types pour l'environnement Deno/Edge Functions
 interface DenoEnv {
@@ -31,26 +33,21 @@ function computeFactorKey(row: Record<string,string>, language: string) {
   return [nom, unite, source, perimetre, localisation, lang].join('|');
 }
 
-async function readCsvLines(url: string, maxErrors = 50) {
+async function readCsvContent(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error('Cannot fetch CSV from storage');
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let { value, done } = await reader.read();
   let buffer = value ? decoder.decode(value, { stream: true }) : '';
-  const lines: string[] = [];
   while (!done) {
-    const parts = buffer.split(/\r?\n/);
-    buffer = parts.pop() || '';
-    lines.push(...parts);
     ({ value, done } = await reader.read());
     if (value) buffer += decoder.decode(value, { stream: true });
   }
-  if (buffer.length > 0) lines.push(buffer);
-  return lines.filter(l => l !== '');
+  return buffer;
 }
 
-async function readGzipCsvLines(url: string, maxErrors = 50) {
+async function readGzipCsvContent(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error('Cannot fetch GZ CSV from storage');
   // Décompresser en streaming
@@ -60,16 +57,11 @@ async function readGzipCsvLines(url: string, maxErrors = 50) {
   const decoder = new TextDecoder();
   let { value, done } = await reader.read();
   let buffer = value ? decoder.decode(value, { stream: true }) : '';
-  const lines: string[] = [];
   while (!done) {
-    const parts = buffer.split(/\r?\n/);
-    buffer = parts.pop() || '';
-    lines.push(...parts);
     ({ value, done } = await reader.read());
     if (value) buffer += decoder.decode(value, { stream: true });
   }
-  if (buffer.length > 0) lines.push(buffer);
-  return lines.filter(l => l !== '');
+  return buffer;
 }
 
 async function readXlsxLines(url: string, maxErrors = 50) {
@@ -93,7 +85,7 @@ async function readXlsxLines(url: string, maxErrors = 50) {
   return csvString.split(/\r?\n/).filter(l => l !== '');
 }
 
-async function readFileLines(url: string, maxErrors = 50) {
+async function readFileContent(url: string): Promise<string> {
   // Détecter le type de fichier par l'URL
   const lower = url.toLowerCase();
   const isXlsx = lower.includes('.xlsx');
@@ -101,13 +93,19 @@ async function readFileLines(url: string, maxErrors = 50) {
   
   if (isXlsx) {
     console.log('📊 Détection fichier XLSX, parsing Excel...');
-    return await readXlsxLines(url, maxErrors);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
+    const arrayBuffer = await res.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    return XLSX.utils.sheet_to_csv(worksheet);
   } else if (isGz) {
     console.log('🗜️ Détection fichier CSV GZ, décompression streaming...');
-    return await readGzipCsvLines(url, maxErrors);
+    return await readGzipCsvContent(url);
   } else {
     console.log('📄 Détection fichier CSV, parsing texte...');
-    return await readCsvLines(url, maxErrors);
+    return await readCsvContent(url);
   }
 }
 
@@ -162,38 +160,41 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Cannot sign storage url' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const lines = await readFileLines(signed.signedUrl)
-    if (lines.length < 2) {
-      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'empty csv' }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
-      return new Response(JSON.stringify({ error: 'CSV vide' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const fileContent = await readFileContent(signed.signedUrl)
+    
+    let parsedData;
+    try {
+      parsedData = RobustCsvParser.parseCSVContent(fileContent);
+      console.log(`✅ Parser robuste: ${parsedData.rows.length} lignes parsées`);
+    } catch (parseError) {
+      await supabase.from('data_imports').update({ 
+        status: 'failed', 
+        error_details: { error: `Erreur de parsing CSV: ${parseError.message}` }, 
+        finished_at: new Date().toISOString() 
+      }).eq('id', importRecord.id)
+      return new Response(JSON.stringify({ error: `Erreur de parsing CSV: ${parseError.message}` }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
     }
 
-    const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
-    const lowerHeaders = headers.map(h => h.toLowerCase())
-  const required = ['Nom','FE','Unité donnée d\'activité','Source','Périmètre','Localisation','Date']
-    const missing = required.filter(r => !lowerHeaders.includes(r.toLowerCase()))
+    const { headers, rows } = parsedData;
+    
+    if (rows.length === 0) {
+      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'empty csv after parsing' }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
+      return new Response(JSON.stringify({ error: 'CSV vide après parsing' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
-    const sourcesCount = new Map<string, number>()
+    // Extraire les sources avec validation
+    const sourcesCount = RobustCsvParser.extractSourcesFromRows(rows);
+    console.log(`🔍 Sources détectées: ${Array.from(sourcesCount.keys()).join(', ')}`);
+    
     const errors: string[] = []
-    let processed = 0
+    const processed = rows.length
     let idsMissing = 0
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i]
-      if (!line) continue
-      const values = line.split(',')
-      const row: Record<string,string> = {}
-      headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').trim().replace(/"/g, '') })
-
-      const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
-      if (!rowOk) {
-        if (errors.length < 50) errors.push(`Ligne ${i+1}: champs requis manquants`)
-        continue
-      }
-      processed++
-      const src = row['Source']
-      sourcesCount.set(src, (sourcesCount.get(src) || 0) + 1)
-
+    // Compter les IDs manquants
+    for (const row of rows) {
       const providedId = (row['ID'] || '').trim()
       if (!providedId) idsMissing++
     }
@@ -201,7 +202,7 @@ Deno.serve(async (req) => {
     if (dryRun) {
       await supabase.from('data_imports').update({ status: 'analyzed', processed: processed, failed: errors.length, error_samples: errors.length ? JSON.stringify({ errors }) : null }).eq('id', importRecord.id)
       const sources = Array.from(sourcesCount.entries()).map(([name, count]) => ({ name, count, access_level: mapping?.[name]?.access_level || 'standard', is_global: mapping?.[name]?.is_global ?? true }))
-      return new Response(JSON.stringify({ import_id: importRecord.id, total_rows: lines.length - 1, processed, errors_sample: errors.slice(0, 20), missing_headers: missing, ids_missing: idsMissing, sources }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ import_id: importRecord.id, total_rows: rows.length, processed, errors_sample: errors.slice(0, 20), ids_missing: idsMissing, sources }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // Non dry-run – pipeline: upsert fe_sources + SCD2 par factor_key (ID prioritaire)
@@ -241,18 +242,12 @@ Deno.serve(async (req) => {
 
       let inserted = 0
       const chunkSize = 1000
-      for (let i = 1; i < lines.length; i += chunkSize) {
-        const slice = lines.slice(i, i + chunkSize)
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const slice = rows.slice(i, i + chunkSize)
         const batch: any[] = []
         const keys: string[] = []
 
-        for (let j = 0; j < slice.length; j++) {
-          const values = slice[j].split(',')
-          const row: Record<string,string> = {}
-          headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').trim().replace(/\"/g, '') })
-          const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
-          if (!rowOk) continue
-
+        for (const row of slice) {
           const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
           keys.push(factorKey)
 
