@@ -2,7 +2,15 @@
 
 ## Principe fondamental
 
-**Toute la logique de blur et de sécurité est côté serveur** - il est impossible pour un utilisateur de contourner les restrictions côté client.
+**🔒 SÉCURITÉ TOTALE CÔTÉ SERVEUR** - Il est **IMPOSSIBLE** pour un utilisateur de contourner les restrictions côté client.
+
+### Garanties de sécurité
+
+- ✅ **Validation 3 caractères** : Double contrôle (client + serveur)
+- ✅ **Blur/teaser** : Logic 100% côté serveur avec post-traitement sécurisé
+- ✅ **Attributs sensibles** : Masqués côté serveur selon assignations workspace
+- ✅ **Flag is_blurred** : Généré uniquement côté serveur
+- ✅ **Origines** : Filtrées par facetFilters sécurisés côté serveur
 
 ## Architecture de sécurité
 
@@ -28,13 +36,48 @@ graph TD
 ### Points de contrôle sécurisés
 
 1. **🔐 Authentification** : Vérification JWT Supabase
-2. **🛡️ Autorisation** : Vérification des permissions workspace
-3. **🔒 Filtrage des attributs** : `attributesToRetrieve` dynamique
-4. **✅ Post-traitement** : Ajout des métadonnées sécurisées
+2. **🛡️ Autorisation** : Vérification des permissions workspace + assignations sources
+3. **📝 Validation** : Règle 3 caractères minimum côté serveur
+4. **🔒 Filtrage origine** : facetFilters sécurisés selon scope (public/private)
+5. **✂️ Post-traitement** : Masquage des attributs sensibles selon assignations
+6. **🏷️ Marquage sécurisé** : Flag `is_blurred` généré côté serveur uniquement
 
 ## Mécanismes de protection
 
-### 1. Authentification et autorisation
+### 1. Post-traitement sécurisé des résultats
+
+**Fonction**: `postProcessResults()` dans l'Edge Function
+
+```typescript
+/**
+ * Post-traitement sécurisé des résultats Algolia
+ * Applique le blur/teaser selon les assignations workspace
+ */
+function postProcessResults(results: any[], hasWorkspaceAccess: boolean, assignedSources: string[] = []): any[] {
+  return results.map(hit => {
+    const isPremium = hit.access_level === 'premium';
+    const isSourceAssigned = assignedSources.includes(hit.Source);
+    const shouldBlur = isPremium && !isSourceAssigned;
+    
+    if (shouldBlur) {
+      // Créer une copie avec seulement les attributs du teaser
+      const teaserHit = { ...hit };
+      SENSITIVE_ATTRIBUTES.forEach(attr => delete teaserHit[attr]);
+      teaserHit.is_blurred = true;
+      return teaserHit;
+    }
+    
+    return { ...hit, is_blurred: false };
+  });
+}
+```
+
+**Sécurité garantie** :
+- ✅ Attributs sensibles **physiquement supprimés** côté serveur
+- ✅ Flag `is_blurred` **impossible à falsifier** côté client
+- ✅ Logic basée sur les **assignations réelles** en base de données
+
+### 2. Authentification et autorisation
 
 ```typescript
 // Edge Function - getUserPermissions()
