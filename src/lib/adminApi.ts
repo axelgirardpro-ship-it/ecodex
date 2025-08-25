@@ -1,9 +1,26 @@
 import { supabase } from '@/integrations/supabase/client'
 
+async function invokeWithAuth<T = any>(fn: string, options?: {
+  body?: any,
+  headers?: Record<string, string>,
+}): Promise<{ data: T | null; error: any | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  const headers = {
+    ...(options?.headers || {}),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  } as Record<string, string>;
+  const { data, error } = await supabase.functions.invoke(fn, {
+    body: options?.body,
+    headers,
+  });
+  return { data, error };
+}
+
 export type PlanFilter = 'all' | 'paid' | 'freemium'
 
 export async function getAdminWorkspaces(planFilter: PlanFilter) {
-  const { data, error } = await supabase.functions.invoke('get-admin-workspaces', {
+  const { data, error } = await invokeWithAuth('get-admin-workspaces', {
     body: { planFilter }
   })
   if (error) throw error
@@ -11,7 +28,7 @@ export async function getAdminWorkspaces(planFilter: PlanFilter) {
 }
 
 export async function getAdminContacts(workspaceId: string | 'all', page = 1, pageSize = 25) {
-  const { data, error } = await supabase.functions.invoke('get-admin-contacts', {
+  const { data, error } = await invokeWithAuth('get-admin-contacts', {
     body: { workspaceId, page, pageSize }
   })
   if (error) throw error
@@ -19,7 +36,7 @@ export async function getAdminContacts(workspaceId: string | 'all', page = 1, pa
 }
 
 export async function updateWorkspacePlan(workspaceId: string, newPlan: 'freemium'|'standard'|'premium') {
-  const { data, error } = await supabase.functions.invoke('update-user-plan-role', {
+  const { data, error } = await invokeWithAuth('update-user-plan-role', {
     body: { action: 'update_workspace_plan', workspaceId, newPlan }
   })
   if (error) throw error
@@ -35,21 +52,21 @@ export async function updateUserRole(userId: string, workspaceId: string, newRol
 }
 
 export async function deleteWorkspace(workspaceId: string) {
-  const { error } = await supabase.functions.invoke('delete-admin-entities', {
+  const { error } = await invokeWithAuth('delete-admin-entities', {
     body: { type: 'workspace', id: workspaceId }
   })
   if (error) throw error
 }
 
 export async function deleteUser(userId: string) {
-  const { error } = await supabase.functions.invoke('delete-admin-entities', {
+  const { error } = await invokeWithAuth('delete-admin-entities', {
     body: { type: 'user', id: userId }
   })
   if (error) throw error
 }
 
 export async function assignFeSourceToWorkspace(sourceName: string, workspaceId: string) {
-  const { data, error } = await supabase.functions.invoke('manage-fe-source-assignments', {
+  const { data, error } = await invokeWithAuth('manage-fe-source-assignments', {
     body: { action: 'assign', source_name: sourceName, workspace_id: workspaceId }
   })
   if (error) throw error
@@ -57,7 +74,7 @@ export async function assignFeSourceToWorkspace(sourceName: string, workspaceId:
 }
 
 export async function unassignFeSourceFromWorkspace(sourceName: string, workspaceId: string) {
-  const { data, error } = await supabase.functions.invoke('manage-fe-source-assignments', {
+  const { data, error } = await invokeWithAuth('manage-fe-source-assignments', {
     body: { action: 'unassign', source_name: sourceName, workspace_id: workspaceId }
   })
   if (error) throw error
@@ -65,7 +82,7 @@ export async function unassignFeSourceFromWorkspace(sourceName: string, workspac
 }
 
 export async function syncWorkspaceAssignments(workspaceId: string, assigned: string[], unassigned: string[]) {
-  const { data, error } = await supabase.functions.invoke('manage-fe-source-assignments-bulk', {
+  const { data, error } = await invokeWithAuth('manage-fe-source-assignments-bulk', {
     body: { workspace_id: workspaceId, assigned, unassigned }
   })
   if (error) throw error
@@ -102,7 +119,7 @@ export interface WorkspaceUsersResponse {
 }
 
 export async function getWorkspaceUsers(workspaceId: string): Promise<WorkspaceUsersResponse> {
-  const { data, error } = await supabase.functions.invoke('manage-workspace-users', {
+  const { data, error } = await invokeWithAuth('manage-workspace-users', {
     body: { action: 'get_users', workspaceId }
   })
   if (error) throw error
@@ -114,7 +131,7 @@ export async function inviteUserToWorkspace(
   email: string, 
   role: 'admin' | 'gestionnaire'
 ) {
-  const { data, error } = await supabase.functions.invoke('manage-workspace-users', {
+  const { data, error } = await invokeWithAuth('manage-workspace-users', {
     body: { action: 'invite_user', workspaceId, email, role }
   })
   if (error) throw error
@@ -126,7 +143,7 @@ export async function updateUserRoleInWorkspace(
   userId: string,
   newRole: 'admin' | 'gestionnaire'
 ) {
-  const { data, error } = await supabase.functions.invoke('manage-workspace-users', {
+  const { data, error } = await invokeWithAuth('manage-workspace-users', {
     body: { action: 'update_role', workspaceId, userId, newRole }
   })
   if (error) throw error
@@ -134,7 +151,7 @@ export async function updateUserRoleInWorkspace(
 }
 
 export async function removeUserFromWorkspace(workspaceId: string, userId: string) {
-  const { data, error } = await supabase.functions.invoke('manage-workspace-users', {
+  const { data, error } = await invokeWithAuth('manage-workspace-users', {
     body: { action: 'remove_user', workspaceId, userId }
   })
   if (error) throw error
@@ -142,7 +159,7 @@ export async function removeUserFromWorkspace(workspaceId: string, userId: strin
 }
 
 export async function resendWorkspaceInvitation(workspaceId: string, invitationId: string) {
-  const { data, error } = await supabase.functions.invoke('manage-workspace-users', {
+  const { data, error } = await invokeWithAuth('manage-workspace-users', {
     body: { action: 'resend_invitation', workspaceId, invitationId }
   })
   if (error) throw error
@@ -161,7 +178,7 @@ export interface InvitationDetails {
 }
 
 export async function validateInvitationToken(token: string): Promise<InvitationDetails> {
-  const { data, error } = await supabase.functions.invoke('process-invitation', {
+  const { data, error } = await invokeWithAuth('process-invitation', {
     body: { action: 'validate', token }
   })
   if (error) throw error
@@ -176,7 +193,7 @@ export async function acceptInvitation(
     company?: string
   }
 ) {
-  const { data, error } = await supabase.functions.invoke('process-invitation', {
+  const { data, error } = await invokeWithAuth('process-invitation', {
     body: { action: 'accept', token, userMetadata }
   })
   if (error) throw error
@@ -184,7 +201,7 @@ export async function acceptInvitation(
 }
 
 export async function declineInvitation(token: string) {
-  const { data, error } = await supabase.functions.invoke('process-invitation', {
+  const { data, error } = await invokeWithAuth('process-invitation', {
     body: { action: 'decline', token }
   })
   if (error) throw error

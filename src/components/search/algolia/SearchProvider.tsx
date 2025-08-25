@@ -81,11 +81,24 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const { currentWorkspace } = useWorkspace();
   const { assignedSources } = useEmissionFactorAccess();
   const unifiedClient = useOptimizedAlgoliaClient(currentWorkspace?.id, assignedSources);
-  const [origin, setOrigin] = useState<Origin>('public');
+  const [origin, setOriginState] = useState<Origin>('public');
   const originRef = useRef<Origin>('public');
   useEffect(() => { originRef.current = origin; }, [origin]);
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
+
+  // Empêcher l'origine 'private' sur les workspaces non-Premium
+  useEffect(() => {
+    if ((currentWorkspace?.plan_type !== 'premium') && origin === 'private') {
+      setOriginState('public');
+    }
+  }, [currentWorkspace?.plan_type, origin]);
+
+  const setOriginClamped = React.useCallback((o: Origin) => {
+    const isPremium = currentWorkspace?.plan_type === 'premium';
+    if (!isPremium && o === 'private') return;
+    setOriginState(o);
+  }, [currentWorkspace?.plan_type]);
 
   // Forçage temporaire (< 3 chars) avec fenêtre temporelle pour éviter les courses
   const forceUntilTsRef = useRef<number>(0);
@@ -191,7 +204,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   return (
     <AlgoliaErrorBoundary>
       <QuotaContext.Provider value={quotaHook}>
-        <OriginContext.Provider value={{ origin, setOrigin }}>
+        <OriginContext.Provider value={{ origin, setOrigin: setOriginClamped }}>
           <SearchControlContext.Provider value={controlsValue}>
             {authLoading || !user || !searchClient ? (
               // Rendre le container pour éviter le flash, mais pas de fallback UI legacy

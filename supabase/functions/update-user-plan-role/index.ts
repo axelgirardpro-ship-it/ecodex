@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, Authorization, x-client-info, X-Client-Info, apikey, content-type, Content-Type',
 }
 
 interface UpdateRequest {
@@ -54,30 +54,35 @@ serve(async (req) => {
 
     if (action === 'update_workspace_plan' && workspaceId && newPlan) {
       console.log(`Updating workspace plan: ${workspaceId} to ${newPlan}`)
+      
       // Update workspace plan
       const { error: workspaceError } = await supabaseClient
         .from('workspaces')
         .update({ plan_type: newPlan, updated_at: new Date().toISOString() })
         .eq('id', workspaceId)
 
-      if (workspaceError) throw workspaceError
+      if (workspaceError) {
+        console.error('Workspace update error:', workspaceError)
+        throw workspaceError
+      }
 
-      // Update all users in this workspace
-      const { error: usersError } = await supabaseClient
-        .from('users')
-        .update({ plan_type: newPlan, updated_at: new Date().toISOString() })
-        .eq('workspace_id', workspaceId)
-
-      if (usersError) throw usersError
-
-      // Get all user IDs in this workspace to update quotas
-      const { data: workspaceUsers } = await supabaseClient
-        .from('users')
+      // Get all user IDs in this workspace via user_roles
+      console.log('Getting users for workspace via user_roles:', workspaceId)
+      const { data: userRoles, error: userRolesError } = await supabaseClient
+        .from('user_roles')
         .select('user_id')
         .eq('workspace_id', workspaceId)
+      
+      if (userRolesError) {
+        console.error('User roles query error:', userRolesError)
+        throw userRolesError
+      }
 
-      if (workspaceUsers) {
-        const userIds = workspaceUsers.map(u => u.user_id)
+      console.log('Found user roles:', userRoles?.length)
+
+      if (userRoles && userRoles.length > 0) {
+        const userIds = userRoles.map(ur => ur.user_id)
+        console.log('User IDs to update quotas for:', userIds)
         
         // Update search quotas based on new plan
         let quotaUpdates: Record<string, any> = {}
@@ -93,25 +98,32 @@ serve(async (req) => {
             break
         }
 
+        console.log('Updating quotas with:', quotaUpdates)
         const { error: quotasError } = await supabaseClient
           .from('search_quotas')
           .update({ ...quotaUpdates, updated_at: new Date().toISOString() })
           .in('user_id', userIds)
 
-        if (quotasError) throw quotasError
+        if (quotasError) {
+          console.error('Quotas update error:', quotasError)
+          throw quotasError
+        }
+        console.log('Quotas updated successfully')
       }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: `Plan du workspace mis à jour vers ${newPlan}`,
-          updatedUsers: workspaceUsers?.length || 0
+          updatedUsers: userRoles?.length || 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     if (action === 'update_user_role' && userId && workspaceId && newRole) {
+      console.log(`Updating user role: ${userId} in workspace ${workspaceId} to ${newRole}`)
+      
       // Update user role in specific workspace
       const { error } = await supabaseClient
         .from('user_roles')
@@ -119,7 +131,10 @@ serve(async (req) => {
         .eq('user_id', userId)
         .eq('workspace_id', workspaceId)
 
-      if (error) throw error
+      if (error) {
+        console.error('User role update error:', error)
+        throw error
+      }
 
       return new Response(
         JSON.stringify({ 
@@ -131,13 +146,36 @@ serve(async (req) => {
     }
 
     if (action === 'update_user_plan' && userId && newPlan) {
-      // Update individual user plan (for direct user plan changes)
-      const { error: userError } = await supabaseClient
-        .from('users')
-        .update({ plan_type: newPlan, updated_at: new Date().toISOString() })
+      console.log(`Updating user plan: ${userId} to ${newPlan}`)
+      
+      // Get user's workspace via user_roles
+      const { data: userRole, error: userRoleError } = await supabaseClient
+        .from('user_roles')
+        .select('workspace_id')
         .eq('user_id', userId)
+        .single()
+      
+      if (userRoleError) {
+        console.error('User role lookup error:', userRoleError)
+        throw userRoleError
+      }
+      
+      if (!userRole?.workspace_id) {
+        throw new Error('Workspace non trouvé pour cet utilisateur')
+      }
+      
+      console.log('Found workspace for user:', userRole.workspace_id)
+      
+      // Update workspace plan instead of user plan (since plan is at workspace level)
+      const { error: workspaceError } = await supabaseClient
+        .from('workspaces')
+        .update({ plan_type: newPlan, updated_at: new Date().toISOString() })
+        .eq('id', userRole.workspace_id)
 
-      if (userError) throw userError
+      if (workspaceError) {
+        console.error('Workspace plan update error:', workspaceError)
+        throw workspaceError
+      }
 
       // Update user's search quotas
       let quotaUpdates: Record<string, any> = {}
@@ -153,12 +191,16 @@ serve(async (req) => {
           break
       }
 
+      console.log('Updating user quota with:', quotaUpdates)
       const { error: quotaError } = await supabaseClient
         .from('search_quotas')
         .update({ ...quotaUpdates, updated_at: new Date().toISOString() })
         .eq('user_id', userId)
 
-      if (quotaError) throw quotaError
+      if (quotaError) {
+        console.error('User quota update error:', quotaError)
+        throw quotaError
+      }
 
       return new Response(
         JSON.stringify({ 
