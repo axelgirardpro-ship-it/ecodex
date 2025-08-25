@@ -79,12 +79,17 @@ export interface OptimizedSearchOptions {
   teaserAllowed?: boolean;
 }
 
+/**
+ * Client Algolia unifié optimisé
+ * 
+ * ARCHITECTURE SIMPLIFIÉE :
+ * - Un seul client proxy vers l'Edge Function
+ * - L'Edge Function gère la logique origine et teaser côté serveur
+ * - Plus de clients multiples (fullPublic/fullPrivate/teaser)
+ * - Sécurité garantie côté serveur
+ */
 export class UnifiedAlgoliaClient {
-  private clients: {
-    fullPublic: any;
-    fullPrivate: any;
-    teaser: any;
-  } | null = null;
+  private client: any | null = null;
   
   private initPromise: Promise<void> | null = null;
   private requestQueue: SearchRequest[] = [];
@@ -108,21 +113,17 @@ export class UnifiedAlgoliaClient {
     return { ...res, hits: patched };
   }
 
+  /**
+   * Initialisation simplifiée du client unifié
+   * Un seul client proxy vers l'Edge Function optimisée
+   */
   private async initializeClients(): Promise<void> {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      const isLocalhost = typeof window !== 'undefined' && 
-        /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-
-      // Forcer le passage par le proxy en développement pour regrouper les HTTP
-      // et en production (politique de sécurité)
-      this.clients = {
-        // Utiliser un client unifié unique via l'Edge Function
-        fullPublic: createProxyClient('unified'),
-        fullPrivate: createProxyClient('unified'),
-        teaser: createProxyClient('unified')
-      };
+      // Client unique vers l'Edge Function optimisée
+      // Toute la logique origine/teaser/blur est gérée côté serveur
+      this.client = createProxyClient('unified');
     })();
 
     return this.initPromise;
@@ -267,6 +268,10 @@ export class UnifiedAlgoliaClient {
     }
   }
 
+  /**
+   * Traitement simplifié des requêtes
+   * Toute la logique complexe est déportée vers l'Edge Function
+   */
   private async processRequests(
     requests: SearchRequest[],
     options: OptimizedSearchOptions = {}
@@ -274,8 +279,7 @@ export class UnifiedAlgoliaClient {
     const {
       enableCache = true,
       enableDeduplication = true,
-      forceRefresh = false,
-      teaserAllowed = true
+      forceRefresh = false
     } = options;
 
     // Court-circuit si bloqué
@@ -284,171 +288,32 @@ export class UnifiedAlgoliaClient {
     }
 
     try {
-      if (requests.length <= 1) {
-        // Chemin existant (simple) pour conserver toute la logique de dédup/cache
-        const results: any[] = [];
-        for (const request of requests) {
-          if (enableCache && !forceRefresh) {
-            const cached = algoliaCache.get(request);
-            if (cached) { results.push(cached.data); continue; }
-          }
-          const result = enableDeduplication
-            ? await requestDeduplicator.deduplicateRequest(request, () => this.executeSingleRequest(request))
-            : await this.executeSingleRequest(request);
-          results.push(result);
-          if (enableCache) algoliaCache.set(request, result, request.origin);
-        }
-        return { results };
-      }
-
-      // Regrouper en un minimum d'appels réseau
-      const origin: Origin = (requests[0]?.origin as Origin) || 'all';
-
-      // Hits cache et misses
-      const hits: Array<{ index: number; data: any }> = [];
-      const misses: Array<{ index: number; req: SearchRequest }> = [];
-      if (enableCache && !forceRefresh) {
-        requests.forEach((r, idx) => {
-          const c = algoliaCache.get(r);
-          if (c) hits.push({ index: idx, data: c.data });
-          else misses.push({ index: idx, req: r });
-        });
-      } else {
-        requests.forEach((r, idx) => misses.push({ index: idx, req: r }));
-      }
-
-      const assembled: any[] = new Array(requests.length);
-      hits.forEach(h => { assembled[h.index] = h.data; });
-
-      if (misses.length > 0) {
-        // Construire les requêtes Algolia groupées
-        const buildBase = (r: SearchRequest) => {
-          const baseParams = { ...(r.params || {}) };
-          const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
-          return { baseParams, safeFacetFilters };
-        };
-
-        const publicRequests: any[] = [];
-        const privateRequests: any[] = [];
-        const missOrder: Array<{ index: number; which: 'public'|'private'|'both' }> = [];
-
-        for (const m of misses) {
-          const { baseParams, safeFacetFilters } = buildBase(m.req);
-          if (origin === 'public') {
-            const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
-              ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-              : [['access_level:standard']];
-            publicRequests.push({
-              indexName: 'ef_all',
-              params: {
-                ...baseParams,
-                facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
-                filters: baseParams.filters
-              }
-            });
-            missOrder.push({ index: m.index, which: 'public' });
-          } else if (origin === 'private') {
-            const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
-            privateRequests.push({
-              indexName: 'ef_all',
-              params: {
-                ...baseParams,
-                facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-                filters: baseParams.filters
-              }
-            });
-            missOrder.push({ index: m.index, which: 'private' });
-          } else { // all
-            const accessFilters = (this.assignedSources && this.assignedSources.length > 0)
-              ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-              : [['access_level:standard']];
-            publicRequests.push({
-              indexName: 'ef_all',
-              params: {
-                ...baseParams,
-                facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
-                filters: baseParams.filters
-              }
-            });
-            const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
-            privateRequests.push({
-              indexName: 'ef_all',
-              params: {
-                ...baseParams,
-                facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-                filters: baseParams.filters
-              }
-            });
-            missOrder.push({ index: m.index, which: 'both' });
+      const results: any[] = [];
+      
+      // Traitement simple : une requête = un appel à l'Edge Function
+      for (const request of requests) {
+        if (enableCache && !forceRefresh) {
+          const cached = algoliaCache.get(request);
+          if (cached) { 
+            results.push(cached.data); 
+            continue; 
           }
         }
-
-        // Exécuter en 1 ou 2 appels
-        let resPublic: any[] = [];
-        let resPrivate: any[] = [];
-        if (origin === 'public') {
-          const rp = await this.clients!.fullPublic.search(publicRequests);
-          if (teaserAllowed) {
-            // Enrichir avec le teaser pour les mêmes requêtes (position miroir)
-            const rt = await this.clients!.teaser.search(publicRequests);
-            const teaserResults = rt.results || [];
-            resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
-          } else {
-            resPublic = (rp.results || []);
-          }
-        } else if (origin === 'private') {
-          const rpr = await this.clients!.fullPrivate.search(privateRequests);
-          resPrivate = rpr.results || [];
-        } else {
-          if (teaserAllowed) {
-            const [rp, rr, rt] = await Promise.all([
-              this.clients!.fullPublic.search(publicRequests),
-              this.clients!.fullPrivate.search(privateRequests),
-              this.clients!.teaser.search(publicRequests)
-            ]);
-            const teaserResults = rt.results || [];
-            resPublic = (rp.results || []).map((r: any, i: number) => mergeFederatedPair(r, teaserResults[i] || { hits: [] }));
-            resPrivate = rr.results || [];
-          } else {
-            const [rp, rr] = await Promise.all([
-              this.clients!.fullPublic.search(publicRequests),
-              this.clients!.fullPrivate.search(privateRequests)
-            ]);
-            resPublic = rp.results || [];
-            resPrivate = rr.results || [];
-          }
-        }
-
-        // Reconstituer résultats des misses selon l'ordre
-        let iPub = 0, iPriv = 0;
-        for (const m of missOrder) {
-          let value: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
-          if (m.which === 'public') {
-            value = resPublic[iPub++] || value;
-          } else if (m.which === 'private') {
-            value = resPrivate[iPriv++] || value;
-          } else {
-            const a = resPublic[iPub++] || value;
-            const b = resPrivate[iPriv++] || value;
-            value = mergeFederatedPair(a, b, { sumNbHits: true });
-          }
-          assembled[m.index] = value;
-        }
-
-        // Mettre en cache les misses
+        
+        const result = enableDeduplication
+          ? await requestDeduplicator.deduplicateRequest(request, () => this.executeSingleRequest(request))
+          : await this.executeSingleRequest(request);
+          
+        results.push(result);
+        
         if (enableCache) {
-          misses.forEach((m) => {
-            const val = assembled[m.index];
-            if (val) algoliaCache.set(m.req, val, m.req.origin);
-          });
+          algoliaCache.set(request, result, request.origin);
         }
       }
 
-      // Normaliser les hits (assurer objectID) avant de retourner
-      const normalized = assembled.map(res => this.ensureObjectIdOnHits(res));
       // Algolia disponible => réinitialiser le blocage
       clearAlgoliaBlocked();
-      return { results: normalized };
+      return { results };
     } catch (error: any) {
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
@@ -459,8 +324,12 @@ export class UnifiedAlgoliaClient {
     }
   }
 
+  /**
+   * Exécution simplifiée d'une requête unique
+   * Délégation complète à l'Edge Function via le client proxy
+   */
   private async executeSingleRequest(request: SearchRequest): Promise<any> {
-    if (!this.clients) throw new Error('Clients not initialized');
+    if (!this.client) throw new Error('Client not initialized');
 
     // Court-circuit si bloqué
     if (isAlgoliaTemporarilyBlocked()) {
@@ -468,7 +337,7 @@ export class UnifiedAlgoliaClient {
     }
 
     try {
-      const origin = request.origin || 'all';
+      const origin = request.origin || 'public';
       const baseParams = { ...(request.params || {}) };
       
       // Debug des filtres entrants
@@ -479,17 +348,8 @@ export class UnifiedAlgoliaClient {
       // Debug après sanitization
       debugFacetFilters('2. After sanitizeFacetFilters', safeFacetFilters);
 
-      // Optimisation intelligente selon l'origine
-      switch (origin) {
-        case 'public':
-          return this.searchUnified('public', baseParams, safeFacetFilters);
-        
-        case 'private':
-          return this.searchUnified('private', baseParams, safeFacetFilters);
-        
-        default: // 'all' (compat): repli sur public
-          return this.searchUnified('public', baseParams, safeFacetFilters);
-      }
+      // Délégation complète à l'Edge Function
+      return this.searchUnified(origin, baseParams, safeFacetFilters);
     } catch (error: any) {
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
@@ -499,47 +359,10 @@ export class UnifiedAlgoliaClient {
     }
   }
 
-  private async searchPublicOnly(baseParams: any, safeFacetFilters: any): Promise<any> {
-    // Utiliser facetFilters au lieu de filters pour éviter les syntaxes complexes
-    const accessFilters = this.assignedSources && this.assignedSources.length > 0
-      ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-      : [['access_level:standard']];
-    
-    const publicRequest = {
-      indexName: 'ef_all',
-      params: {
-        ...baseParams,
-        facetFilters: [['scope:public'], ...accessFilters, ...(safeFacetFilters || [])],
-        filters: baseParams.filters // Garder seulement les filtres utilisateur
-      }
-    };
-
-    const publicResult = await this.clients!.fullPublic.search([publicRequest]);
-    return this.ensureObjectIdOnHits(publicResult.results[0]);
-  }
-
-  private async searchPrivateOnly(baseParams: any, safeFacetFilters: any): Promise<any> {
-    // Utiliser facetFilters au lieu de filters complexes
-    const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
-    
-    const privateRequest = {
-      indexName: 'ef_all',
-      params: {
-        ...baseParams,
-        facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-        filters: baseParams.filters // Garder seulement les filtres utilisateur
-      }
-    };
-
-    const result = await this.clients!.fullPrivate.search([privateRequest]);
-    return this.ensureObjectIdOnHits(result.results[0]);
-  }
-
-  private async searchFederated(baseParams: any, safeFacetFilters: any): Promise<any> {
-    // Compat: chemin legacy non utilisé avec client unifié
-    return this.searchUnified('public', baseParams, safeFacetFilters);
-  }
-
+  /**
+   * Recherche unifiée via l'Edge Function
+   * Toute la logique métier est déportée côté serveur
+   */
   private async searchUnified(origin: 'public'|'private', baseParams: any, safeFacetFilters: any): Promise<any> {
     const request = {
       indexName: 'ef_all',
@@ -550,7 +373,9 @@ export class UnifiedAlgoliaClient {
         filters: baseParams.filters
       }
     } as any;
-    const result = await this.clients!.fullPublic.search([request]);
+    
+    // Délégation complète au client proxy vers l'Edge Function
+    const result = await this.client.search([request]);
     return this.ensureObjectIdOnHits(result.results[0]);
   }
 

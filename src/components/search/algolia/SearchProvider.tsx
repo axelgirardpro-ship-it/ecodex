@@ -69,9 +69,13 @@ export const useSearchControls = () => {
   return ctx;
 };
 
-// Provider autonome d'origine (sans InstantSearch). Utile pour /favoris
+/**
+ * Provider autonome d'origine (sans InstantSearch). 
+ * Utilisé pour la page /favoris qui n'a pas besoin d'InstantSearch
+ * Par défaut sur 'public' (base commune)
+ */
 export const OriginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [origin, setOrigin] = useState<Origin>('all');
+  const [origin, setOrigin] = useState<Origin>('public');
   return (
     <OriginContext.Provider value={{ origin, setOrigin }}>
       {children}
@@ -93,6 +97,22 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
+  /**
+   * AUTO-REFRESH sur changement d'origine
+   * Relance automatiquement la recherche quand l'utilisateur change d'origine
+   * Conserve la règle des 3 caractères minimum
+   */
+  const refreshSearchRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    // Si on a une recherche active et qu'on change d'origine, relancer la recherche
+    if (refreshSearchRef.current && lastQueryRef.current.trim().length >= 3) {
+      if (import.meta.env.DEV) {
+        console.log(`[SearchProvider] Auto-refresh sur changement origine vers: ${origin}`);
+      }
+      refreshSearchRef.current();
+    }
+  }, [origin]);
+
   // Forçage temporaire (< 3 chars) avec fenêtre temporelle pour éviter les courses
   const forceUntilTsRef = useRef<number>(0);
   const controlsValue = useMemo(() => ({
@@ -111,6 +131,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const teaserAllowedRef = useRef<boolean>(false);
   const lastQueryRef = useRef<string>('');
   const teaserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRequestsRef = useRef<any[]>([]);
+  
   if (unifiedClient && !searchClientRef.current) {
     searchClientRef.current = {
       search: async (requests: any[]) => {
@@ -204,6 +226,9 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             }, 400);
           }
 
+          // Sauvegarder les requêtes pour l'auto-refresh
+          lastRequestsRef.current = enrichedRequests;
+
           const result = await unifiedClient.search(enrichedRequests, {
             enableCache: true,
             enableDeduplication: true,
@@ -240,6 +265,41 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             false // pas depuis le cache ici, le cache est géré dans unifiedClient
           );
         }
+      }
+    };
+    
+    // Fonction de refresh pour l'auto-refresh sur changement d'origine
+    refreshSearchRef.current = () => {
+      if (lastRequestsRef.current.length > 0) {
+        // Relancer la dernière recherche avec la nouvelle origine
+        const refreshedRequests = lastRequestsRef.current.map(r => ({
+          ...r,
+          origin: originRef.current,
+          params: {
+            ...r.params,
+            _search_context: {
+              ...r.params._search_context,
+              origin: originRef.current,
+              timestamp: Date.now()
+            }
+          }
+        }));
+        
+        unifiedClient.search(refreshedRequests, {
+          enableCache: false, // Forcer le refresh sans cache
+          enableDeduplication: false,
+          enableBatching: false,
+          teaserAllowed: teaserAllowedRef.current
+        }).then(result => {
+          // Les résultats seront automatiquement propagés via InstantSearch
+          if (import.meta.env.DEV) {
+            console.log(`[SearchProvider] Auto-refresh terminé pour origine: ${originRef.current}`);
+          }
+        }).catch(error => {
+          if (import.meta.env.DEV) {
+            console.error('[SearchProvider] Erreur auto-refresh:', error);
+          }
+        });
       }
     };
   }
