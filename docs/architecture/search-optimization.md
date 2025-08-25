@@ -9,7 +9,7 @@ Cette documentation décrit l'architecture de recherche unifiée optimisée dép
 - **UNE SEULE requête Algolia par recherche** (réduction de 66% des requêtes)
 - **Logique de blur/teaser 100% sécurisée côté serveur**
 - **Auto-refresh intelligent sur changement d'origine**
-- **Suppression complète du code legacy (types 'all'/'full')**
+- **Suppression complète du code legacy (types 'all'/'full', `searchType`, `AlgoliaFallback`, `FavorisSearchProvider`)**
 - **Validation 3 caractères minimum renforcée**
 - **Interface utilisateur préservée et améliorée**
 

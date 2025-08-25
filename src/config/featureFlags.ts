@@ -2,8 +2,8 @@
  * Feature flags pour la configuration de l'application
  */
 
-// Recherche fédérée sur ef_public_fr + ef_private_fr (false = index actuel)
-export const USE_FEDERATED_SEARCH = import.meta.env.VITE_USE_FEDERATED_SEARCH === 'true';
+// Recherche unifiée (ef_all)
+export const USE_FEDERATED_SEARCH = false;
 
 // Nouvelle interface d'import supra-admin (false = interface actuelle)
 export const NEW_ADMIN_IMPORT = import.meta.env.VITE_NEW_ADMIN_IMPORT === 'true';

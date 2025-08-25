@@ -1,5 +1,4 @@
 import React, { Component, ReactNode } from 'react';
-import AlgoliaFallback from './AlgoliaFallback';
 import SearchPageFallback from './SearchPageFallback';
 
 interface Props {
@@ -59,22 +58,13 @@ export class AlgoliaErrorBoundary extends Component<Props, State> {
                                this.state.error.message?.includes('Algolia') ||
                                (this.state.error as any)?.status === 403;
       
-      if (isAlgoliaSpecific) {
-        return (
-          <AlgoliaFallback 
-            error={this.state.error.message} 
-            showOptimizationInfo={true}
-          />
-        );
-      } else {
-        // Pour les autres erreurs de la page de recherche
-        return (
-          <SearchPageFallback 
-            error={this.state.error.message}
-            onRetry={() => window.location.reload()}
-          />
-        );
-      }
+      // Utiliser un fallback unique et cohérent pour toutes les erreurs de recherche
+      return (
+        <SearchPageFallback 
+          error={this.state.error.message}
+          onRetry={() => window.location.reload()}
+        />
+      );
     }
 
     return this.props.children;

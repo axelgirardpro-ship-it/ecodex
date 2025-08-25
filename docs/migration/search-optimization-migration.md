@@ -24,7 +24,7 @@ const [origin, setOrigin] = useState<Origin>('public');
 
 - `src/lib/algolia/searchClient.ts`
 - `src/components/search/algolia/SearchProvider.tsx`
-- `src/components/search/favoris/FavorisSearchProvider.tsx`
+// Le provider favoris dédié a été supprimé : s'appuyer sur `SearchProvider` seulement
 
 #### Impact utilisateur
 

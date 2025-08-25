@@ -90,3 +90,10 @@ npm run gen:types
 # Générer depuis une instance locale (ex. supabase start)
 npm run gen:types:local
 ```
+
+## Recherche Algolia – Architecture unifiée (sans legacy)
+
+- Edge Function `algolia-search-proxy` centralise la construction des requêtes et applique la sécurité (teaser/blur) côté serveur.
+- Frontend: `SearchProvider` + `UnifiedAlgoliaClient` via `proxySearchClient` (un seul client, pas de multi-index côté UI).
+- Legacy supprimé: `AlgoliaFallback`, `FavorisSearchProvider`, paramètre `searchType`, constantes `FALLBACK_*`.
+- Règle stricte requêtes: minimum 3 caractères côté UI et côté serveur, sauf si des facettes/filters sont présents pour initialiser les filtres.

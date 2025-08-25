@@ -4,7 +4,6 @@ export interface ProxySearchRequest {
   query?: string;
   filters?: string;
   facetFilters?: any;
-  searchType?: 'fullPublic' | 'fullPrivate' | 'teaserPublic' | 'unified';
   origin?: 'public' | 'private';
   hitsPerPage?: number;
   page?: number;
@@ -58,22 +57,14 @@ export const proxySearchClient = new ProxySearchClient();
 
 // Fonction helper pour créer des clients compatibles avec l'interface existante
 export const createProxyClient = (
-  searchType: 'fullPublic' | 'fullPrivate' | 'teaserPublic' | 'unified'
+  _type: 'unified' = 'unified'
 ) => ({
   search: async (requests: any[]) => {
     const proxyRequests = requests.map(req => {
       const origin = (req.origin as 'public'|'private'|undefined) || undefined;
       const params = req.params || {};
-      if (searchType === 'unified') {
-        // Unifié: transmettre origin et les params bruts
-        return { origin: origin || 'public', ...params } as ProxySearchRequest;
-      }
-      // Legacy: transmettre searchType
-      return {
-        ...params,
-        searchType,
-        query: params?.query || '',
-      } as ProxySearchRequest;
+      // Mode unifié uniquement: transmettre origin et les params bruts
+      return { origin: origin || 'public', ...params } as ProxySearchRequest;
     });
     // Toujours envoyer en batch pour simplifier
     const { data: { session } } = await supabase.auth.getSession();

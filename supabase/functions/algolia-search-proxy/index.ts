@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
      * - Workspace: filtré selon workspace_id de l'utilisateur
      * - Pas de teaser: accès complet aux données du workspace
      */
-    const buildUnified = (originParam: 'public'|'private'|undefined, searchTypeParam?: string) => {
+    const buildUnified = (originParam: 'public'|'private'|undefined) => {
       // Nettoyer les paramètres legacy
       const origin = originParam || 'public' // Plus de support 'fullPrivate'
       let appliedFilters = ''
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
       return { appliedFilters, appliedFacetFilters, attributesToRetrieve }
     }
 
-    // Validation supprimée: permettre les requêtes vides/courtes pour initialiser les facettes
+    // Validation stricte: 3 caractères minimum sauf quand facettes/filters présents
 
     // Construire les requêtes Algolia (multi)
     type BuiltReq = {
@@ -268,8 +268,12 @@ Deno.serve(async (req) => {
         restrictSearchableAttributes
       } = r || {}
       const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
-        (reqOrigin as 'public'|'private'|undefined), String(searchType || '')
+        (reqOrigin as 'public'|'private'|undefined)
       )
+      const validation = validateQuery(String(query || ''), { facets, filters, facetFilters })
+      if (!validation.valid) {
+        return jsonResponse(200, { hits: [], nbHits: 0, page: 0, nbPages: 0, hitsPerPage: Number(hitsPerPage || 20), message: validation.message }, origin)
+      }
       const combinedFilters = filters ? `(${appliedFilters}) AND (${filters})` : appliedFilters
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
       if (facetFilters) {
