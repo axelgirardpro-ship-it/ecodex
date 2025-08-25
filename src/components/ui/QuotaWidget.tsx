@@ -72,7 +72,7 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
   const isUnlimited = exportsLimit === null && clipboardCopiesLimit === null && favoritesLimit === null;
   const canExport = isUnlimited || exportsUsed < (exportsLimit || 0);
   const canCopy = isUnlimited || clipboardCopiesUsed < (clipboardCopiesLimit || 0);
-  const canAddFavorite = isUnlimited || favoritesUsed < (favoritesLimit || 0);
+  const canAddFavorite = planType === 'premium' || isUnlimited;
 
   const exportProgress = (isUnlimited || exportsLimit === null) ? 0 : (exportsUsed / exportsLimit) * 100;
   const clipboardProgress = (isUnlimited || clipboardCopiesLimit === null) ? 0 : (clipboardCopiesUsed / clipboardCopiesLimit) * 100;
@@ -81,7 +81,7 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
   const isNearLimit = !isUnlimited && (exportProgress > 80 || clipboardProgress > 80 || favoritesProgress > 80);
   const isAtLimit = !canExport || !canCopy || !canAddFavorite;
 
-  // Gestion des supra admins et plans premium avec quotas illimités
+  // Gestion des supra admins et plans premium/standard (affichage Premium pour Favoris)
   if (isUnlimited || planType === 'premium' || planType === 'standard') {
     const isPremium = planType === 'premium' || isUnlimited;
     
@@ -119,7 +119,7 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
             <div className="flex justify-between text-sm">
               <span>Favoris</span>
               <span className="text-primary font-medium">
-                {isUnlimited || isPremium ? 'Illimités ∞' : favoritesLimit === null ? 'Illimités ∞' : `${favoritesUsed} / ${favoritesLimit}`}
+                {isPremium ? 'Illimités ∞' : 'Premium'}
               </span>
             </div>
           </div>
@@ -191,16 +191,8 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Favoris</span>
-            <span className={favoritesLimit !== null && favoritesUsed >= favoritesLimit ? "text-destructive font-medium" : ""}>
-              {favoritesLimit === null ? "Illimités ∞" : `${favoritesUsed} / ${favoritesLimit}`}
-            </span>
+            <span className="text-muted-foreground">Premium</span>
           </div>
-          {favoritesLimit !== null && (
-            <Progress 
-              value={(favoritesUsed / favoritesLimit) * 100} 
-              className={`h-2 ${(favoritesUsed / favoritesLimit) > 0.9 ? "bg-destructive/20" : (favoritesUsed / favoritesLimit) > 0.8 ? "bg-yellow-500/20" : ""}`}
-            />
-          )}
         </div>
 
         {isAtLimit && (

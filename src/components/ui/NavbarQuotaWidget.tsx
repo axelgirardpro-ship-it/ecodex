@@ -82,8 +82,10 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
   };
 
   const getFavoritesDisplay = () => {
-    if (favoritesLimit === null) return 'Illimitées ∞';
-    return `${favoritesUsed} / ${favoritesLimit}`;
+    // Cohérence avec le récap: Favoris est une fonctionnalité Premium
+    if (planType !== 'premium') return 'Premium';
+    // Premium: illimité
+    return 'Illimités ∞';
   };
 
   // Pour premium et standard, affichage simplifié
@@ -188,21 +190,11 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-muted-foreground">Favoris</span>
-                    <span className={`text-sm font-medium ${favoritesProgress >= 100 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    <span className={`text-sm font-medium ${planType === 'premium' ? 'text-success' : 'text-muted-foreground'}`}>
                       {getFavoritesDisplay()}
                     </span>
                   </div>
-                  {!isPremiumOrStandard && favoritesLimit !== null && (
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          favoritesProgress >= 100 ? 'bg-destructive' : 
-                          favoritesProgress > 80 ? 'bg-amber-500' : 'bg-success'
-                        }`}
-                        style={{ width: `${Math.min(favoritesProgress, 100)}%` }}
-                      />
-                    </div>
-                  )}
+                  {/* Plus de barre de progression pour Favoris: c'est Premium-only */}
                 </div>
 
                 {/* Message d'information selon le plan */}
