@@ -5,8 +5,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
-// Import du parser CSV robuste
-import { RobustCsvParser } from './csv-parser.ts'
 
 type Json = Record<string, any>
 
@@ -30,21 +28,26 @@ function computeFactorKey(row: Record<string,string>, language: string) {
   return [nom, unite, source, perimetre, localisation, lang].join('|');
 }
 
-async function readCsvContent(url: string): Promise<string> {
+async function readCsvLines(url: string) {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error('Cannot fetch CSV from storage');
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let { value, done } = await reader.read();
   let buffer = value ? decoder.decode(value, { stream: true }) : '';
+  const lines: string[] = [];
   while (!done) {
+    const parts = buffer.split(/\r?\n/);
+    buffer = parts.pop() || '';
+    lines.push(...parts);
     ({ value, done } = await reader.read());
     if (value) buffer += decoder.decode(value, { stream: true });
   }
-  return buffer;
+  if (buffer.length > 0) lines.push(buffer);
+  return lines.filter(l => l !== '');
 }
 
-async function readGzipCsvContent(url: string): Promise<string> {
+async function readGzipCsvLines(url: string) {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error('Cannot fetch GZ CSV from storage');
   // @ts-ignore
@@ -53,38 +56,36 @@ async function readGzipCsvContent(url: string): Promise<string> {
   const decoder = new TextDecoder();
   let { value, done } = await reader.read();
   let buffer = value ? decoder.decode(value, { stream: true }) : '';
+  const lines: string[] = [];
   while (!done) {
+    const parts = buffer.split(/\r?\n/);
+    buffer = parts.pop() || '';
+    lines.push(...parts);
     ({ value, done } = await reader.read());
     if (value) buffer += decoder.decode(value, { stream: true });
   }
-  return buffer;
+  if (buffer.length > 0) lines.push(buffer);
+  return lines.filter(l => l !== '');
 }
 
-async function readXlsxContent(url: string): Promise<string> {
+async function readXlsxLines(url: string) {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
   const arrayBuffer = await res.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
-  return XLSX.utils.sheet_to_csv(worksheet);
+  const csvString = XLSX.utils.sheet_to_csv(worksheet);
+  return csvString.split(/\r?\n/).filter(l => l !== '');
 }
 
-async function readFileContent(url: string): Promise<string> {
+async function readFileLines(url: string) {
   const lower = url.toLowerCase();
   const isXlsx = lower.includes('.xlsx');
   const isGz = lower.endsWith('.gz') || lower.includes('.csv.gz');
-  
-  if (isXlsx) {
-    console.log('📊 Détection fichier XLSX, parsing Excel...');
-    return await readXlsxContent(url);
-  } else if (isGz) {
-    console.log('🗜️ Détection fichier CSV GZ, décompression streaming...');
-    return await readGzipCsvContent(url);
-  } else {
-    console.log('📄 Détection fichier CSV, parsing texte...');
-    return await readCsvContent(url);
-  }
+  if (isXlsx) return readXlsxLines(url);
+  if (isGz) return readGzipCsvLines(url);
+  return readCsvLines(url);
 }
 
 Deno.serve(async (req) => {
@@ -115,28 +116,10 @@ Deno.serve(async (req) => {
     const { data: signed, error: signedErr } = await supabase.storage.from('imports').createSignedUrl(filePath, 3600)
     if (signedErr || !signed?.signedUrl) return json(500, { error: 'Cannot sign storage url' })
 
-    // Utiliser le parser robuste au lieu du parsing défaillant
-    const fileContent = await readFileContent(signed.signedUrl)
-    
-    let parsedData;
-    try {
-      parsedData = RobustCsvParser.parseCSVContent(fileContent);
-      console.log(`✅ Parser robuste utilisateur: ${parsedData.rows.length} lignes parsées`);
-    } catch (parseError) {
-      return json(400, { error: `Erreur de parsing CSV: ${parseError.message}` })
-    }
+    const lines = await readFileLines(signed.signedUrl)
+    if (lines.length < 2) return json(400, { error: 'Empty file' })
 
-    const { headers, rows } = parsedData;
-    
-    if (rows.length === 0) {
-      return json(400, { error: 'CSV vide après parsing' })
-    }
-
-    // Extraire les sources avec validation
-    const sourcesCount = RobustCsvParser.extractSourcesFromRows(rows);
-    console.log(`🔍 Sources détectées (utilisateur): ${Array.from(sourcesCount.keys()).join(', ')}`);
-
-    // Validation des colonnes requises
+    const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
     const required = ['Nom','FE','Unité donnée d\'activité','Source','Périmètre','Localisation','Date']
     const lowerHeaders = headers.map(h => h.toLowerCase())
     const missing = required.filter(r => !lowerHeaders.includes(r.toLowerCase()))
@@ -162,155 +145,118 @@ Deno.serve(async (req) => {
     if (importInsert.error) return json(500, { error: 'Failed to create import record' })
     const importId = (importInsert.data as any).id
 
-    // Upsert source + assignation au workspace avec validation
-    if (!RobustCsvParser.validateSourceName(datasetName)) {
-      return json(400, { error: `Nom de dataset invalide: "${datasetName}" (ne peut pas être un nombre ou une unité)` })
-    }
-    
+    // Upsert source + assignation au workspace
     await supabase.from('fe_sources').upsert({ source_name: datasetName, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
     await supabase.from('fe_source_workspace_assignments').upsert({ source_name: datasetName, workspace_id: userWorkspaceId, assigned_by: user.id }, { onConflict: 'source_name,workspace_id' })
 
-    // Ingestion SCD2 en bulk avec données parsées robustement
+    // Ingestion SCD2 en bulk
     const t0 = Date.now()
     const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
     const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
 
     let processed = 0, inserted = 0
-    for (let i = 0; i < rows.length; i += 1000) {
-      const slice = rows.slice(i, i + 1000)
+    for (let i = 1; i < lines.length; i += 1000) {
+      const slice = lines.slice(i, i + 1000)
       const batch: any[] = []
-      
-      for (const row of slice) {
-        // Validation supplémentaire des champs critiques
+      for (let j = 0; j < slice.length; j++) {
+        const values = slice[j].split(',')
+        const row: Record<string,string> = {}
+        headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').trim().replace(/"/g, '') })
         const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
         if (!rowOk) continue
-        
-        // Validation de la source dans la ligne
-        const sourceInRow = row['Source']?.trim();
-        if (sourceInRow && !RobustCsvParser.validateSourceName(sourceInRow)) {
-          console.warn(`Source invalide ignorée: "${sourceInRow}" (ligne ${processed + 1})`);
-          continue;
-        }
-        
         processed++
         const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
         const versionId = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`
-        
         const rec: any = {
           factor_key: factorKey,
           version_id: versionId,
           is_latest: true,
           valid_from: new Date().toISOString(),
           language,
-          workspace_id: userWorkspaceId,
           "Nom": row['Nom'],
           "Description": row['Description'] || null,
           "FE": toNumber(row['FE']),
           "Unité donnée d'activité": row["Unité donnée d'activité"],
-          "Source": datasetName, // Utiliser le nom du dataset validé
+          "Source": datasetName,
           "Secteur": row['Secteur'] || null,
           "Sous-secteur": row['Sous-secteur'] || null,
           "Localisation": row['Localisation'],
           "Date": toInt(row['Date']),
-          "Incertitude": toNumber(row['Incertitude']),
-          "Périmètre": row['Périmètre'],
+          "Incertitude": row['Incertitude'] || null,
+          "Périmètre": row['Périmètre'] || null,
           "Contributeur": row['Contributeur'] || null,
           "Commentaires": row['Commentaires'] || null,
+          "Nom_en": row['Nom_en'] || null,
+          "Description_en": row['Description_en'] || null,
+          "Commentaires_en": row['Commentaires_en'] || null,
+          "Secteur_en": row['Secteur_en'] || null,
+          "Sous-secteur_en": row['Sous-secteur_en'] || null,
+          "Périmètre_en": row['Périmètre_en'] || null,
+          "Localisation_en": row['Localisation_en'] || null,
+          "Unite_en": row['Unite_en'] || null,
         }
         batch.push(rec)
       }
 
-      if (batch.length === 0) continue
-
-      // SCD2: invalider les anciens enregistrements
-      const keys = batch.map(r => r.factor_key)
-      await supabase
-        .from('emission_factors')
-        .update({ is_latest: false, valid_to: new Date().toISOString() })
-        .in('factor_key', keys)
-        .eq('is_latest', true)
-
-      // Insérer les nouveaux enregistrements
-      const { data: insertResult, error: insertError } = await supabase
-        .from('emission_factors')
-        .insert(batch)
-        .select('id')
-
-      if (insertError) {
-        console.error('Erreur insertion batch utilisateur:', insertError)
-        await supabase.from('data_imports').update({
-          status: 'failed',
-          error_details: { error: insertError.message },
-          finished_at: new Date().toISOString()
-        }).eq('id', importId)
-        return json(500, { error: 'Database insertion failed', details: insertError.message })
+      // Fermer is_latest existants pour ce batch
+      const keys = batch.map(b => b.factor_key)
+      if (keys.length) {
+        await supabase.from('emission_factors').update({ is_latest: false, valid_to: new Date().toISOString() }).in('factor_key', keys).eq('language', language).eq('is_latest', true)
+        const { error: insErr } = await supabase.from('emission_factors').insert(batch)
+        if (!insErr) inserted += batch.length
       }
-
-      inserted += insertResult?.length || 0
-      console.log(`Batch utilisateur ${Math.ceil((i + 1000) / 1000)} inséré: ${insertResult?.length || 0} records`)
     }
+    const db_ms = Date.now() - t0
 
+    // Projection par source (datasetName)
     const t1 = Date.now()
-    console.log(`Import utilisateur terminé: ${processed} traités, ${inserted} insérés en ${t1 - t0}ms`)
+    await supabase.rpc('refresh_ef_all_for_source', { p_source: datasetName })
+    const projection_ms = Date.now() - t1
 
-    // Refresh projection par source (optimisé)
-    try {
-      const { error: refreshErr } = await supabase.rpc('refresh_ef_all_for_source', { p_source: datasetName })
-      if (refreshErr) console.warn('Refresh projection error:', refreshErr)
-    } catch (e) {
-      console.warn('Refresh projection failed:', e)
-    }
-
-    // Sync Algolia incrémentale
-    let algoliaApiCalls = 0
-    try {
-      const algoliaClient = (await import('https://esm.sh/algoliasearch@4')).default(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY)
-      const index = algoliaClient.initIndex(ALGOLIA_INDEX_ALL)
-      
-      // Récupérer les données fraîchement insérées pour Algolia
-      const { data: algoliaData } = await supabase
+    // Algolia incrémental: updateObject pour la source
+    let algolia_ms = 0
+    let algolia_api_calls = 0
+    if (ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY) {
+      const a0 = Date.now()
+      const { data: rows, error } = await supabase
         .from('emission_factors_all_search')
         .select('*')
         .eq('Source', datasetName)
-        .limit(1000)
-      
-      if (algoliaData && algoliaData.length > 0) {
-        const algoliaObjects = algoliaData.map((row: any) => ({
-          objectID: row.object_id,
-          ...row
-        }))
-        
-        await index.saveObjects(algoliaObjects)
-        algoliaApiCalls = Math.ceil(algoliaObjects.length / 1000)
-        console.log(`Algolia sync utilisateur: ${algoliaObjects.length} objets, ${algoliaApiCalls} API calls`)
+      if (!error && rows && rows.length) {
+        const headersA = {
+          'X-Algolia-API-Key': ALGOLIA_ADMIN_KEY,
+          'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+          'Content-Type': 'application/json'
+        }
+        const requests = rows.map((r: any) => ({ action: 'updateObject', body: { ...r, objectID: String(r.object_id) } }))
+        for (let i = 0; i < requests.length; i += 1000) {
+          const chunk = requests.slice(i, i + 1000)
+          await fetch(`https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/batch`, {
+            method: 'POST', headers: headersA, body: JSON.stringify({ requests: chunk })
+          })
+          algolia_api_calls += 1
+          // petit délai pour éviter 429
+          if (i + 1000 < requests.length) await new Promise(res => setTimeout(res, 100))
+        }
       }
-    } catch (algoliaErr) {
-      console.warn('Algolia sync failed:', algoliaErr)
+      algolia_ms = Date.now() - a0
     }
 
-    // Finaliser l'import
     await supabase.from('data_imports').update({
       status: 'completed',
       processed,
       inserted,
-      updated: 0,
-      failed: 0,
-      finished_at: new Date().toISOString(),
-      db_ms: t1 - t0,
-      algolia_api_calls: algoliaApiCalls
+      db_ms,
+      projection_ms,
+      algolia_ms,
+      algolia_api_calls,
+      finished_at: new Date().toISOString()
     }).eq('id', importId)
 
-    return json(200, { 
-      import_id: importId, 
-      processed, 
-      inserted, 
-      sources: Array.from(sourcesCount.keys()),
-      parsing_method: 'robust_csv_parser',
-      compression_supported: true
-    })
-
-  } catch (error) {
-    console.error('Import utilisateur error:', error)
-    return json(500, { error: 'Internal server error', details: error.message })
+    return json(200, { ok: true, import_id: importId, processed, inserted })
+  } catch (e) {
+    return json(500, { error: String(e) })
   }
 })
+
+

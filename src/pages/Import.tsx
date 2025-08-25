@@ -24,6 +24,7 @@ const Import = () => {
   const [importStatus, setImportStatus] = useState<"idle" | "uploading" | "processing" | "success" | "error">("idle");
   const [importResults, setImportResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [indexingStatus, setIndexingStatus] = useState<"idle" | "indexing" | "success" | "error">("idle");
+  const [compressionInfo, setCompressionInfo] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -59,38 +60,141 @@ const Import = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.type === "text/csv") {
-      setFile(selectedFile);
-      setImportStatus("idle");
-      setImportResults(null);
-    } else {
-      toast({
-        title: "Format invalide",
-        description: "Veuillez sélectionner un fichier CSV valide",
-        variant: "destructive"
-      });
+    if (selectedFile) {
+      // Accepter CSV et fichiers compressés
+      const isValidFile = selectedFile.type === "text/csv" || 
+                         selectedFile.name.toLowerCase().endsWith('.csv') ||
+                         selectedFile.name.toLowerCase().endsWith('.gz') ||
+                         selectedFile.name.toLowerCase().endsWith('.csv.gz');
+      
+      if (isValidFile) {
+        setFile(selectedFile);
+        setImportStatus("idle");
+        setImportResults(null);
+        setCompressionInfo("");
+      } else {
+        toast({
+          title: "Format invalide",
+          description: "Veuillez sélectionner un fichier CSV ou CSV.GZ valide",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const parseCSVContent = (content: string): any[] => {
-    const lines = content.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return [];
+  // Parser CSV robuste pour gérer les cas complexes
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const data = [];
+    while (i < line.length) {
+      const char = line[i];
+      const nextChar = line[i + 1];
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      if (values.length === headers.length) {
-        const row: any = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index];
-        });
-        data.push(row);
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Échappement de guillemet : "" -> "
+          current += '"';
+          i += 2;
+        } else {
+          // Début ou fin de guillemets
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Séparateur de colonne (seulement si pas dans des guillemets)
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        // Caractère normal
+        current += char;
+        i++;
       }
     }
 
+    // Ajouter le dernier champ
+    result.push(current.trim());
+    return result;
+  };
+
+  const validateSourceName = (source: string): boolean => {
+    if (!source || source.trim().length === 0) return false;
+    if (/^\d+$/.test(source)) return false; // Pas juste un nombre
+    if (source.match(/^(kg|m|l|€|kWh|km|unité|unit)$/i)) return false; // Pas une unité
+    if (source.length < 2) return false; // Au moins 2 caractères
+    return true;
+  };
+
+  const parseCSVContent = (content: string): any[] => {
+    const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length === 0) return [];
+
+    // Parser l'en-tête avec le parser robuste
+    const headers = parseCSVLine(lines[0]);
+    const data = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      try {
+        const values = parseCSVLine(lines[i]);
+        
+        // S'assurer qu'on a le bon nombre de colonnes
+        if (values.length !== headers.length) {
+          if (errors.length < 5) {
+            errors.push(`Ligne ${i + 1}: ${values.length} colonnes au lieu de ${headers.length}`);
+          }
+          continue;
+        }
+
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+
+        // Validation des champs critiques pour les imports utilisateur
+        const source = row['source'] || row['Source'] || '';
+        const nom = row['nom'] || row['Nom'] || '';
+        
+        if (source && !validateSourceName(source.trim())) {
+          if (errors.length < 5) {
+            errors.push(`Ligne ${i + 1}: Source invalide "${source}" (semble être un nombre ou une unité)`);
+          }
+          continue;
+        }
+
+        data.push(row);
+      } catch (error) {
+        if (errors.length < 5) {
+          errors.push(`Ligne ${i + 1}: Erreur de parsing - ${error}`);
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      console.warn('Erreurs de parsing CSV:', errors);
+      toast({
+        title: "Avertissements de parsing",
+        description: `${errors.length} lignes ignorées. Vérifiez le format de votre fichier.`,
+        variant: "destructive"
+      });
+    }
+
     return data;
+  };
+
+  // Fonction de compression côté client
+  const compressFileToGzip = async (file: File): Promise<{ blob: Blob; compressionRatio: string }> => {
+    const originalSize = file.size;
+    const stream = file.stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+    const response = new Response(compressedStream);
+    const blob = await response.blob();
+    const compressedSize = blob.size;
+    const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
+    return { blob, compressionRatio: `${compressionRatio}%` };
   };
 
   const handleUpload = async () => {
@@ -126,13 +230,32 @@ const Import = () => {
     setUploadProgress(0);
 
     try {
-      // Lire le contenu du fichier
-      const fileContent = await file.text();
-      setUploadProgress(25);
+      // Étape 1: Compression automatique du fichier
+      let fileToUpload = file;
+      let compressionMsg = "";
+      
+      if (!file.name.toLowerCase().endsWith('.gz')) {
+        console.log('🗜️ Compression automatique du fichier...');
+        const { blob, compressionRatio } = await compressFileToGzip(file);
+        fileToUpload = new File([blob], `${file.name}.gz`, { type: 'application/gzip' });
+        compressionMsg = `Compression: ${compressionRatio}`;
+        setCompressionInfo(compressionMsg);
+        
+        toast({
+          title: "Compression automatique",
+          description: `Fichier compressé (${compressionRatio} de réduction)`,
+        });
+      }
+      
+      setUploadProgress(15);
 
-      // Parser le CSV
+      // Étape 2: Lire et parser le contenu avec le parser robuste
+      const fileContent = await file.text();
+      setUploadProgress(30);
+
+      // Parser le CSV avec validation
       const data = parseCSVContent(fileContent);
-      setUploadProgress(50);
+      setUploadProgress(45);
       setImportStatus("processing");
 
       if (data.length === 0) {
@@ -144,8 +267,8 @@ const Import = () => {
         .from('datasets')
         .insert({
           name: datasetName,
-          file_name: file.name,
-          file_size: file.size,
+          file_name: fileToUpload.name,
+          file_size: fileToUpload.size,
           user_id: user.id,
           workspace_id: currentWorkspace.id,
           uploaded_by: user.id,
@@ -157,7 +280,7 @@ const Import = () => {
         throw new Error(`Erreur lors de la création du dataset: ${datasetError.message}`);
       }
 
-      setUploadProgress(75);
+      setUploadProgress(60);
 
       // S'assurer que la source existe dans fe_sources (requis pour la projection/Algolia)
       try {
@@ -178,9 +301,8 @@ const Import = () => {
         // non bloquant mais important pour éviter le floutage
       }
 
-      // Upload du fichier vers Storage puis déléguer l'import au serveur (Edge Function import-csv-user)
-      // Sanitization du nom de fichier (reuse admin)
-      let cleanFileName = file.name
+      // Upload du fichier compressé vers Storage
+      let cleanFileName = fileToUpload.name
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
@@ -188,16 +310,21 @@ const Import = () => {
         .replace(/_{2,}/g, '_')
         .replace(/^_+|_+$/g, '')
         .substring(0, 50);
-      const originalExtension = file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv';
+      
+      const originalExtension = fileToUpload.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : 
+                              fileToUpload.name.toLowerCase().endsWith('.gz') ? '.gz' : '.csv';
       if (!cleanFileName.endsWith(originalExtension)) {
         cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + originalExtension;
       }
       const finalPath = `${Date.now()}_${cleanFileName}`;
 
-      const { error: upErr } = await supabase.storage.from('imports').upload(finalPath, file, { upsert: true });
+      const { error: upErr } = await supabase.storage.from('imports').upload(finalPath, fileToUpload, { upsert: true });
       if (upErr) throw upErr;
 
+      setUploadProgress(80);
       setIndexingStatus("indexing");
+      
+      // Appeler l'Edge Function mise à jour avec le parser robuste
       const { data: resp, error: invErr } = await supabase.functions.invoke('import-csv-user', {
         body: { file_path: finalPath, dataset_name: dataset.name, language: 'fr' }
       });
@@ -227,7 +354,7 @@ const Import = () => {
 
       toast({
         title: "Import réussi",
-        description: `Import lancé: traitement côté serveur (id: ${resp?.import_id || 'n/a'}).`,
+        description: `Import lancé: traitement côté serveur (id: ${resp?.import_id || 'n/a'}). ${compressionMsg}`,
       });
 
       // Reset form après succès
@@ -237,6 +364,7 @@ const Import = () => {
         setAddToFavorites(false);
         setImportStatus("idle");
         setUploadProgress(0);
+        setCompressionInfo("");
         // Reset file input
         const fileInput = document.getElementById("file-upload") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
@@ -283,7 +411,7 @@ const Import = () => {
               Import de données
             </h1>
             <p className="text-muted-foreground">
-              Importez votre propre base de données de facteurs d'émissions carbone
+              Importez votre propre base de données de facteurs d'émissions carbone avec compression automatique
             </p>
           </div>
 
@@ -338,7 +466,7 @@ const Import = () => {
                   {getStatusIcon()}
                 </CardTitle>
                 <CardDescription>
-                  Sélectionnez un fichier CSV formaté selon notre template
+                  Sélectionnez un fichier CSV formaté selon notre template. Compression automatique incluse.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -372,6 +500,7 @@ const Import = () => {
                           <div className="font-medium">{file.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {(file.size / 1024 / 1024).toFixed(2)} MB
+                            {compressionInfo && ` • ${compressionInfo}`}
                           </div>
                         </div>
                       </div>
@@ -382,7 +511,7 @@ const Import = () => {
                           Cliquez pour sélectionner un fichier
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Formats acceptés : CSV, CSV.GZ (compressé)
+                          Formats acceptés : CSV, CSV.GZ (compressé automatiquement)
                         </div>
                       </div>
                     )}
@@ -401,7 +530,7 @@ const Import = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>
-                        {importStatus === "uploading" && "Lecture du fichier..."}
+                        {importStatus === "uploading" && "Compression et lecture du fichier..."}
                         {importStatus === "processing" && "Traitement des données..."}
                       </span>
                       <span>{uploadProgress}%</span>
@@ -418,6 +547,7 @@ const Import = () => {
                         <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                         <span className="text-green-700">
                           {importResults.success} facteurs d'émissions importés avec succès
+                          {compressionInfo && ` • ${compressionInfo}`}
                         </span>
                       </div>
                     ) : (
@@ -482,10 +612,11 @@ const Import = () => {
           <Card className="mt-6">
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground space-y-2">
-                <div><strong>Limite de taille :</strong> 10 MB maximum par fichier</div>
+                <div><strong>Limite de taille :</strong> 10 MB maximum par fichier (avant compression)</div>
                 <div><strong>Format :</strong> CSV avec séparateur virgule (,)</div>
                 <div><strong>Encodage :</strong> UTF-8 recommandé</div>
-                <div><strong>Validation :</strong> Les données seront vérifiées avant import</div>
+                <div><strong>Compression :</strong> Automatique pour optimiser les transferts</div>
+                <div><strong>Validation :</strong> Parser robuste avec validation des sources</div>
                 <div><strong>Workspace :</strong> Les données seront importées dans votre workspace actuel</div>
               </div>
             </CardContent>
