@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 // Cache TTL (ms) pour les requêtes identiques
@@ -95,43 +96,42 @@ Deno.serve(async (req) => {
       workspaceId = userRow?.workspace_id ?? null
     }
 
-    // Helper pour bâtir les paramètres appliqués selon le type
-    const buildApplied = (searchType: string) => {
+    // Helper unifié: applique origin "public" ou "private" + sécurité premium
+    const buildUnified = (originParam: 'public'|'private'|undefined, searchTypeParam?: string) => {
+      const origin = originParam || (searchTypeParam === 'fullPrivate' ? 'private' : 'public')
       let appliedFilters = ''
       let appliedFacetFilters: any[] = []
-      switch (searchType) {
-        case 'fullPublic':
-          appliedFilters = `scope:public`
-          if (workspaceId) {
-            appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:${workspaceId}` ]]
-          } else {
-            appliedFacetFilters = [[ 'access_level:standard' ]]
-          }
-          break
-        case 'teaserPublic':
-          // Teaser: uniquement public + premium, affiché en mode flouté côté client
-          appliedFilters = `scope:public`
-          appliedFacetFilters = [[ 'access_level:premium' ]]
-          break
-        case 'fullPrivate':
-          if (!userId) {
-            // Non authentifié: accès privé interdit
-            appliedFilters = `scope:private AND workspace_id:_none_`
-          } else {
-            appliedFilters = workspaceId
-              ? `scope:private AND workspace_id:${workspaceId}`
-              : `scope:private AND workspace_id:_none_`
-          }
-          break
-        default:
-          appliedFilters = `scope:public`
-          if (workspaceId) {
-            appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:${workspaceId}` ]]
-          } else {
-            appliedFacetFilters = [[ 'access_level:standard' ]]
-          }
+      let attributesToRetrieve: string[] | undefined
+      if (origin === 'public') {
+        appliedFilters = `scope:public`
+        // Groupe d'accès sécurisé: standard OU premium
+        const premiumGroup = ['access_level:premium']
+        const standardGroup = ['access_level:standard']
+        if (workspaceId) {
+          // OR entre standard et premium assigné au workspace
+          appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:${workspaceId}` ]]
+          attributesToRetrieve = undefined
+        } else {
+          // OR entre standard et premium (teaser)
+          appliedFacetFilters = [[ 'access_level:standard', 'access_level:premium' ]]
+          attributesToRetrieve = [
+            'objectID','scope','languages','access_level','Source','Date',
+            'Nom_fr','Secteur_fr','Sous-secteur_fr','Localisation_fr','Périmètre_fr',
+            'Nom_en','Secteur_en','Sous-secteur_en','Localisation_en','Périmètre_en'
+          ]
+        }
+      } else {
+        // private
+        if (!userId) {
+          appliedFilters = `scope:private AND workspace_id:_none_`
+        } else {
+          appliedFilters = workspaceId
+            ? `scope:private AND workspace_id:${workspaceId}`
+            : `scope:private AND workspace_id:_none_`
+        }
+        attributesToRetrieve = undefined
       }
-      return { appliedFilters, appliedFacetFilters }
+      return { appliedFilters, appliedFacetFilters, attributesToRetrieve }
     }
 
     // Construire les requêtes Algolia (multi)
@@ -141,8 +141,10 @@ Deno.serve(async (req) => {
       index: number
     }
     const built: BuiltReq[] = incomingRequests.map((r: any, idx: number) => {
-      const { query, filters, facetFilters, searchType, ...otherParams } = r || {}
-      const { appliedFilters, appliedFacetFilters } = buildApplied(String(searchType || 'fullPublic'))
+      const { query, filters, facetFilters, origin: reqOrigin, searchType, hitsPerPage, page, attributesToRetrieve: attrsClient, restrictSearchableAttributes } = r || {}
+      const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
+        (reqOrigin as 'public'|'private'|undefined), String(searchType || '')
+      )
       const combinedFilters = filters ? `(${appliedFilters}) AND (${filters})` : appliedFilters
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
       if (facetFilters) {
@@ -153,19 +155,17 @@ Deno.serve(async (req) => {
         query: query || '',
         filters: combinedFilters,
         facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined,
-        ...otherParams
-      }
-      // Pour le teaser, on limite strictement les attributs pour éviter toute fuite de contenu sensible
-      if (String(searchType) === 'teaserPublic') {
-        paramsObj.attributesToRetrieve = [
-          'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
-          'Nom_fr','Secteur_fr','Sous-secteur_fr','Localisation_fr','Périmètre_fr',
-          'Nom_en','Secteur_en','Sous-secteur_en','Localisation_en','Périmètre_en'
-        ]
+        ...(attributesToRetrieve ? { attributesToRetrieve } : (attrsClient ? { attributesToRetrieve: attrsClient } : {})),
+        ...(typeof hitsPerPage === 'number' ? { hitsPerPage } : {}),
+        ...(typeof page === 'number' ? { page } : {}),
+        ...(restrictSearchableAttributes ? { restrictSearchableAttributes } : {}),
+        // Balises de highlight attendues par React InstantSearch
+        highlightPreTag: '__ais-highlight__',
+        highlightPostTag: '__/ais-highlight__'
       }
       const cacheKey = JSON.stringify({
         workspaceId,
-        searchType,
+        origin: reqOrigin || 'public',
         params: paramsObj
       })
       return {

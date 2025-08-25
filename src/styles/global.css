@@ -1,0 +1,8 @@
+.ais-Highlight-highlighted,
+.ais-Snippet-highlighted {
+  background-color: rgba(88, 80, 236, 0.18); /* violet clair */
+  color: #3f3cbb; /* violet */
+  padding: 0 0.05em;
+  border-radius: 2px;
+}
+
