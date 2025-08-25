@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useHits, usePagination } from 'react-instantsearch';
+import { useHits, usePagination, Highlight } from 'react-instantsearch';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -301,10 +301,14 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex flex-col items-start gap-1">
-                          <h3 
-                            className="text-lg font-semibold text-primary leading-tight"
-                            dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
-                          />
+                          <h3 className="text-lg font-semibold text-primary leading-tight">
+                            {(() => {
+                              const attr = (hit as any).Nom_fr !== undefined
+                                ? 'Nom_fr'
+                                : ((hit as any).Nom_en !== undefined ? 'Nom_en' : 'Nom');
+                              return <Highlight hit={hit as any} attribute={attr as any} />;
+                            })()}
+                          </h3>
                           {isPrivateHit(hit) && (
                             <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
                               FE importé
@@ -347,7 +351,14 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           <div className="mt-2">
                             <span className="text-sm font-semibold text-foreground">Unité</span>
                             <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                              <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
+                              <p className="text-sm font-light">
+                                {(() => {
+                                  const attr = (hit as any).Unite_fr !== undefined
+                                    ? 'Unite_fr'
+                                    : ((hit as any).Unite_en !== undefined ? 'Unite_en' : "Unité donnée d'activité");
+                                  return <Highlight hit={hit as any} attribute={attr as any} />;
+                                })()}
+                              </p>
                             </PremiumBlur>
                           </div>
                         </div>
@@ -368,7 +379,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                   className="w-6 h-6 object-contain flex-shrink-0"
                                 />
                               )}
-                              <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Source')} />
+                              <p className="text-sm font-light"><Highlight hit={hit as any} attribute={'Source' as any} /></p>
                             </div>
                           </div>
                         </div>
@@ -413,7 +424,14 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           ) : null}
                           <div>
                             <span className="text-sm font-semibold text-foreground">Secteur</span>
-                            <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
+                            <p className="text-xs font-light mt-1">
+                              {(() => {
+                                const attr = (hit as any).Secteur_fr !== undefined
+                                  ? 'Secteur_fr'
+                                  : ((hit as any).Secteur_en !== undefined ? 'Secteur_en' : 'Secteur');
+                                return <Highlight hit={hit as any} attribute={attr as any} />;
+                              })()}
+                            </p>
                           </div>
                           {hit.Incertitude && (
                             <div>

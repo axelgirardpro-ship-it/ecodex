@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHits, useHitsPerPage, usePagination, useSearchBox, useRange } from 'react-instantsearch';
+import { useHits, useHitsPerPage, usePagination, useSearchBox, useRange, Highlight } from 'react-instantsearch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -362,7 +362,15 @@ export const SearchResults: React.FC = () => {
     const hl = (hit as any)._highlightResult || {};
     for (const a of candidates) {
       const h = hl[a];
-      if (h?.value) return { __html: h.value };
+      if (h?.value) {
+        // Algolia retourne déjà du HTML sécurisé avec <em>. S'assurer qu'il n'est pas double-échappé
+        const text = String(h.value)
+          .replace(/&lt;em&gt;/g, '<em>')
+          .replace(/&lt;\/em&gt;/g, '</em>')
+          .replace(/&amp;lt;em&amp;gt;/g, '<em>')
+          .replace(/&amp;lt;\/em&amp;gt;/g, '</em>');
+        return { __html: text };
+      }
       const v = (hit as any)[a];
       if (v) return { __html: v };
     }
@@ -586,10 +594,16 @@ export const SearchResults: React.FC = () => {
                         <div className="flex-1">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex flex-col items-start gap-1">
-                            <h3 
-                              className="text-lg font-semibold text-primary leading-tight font-montserrat"
-                              dangerouslySetInnerHTML={getHighlightedText(hit, 'Nom')}
-                            />
+                            <h3 className="text-lg font-semibold text-primary leading-tight font-montserrat">
+                              {(() => {
+                                const attr = (hit as any).Nom_fr !== undefined
+                                  ? 'Nom_fr'
+                                  : ((hit as any).Nom_en !== undefined ? 'Nom_en' : 'Nom');
+                                return (
+                                  <Highlight hit={hit as any} attribute={attr as any} />
+                                );
+                              })()}
+                            </h3>
                             {isPrivateHit && (
                               <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
                                 FE importé
@@ -636,7 +650,14 @@ export const SearchResults: React.FC = () => {
                             <div className="mt-2">
                                 <span className="text-sm font-semibold text-foreground">Unité</span>
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
-                                  <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Unite')} />
+                                  <p className="text-sm font-light">
+                                    {(() => {
+                                      const attr = (hit as any).Unite_fr !== undefined
+                                        ? 'Unite_fr'
+                                        : ((hit as any).Unite_en !== undefined ? 'Unite_en' : "Unité donnée d'activité");
+                                      return <Highlight hit={hit as any} attribute={attr as any} />;
+                                    })()}
+                                  </p>
                                 </PremiumBlur>
                             </div>
                           </div>
@@ -657,7 +678,7 @@ export const SearchResults: React.FC = () => {
                                       className="w-6 h-6 object-contain flex-shrink-0"
                                     />
                                   )}
-                                  <p className="text-sm font-light" dangerouslySetInnerHTML={getHighlightedText(hit, 'Source')} />
+                                  <p className="text-sm font-light"><Highlight hit={hit as any} attribute={'Source' as any} /></p>
                                 </div>
                               </div>
                           </div>
@@ -696,7 +717,14 @@ export const SearchResults: React.FC = () => {
                             )}
                              <div>
                                <span className="text-sm font-semibold text-indigo-950">Secteur</span>
-                               <p className="text-xs font-light mt-1" dangerouslySetInnerHTML={getHighlightedText(hit, 'Secteur')} />
+                               <p className="text-xs font-light mt-1">
+                                 {(() => {
+                                   const attr = (hit as any).Secteur_fr !== undefined
+                                     ? 'Secteur_fr'
+                                     : ((hit as any).Secteur_en !== undefined ? 'Secteur_en' : 'Secteur');
+                                   return <Highlight hit={hit as any} attribute={attr as any} />;
+                                 })()}
+                               </p>
                              </div>
                             {hit.Incertitude && (
                               <div>

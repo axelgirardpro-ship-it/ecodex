@@ -11,6 +11,8 @@ export const SearchBox: React.FC = () => {
   const { refresh } = useInstantSearch();
   const controls = (() => { try { return useSearchControls(); } catch { return null; } })();
 
+  // Pas de debounce: retour immédiat requis par l'UX
+
   const handleClear = () => {
     refine("");
   };

@@ -114,23 +114,7 @@ export const FavorisSearchProvider: React.FC<FavorisSearchProviderProps> = ({ ch
             debug('ctx', { globalOrigin: frozenOrigin, wsId, favCount: favoriteIdsRef.current?.length });
           }
 
-          // Gate 3 caractères pour la recherche texte pure (favoris)
-          // Exceptions: si filtres/facettes/numériques/tags ou une recherche de facette sont actifs
-          const belowThresholdForAll = (requests || []).every((r) => {
-            const p = r?.params || {};
-            const q = String(p.query || '').trim();
-            const queryLen = q.length;
-            const hasFilters = !!(p.filters && String(p.filters).trim());
-            const hasFacetFilters = Array.isArray(p.facetFilters) && p.facetFilters.length > 0;
-            const hasNumericFilters = Array.isArray(p.numericFilters) && p.numericFilters.length > 0;
-            const hasTagFilters = Array.isArray(p.tagFilters) && p.tagFilters.length > 0;
-            const hasFacetSearch = !!(p.facetName || p.facetQuery);
-            return (q.length > 0 && queryLen < 3) && !hasFilters && !hasFacetFilters && !hasNumericFilters && !hasTagFilters && !hasFacetSearch;
-          });
-          if (belowThresholdForAll) {
-            const emptyRes: any = { hits: [], nbHits: 0, nbPages: 0, page: 0, processingTimeMS: 0, facets: {}, facets_stats: null, query: '', params: '' };
-            return { results: (requests || []).map(() => emptyRes) };
-          }
+          // Aucun seuil 3 caractères sur Favoris (comportement demandé)
           const expandedPublicFull: any[] = [];
           const expandedPrivateFull: any[] = [];
           const expandedTeaser: any[] = [];

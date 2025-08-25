@@ -118,9 +118,10 @@ export class UnifiedAlgoliaClient {
       // Forcer le passage par le proxy en développement pour regrouper les HTTP
       // et en production (politique de sécurité)
       this.clients = {
-        fullPublic: createProxyClient('fullPublic'),
-        fullPrivate: createProxyClient('fullPrivate'),
-        teaser: createProxyClient('teaserPublic')
+        // Utiliser un client unifié unique via l'Edge Function
+        fullPublic: createProxyClient('unified'),
+        fullPrivate: createProxyClient('unified'),
+        teaser: createProxyClient('unified')
       };
     })();
 
@@ -210,6 +211,8 @@ export class UnifiedAlgoliaClient {
     if (this.requestQueue.length === 0) return;
 
     const batch = this.requestQueue.splice(0, this.maxBatchSize);
+    // Ne garder que la DERNIÈRE requête pour éviter les multi-queries (une seule requête par saisie)
+    const latestOnly = batch.length > 0 ? [batch[batch.length - 1]] : [];
     
     try {
       // Si bloqué, répondre immédiatement avec des résultats vides
@@ -225,14 +228,15 @@ export class UnifiedAlgoliaClient {
       }
 
       const result = await this.processRequests(
-        batch.map(r => ({ ...r, resolve: undefined, reject: undefined }))
+        latestOnly.map(r => ({ ...r, resolve: undefined, reject: undefined }))
       );
       
-      // Résoudre toutes les promesses du batch
-      batch.forEach((request, index) => {
+      // Résoudre toutes les promesses du batch avec le même dernier résultat
+      const single = result.results[0];
+      batch.forEach((request) => {
         const resolve = (request as any).resolve;
         if (resolve) {
-          resolve({ results: [result.results[index]] });
+          resolve({ results: [single] });
         }
       });
     } catch (error: any) {
@@ -478,13 +482,13 @@ export class UnifiedAlgoliaClient {
       // Optimisation intelligente selon l'origine
       switch (origin) {
         case 'public':
-          return this.searchPublicOnly(baseParams, safeFacetFilters);
+          return this.searchUnified('public', baseParams, safeFacetFilters);
         
         case 'private':
-          return this.searchPrivateOnly(baseParams, safeFacetFilters);
+          return this.searchUnified('private', baseParams, safeFacetFilters);
         
-        default: // 'all'
-          return this.searchFederated(baseParams, safeFacetFilters);
+        default: // 'all' (compat): repli sur public
+          return this.searchUnified('public', baseParams, safeFacetFilters);
       }
     } catch (error: any) {
       if (isAlgoliaBlockedError(error)) {
@@ -532,57 +536,22 @@ export class UnifiedAlgoliaClient {
   }
 
   private async searchFederated(baseParams: any, safeFacetFilters: any): Promise<any> {
-    // Utiliser facetFilters au lieu de filters complexes
-    const publicAccessFilters = this.assignedSources && this.assignedSources.length > 0
-      ? [['access_level:standard', ...this.assignedSources.map(s => `Source:${s}`)]]
-      : [['access_level:standard']];
-    
-    const workspaceFilter = this.workspaceId ? [['workspace_id:' + this.workspaceId]] : [['workspace_id:_none_']];
+    // Compat: chemin legacy non utilisé avec client unifié
+    return this.searchUnified('public', baseParams, safeFacetFilters);
+  }
 
-    const finalPublicFacetFilters = [['scope:public'], ...publicAccessFilters, ...(safeFacetFilters || [])];
-    
-    // Debug des filtres finaux pour public
-    debugFacetFilters('3. Final PUBLIC facetFilters', finalPublicFacetFilters);
-    analyzeFilterConflicts(finalPublicFacetFilters);
-    
-    const publicRequest = {
+  private async searchUnified(origin: 'public'|'private', baseParams: any, safeFacetFilters: any): Promise<any> {
+    const request = {
       indexName: 'ef_all',
+      origin,
       params: {
         ...baseParams,
-        facetFilters: finalPublicFacetFilters,
-        filters: baseParams.filters // Garder seulement les filtres utilisateur
+        facetFilters: safeFacetFilters,
+        filters: baseParams.filters
       }
-    };
-
-    const privateRequest = {
-      indexName: 'ef_all',
-      params: {
-        ...baseParams,
-        facetFilters: [['scope:private'], ...workspaceFilter, ...(safeFacetFilters || [])],
-        filters: baseParams.filters // Garder seulement les filtres utilisateur
-      }
-    };
-
-    // Exécution en parallèle optimisée
-    const [publicResult, privateResult, teaserResult] = await Promise.all([
-      this.clients!.fullPublic.search([publicRequest]),
-      this.clients!.fullPrivate.search([privateRequest]),
-      this.clients!.teaser.search([publicRequest])
-    ]);
-
-    // Merger public + teaser d'abord
-    const mergedPublic = mergeFederatedPair(
-      publicResult.results[0], 
-      teaserResult.results[0]
-    );
-
-    // Puis merger avec private
-    const merged = mergeFederatedPair(
-      mergedPublic, 
-      privateResult.results[0], 
-      { sumNbHits: true }
-    );
-    return this.ensureObjectIdOnHits(merged);
+    } as any;
+    const result = await this.clients!.fullPublic.search([request]);
+    return this.ensureObjectIdOnHits(result.results[0]);
   }
 
   private combineFilters(...filters: (string | undefined)[]): string | undefined {

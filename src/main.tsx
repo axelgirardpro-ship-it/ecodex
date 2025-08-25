@@ -14,6 +14,7 @@ try {
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import './styles/global.css'
 
 // Initialisation automatique du système Algolia optimisé
 import './lib/algolia/autoInit.ts'
