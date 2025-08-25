@@ -383,12 +383,12 @@ const Import = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="file-upload">Fichier CSV</Label>
+                  <Label htmlFor="file-upload">Fichier CSV/GZ</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <input
                       id="file-upload"
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.gz,.csv.gz,application/gzip"
                       onChange={handleFileChange}
                       className="hidden"
                       disabled={isUploading}
@@ -411,7 +411,7 @@ const Import = () => {
                           Cliquez pour sélectionner un fichier
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Formats acceptés : CSV uniquement
+                          Formats acceptés : CSV, CSV.GZ (compressé)
                         </div>
                       </div>
                     )}

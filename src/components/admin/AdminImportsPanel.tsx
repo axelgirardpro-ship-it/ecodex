@@ -66,6 +66,14 @@ export const AdminImportsPanel: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Fonction de compression côté client
+  const compressFileToGzip = async (file: File): Promise<Blob> => {
+    const stream = file.stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+    const response = new Response(compressedStream);
+    return await response.blob();
+  };
+
   const handleUpload = async () => {
     if (!file) {
       toast({ variant: 'destructive', title: 'Aucun fichier', description: 'Sélectionnez un fichier CSV.' });
@@ -75,52 +83,48 @@ export const AdminImportsPanel: React.FC = () => {
       setUploading(true);
       setProgress(0);
       
-      // Debug : Analyser le nom de fichier original en détail
-      console.log('🔍 Analyse filename original:', {
-        name: file.name,
-        length: file.name.length,
-        charCodes: file.name.split('').map(char => `${char}(${char.charCodeAt(0)})`),
-        hasNonAscii: /[^\x00-\x7F]/.test(file.name),
-        hasSpaces: file.name.includes(' '),
-        hasDashes: file.name.includes('-'),
-        hasSpecialChars: /[^a-zA-Z0-9.-]/.test(file.name)
+      // 1. Compresser le fichier automatiquement
+      setProgress(25);
+      const originalSize = file.size;
+      const compressedFile = await compressFileToGzip(file);
+      const compressedSize = compressedFile.size;
+      const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
+      
+      console.log('🗜️ Compression terminée:', {
+        originalSize: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
+        compressedSize: `${(compressedSize / 1024 / 1024).toFixed(2)} MB`,
+        ratio: `${compressionRatio}%`
       });
 
-      // Sanitization ultra-agressive pour Supabase Storage
+      setProgress(50);
+
+      // 2. Générer le nom de fichier compressé
       let cleanFileName = file.name
-        .normalize('NFD')                     // Décomposer les accents
-        .replace(/[\u0300-\u036f]/g, '')      // Supprimer les accents
-        .toLowerCase()                        // Tout en minuscules
-        .replace(/[^a-z0-9.]/g, '_')         // SEULEMENT lettres, chiffres, points
-        .replace(/_{2,}/g, '_')              // Pas de _ multiples
-        .replace(/^_+|_+$/g, '')             // Pas de _ début/fin
-        .substring(0, 50);                   // Limite plus stricte
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9.]/g, '_')
+        .replace(/_{2,}/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 50);
 
-      // Préserver l'extension originale (.csv ou .xlsx)
-      const originalExtension = file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv';
-      if (!cleanFileName.endsWith(originalExtension)) {
-        cleanFileName = cleanFileName.replace(/\.[^.]*$/, '') + originalExtension;
-      }
+      // Toujours ajouter .gz pour les fichiers compressés
+      const baseFileName = cleanFileName.replace(/\.(csv|xlsx)$/i, '');
+      const finalPath = `${Date.now()}_${baseFileName}.csv.gz`;
       
-      // Path final avec timestamp
-      const finalPath = `${Date.now()}_${cleanFileName}`;
+      setProgress(75);
       
-      // Debug complet de la transformation
-      console.log('🔍 Debug transformation complète:', {
-        '1_original': file.name,
-        '2_clean': cleanFileName,
-        '3_finalPath': finalPath,
-        '4_pathLength': finalPath.length,
-        '5_onlyAllowedChars': /^[a-z0-9_.]+$/.test(finalPath)
-      });
-      
-      const { error } = await supabase.storage.from('imports').upload(finalPath, file, { upsert: true });
+      // 3. Upload du fichier compressé
+      const { error } = await supabase.storage.from('imports').upload(finalPath, compressedFile, { upsert: true });
       if (error) throw error;
       setFilePath(finalPath);
       setProgress(100);
       setAnalysisDone(false);
       setMappingRows([]);
-      toast({ title: 'Upload terminé', description: finalPath });
+      toast({ 
+        title: 'Upload terminé', 
+        description: `${finalPath} (${compressionRatio}% de compression)` 
+      });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur upload', description: e.message || String(e) });
     } finally {
@@ -260,86 +264,126 @@ export const AdminImportsPanel: React.FC = () => {
       <CardHeader>
         <CardTitle>Import de la base de facteurs (FR/EN)</CardTitle>
         <CardDescription>
-          L\'indexation Algolia est automatique via Webhook après import.
-          • Étape 1: Uploader le fichier vers le Storage.
-          • Étape 2: Analyser pour détecter les sources et préparer le mapping (Standard/Premium, Global oui/non).
-          • Étape 3: Importer. La synchronisation Algolia par source s\'exécute automatiquement.
+          Importez facilement des facteurs d'émission depuis un fichier CSV ou XLSX. 
+          Le processus est guidé en 3 étapes simples avec compression automatique et synchronisation Algolia.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={downloadTemplate}>Télécharger le template CSV</Button>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Étape 1: Sélection et upload du fichier */}
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">1</div>
+              <h3 className="text-lg font-semibold">Sélectionner le fichier</h3>
+            </div>
+            <Button variant="outline" size="sm" onClick={downloadTemplate}>
+              📄 Télécharger le template CSV
+            </Button>
+          </div>
+          
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Label>Fichier CSV</Label>
+              <Label htmlFor="file-input">Fichier CSV/XLSX</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Sélectionnez le fichier CSV ou XLSX exporté depuis la Base Carbone (ou template compatible). Les colonnes FR/EN sont supportées. XLSX recommandé pour gros fichiers.
+                    Formats supportés : CSV, XLSX. La compression automatique optimise les transferts volumineux.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={handleUpload} disabled={!file || uploading}>{uploading ? `Upload... ${progress}%` : 'Uploader vers Storage'}</Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Envoie le fichier sur Supabase Storage (bucket imports). Obligatoire avant analyse.</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {filePath && <span className="text-xs text-muted-foreground break-all">{filePath}</span>}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={analyzeThenImport} disabled={!filePath}>Analyser puis Importer</Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Analyse le CSV et propose immédiatement de lancer l'import. Vous pouvez annuler pour ajuster le mapping.</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {analysisDone && mappingRows.length > 0 && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="secondary" onClick={launchImportWithCurrentMapping}>Importer avec ce mapping</Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Utilise le mapping affiché ci-dessous sans relancer l'analyse.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+            <Input 
+              id="file-input"
+              type="file" 
+              accept=".csv,.xlsx,.gz,.csv.gz,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/gzip" 
+              onChange={(e) => setFile(e.target.files?.[0] || null)} 
+            />
+            
+            <div className="flex items-center justify-between">
+              <Button 
+                onClick={handleUpload} 
+                disabled={!file || uploading}
+                className="min-w-[180px]"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Upload... {progress}%
+                  </>
+                ) : (
+                  <>
+                    ⬆️ Uploader le fichier
+                  </>
+                )}
+              </Button>
+              
+              {filePath && (
+                <div className="text-sm text-green-600 flex items-center gap-2">
+                  ✅ Fichier uploadé : <span className="font-mono text-xs">{filePath.split('/').pop()}</span>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="space-y-3">
+        {/* Étape 2: Analyse et import */}
+        <div className={`border rounded-lg p-4 space-y-4 ${!filePath ? 'opacity-50' : ''}`}>
           <div className="flex items-center gap-2">
-            <Label>Sources détectées (après analyse)</Label>
+            <div className={`w-8 h-8 rounded-full ${filePath ? 'bg-primary text-primary-foreground' : 'bg-gray-300 text-gray-500'} flex items-center justify-center text-sm font-semibold`}>2</div>
+            <h3 className="text-lg font-semibold">Analyser et importer</h3>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              onClick={analyzeThenImport} 
+              disabled={!filePath}
+              className="min-w-[200px]"
+            >
+              🔍 Analyser puis Importer
+            </Button>
+            
+            {analysisDone && mappingRows.length > 0 && (
+              <Button 
+                variant="secondary" 
+                onClick={launchImportWithCurrentMapping}
+                className="min-w-[180px]"
+              >
+                📥 Importer maintenant
+              </Button>
+            )}
+          </div>
+          
+          {!filePath && (
+            <p className="text-sm text-muted-foreground">
+              ⚠️ Veuillez d'abord uploader un fichier à l'étape 1
+            </p>
+          )}
+        </div>
+
+        {/* Étape 3: Configuration des sources (après analyse) */}
+        <div className={`border rounded-lg p-4 space-y-4 ${mappingRows.length === 0 ? 'opacity-50' : ''}`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full ${mappingRows.length > 0 ? 'bg-primary text-primary-foreground' : 'bg-gray-300 text-gray-500'} flex items-center justify-center text-sm font-semibold`}>3</div>
+            <h3 className="text-lg font-semibold">Configuration des sources</h3>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Choisissez l\'accès par source: Standard ou Premium. Global = visible par toutes les workspaces; sinon, assignable.
+                  Configurez l'accès par source : Standard (gratuit) ou Premium (payant). Global = visible par toutes les workspaces.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
+          
           {mappingRows.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Aucune source détectée. Lancez l\'analyse après upload.</div>
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              ℹ️ Les sources seront détectées après l'analyse du fichier à l'étape 2
+            </div>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
@@ -393,15 +437,19 @@ export const AdminImportsPanel: React.FC = () => {
           )}
         </div>
 
-        <div className="space-y-3">
+        {/* Historique des imports */}
+        <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-2">
-            <Label>Historique des imports</Label>
+            <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm">
+              📊
+            </div>
+            <h3 className="text-lg font-semibold">Historique des imports</h3>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
                 </TooltipTrigger>
-                <TooltipContent>Liste des imports récents et leur statut.</TooltipContent>
+                <TooltipContent>Suivi des imports récents avec statuts et métriques</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -433,23 +481,44 @@ export const AdminImportsPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Statut visuel d'import/indexation */}
+        {/* Statut d'import en temps réel */}
         {importStatus !== 'idle' && (
-          <div className="space-y-2 p-4 border rounded-md">
-            {importStatus === 'importing' && (
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">{importMessage}</div>
-                <div className="w-full h-2 bg-muted rounded-md overflow-hidden">
-                  <div className="h-2 w-2/3 bg-primary animate-pulse" />
-                </div>
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                importStatus === 'importing' ? 'bg-blue-100 text-blue-600' :
+                importStatus === 'success' ? 'bg-green-100 text-green-600' :
+                'bg-red-100 text-red-600'
+              }`}>
+                {importStatus === 'importing' ? '⏳' : importStatus === 'success' ? '✅' : '❌'}
               </div>
-            )}
-            {importStatus === 'success' && (
-              <div className="text-sm text-green-700">{importMessage}</div>
-            )}
-            {importStatus === 'error' && (
-              <div className="text-sm text-red-700">{importMessage}</div>
-            )}
+              <h3 className="text-lg font-semibold">
+                {importStatus === 'importing' ? 'Import en cours...' :
+                 importStatus === 'success' ? 'Import terminé' :
+                 'Erreur d\'import'}
+              </h3>
+            </div>
+            
+            <div className="space-y-2">
+              {importStatus === 'importing' && (
+                <>
+                  <div className="text-sm text-gray-600">{importMessage}</div>
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-3 bg-blue-500 rounded-full animate-pulse" style={{width: '60%'}} />
+                  </div>
+                </>
+              )}
+              {importStatus === 'success' && (
+                <div className="text-sm text-green-700 bg-green-50 p-3 rounded-md border border-green-200">
+                  {importMessage}
+                </div>
+              )}
+              {importStatus === 'error' && (
+                <div className="text-sm text-red-700 bg-red-50 p-3 rounded-md border border-red-200">
+                  {importMessage}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
