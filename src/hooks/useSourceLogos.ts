@@ -8,10 +8,10 @@ interface SourceLogo {
 
 // Default logos mapping for common sources
 const DEFAULT_LOGOS: Record<string, string> = {
-  'PCAF': '/public/lovable-uploads/pcaf-logo.png',
-  'CBAM': '/public/lovable-uploads/cbam-logo.png',
-  'ADEME': '/public/lovable-uploads/ademe-logo.png',
-  'GHG Protocol': '/public/lovable-uploads/ghg-protocol-logo.png',
+  'PCAF': '/public/assets/pcaf-logo.png',
+  'CBAM': '/public/assets/cbam-logo.png',
+  'ADEME': '/public/assets/ademe-logo.png',
+  'GHG Protocol': '/public/assets/ghg-protocol-logo.png',
   // Ajoutez ici d'autres sources avec leurs logos par défaut
 };
 
