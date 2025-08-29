@@ -41,7 +41,7 @@ const Index = () => {
           <div className="flex items-center justify-between h-16">
         {/* Logo */}
         <div className="flex-shrink-0">
-          <img src="/lovable-uploads/415a981c-a454-47dc-a601-b214f6e857d0.png" alt="DataCarb" className="h-16" />
+          <img src="/assets/415a981c-a454-47dc-a601-b214f6e857d0.png" alt="DataCarb" className="h-16" />
         </div>
         
         {/* Boutons de navigation */}
@@ -91,7 +91,7 @@ const Index = () => {
             
             {/* Colonne droite : Image */}
             <div className="order-1 lg:order-2">
-              <img src="/lovable-uploads/b3596089-c93c-4b3d-87ea-8598f493120b.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" />
+              <img src="/assets/header-homepage-v2-2025.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" />
             </div>
           </div>
         </div>
@@ -105,46 +105,46 @@ const Index = () => {
           </h4>
           <div className="grid grid-cols-7 gap-8 items-center">
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/3fdbfe68-8e5e-4c44-8ac1-edd24a2d8fac.png" alt="Empreinte" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/3fdbfe68-8e5e-4c44-8ac1-edd24a2d8fac.png" alt="Empreinte" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/ac4b2170-676b-424b-906d-7f65f939022c.png" alt="Ecobalyse" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/ac4b2170-676b-424b-906d-7f65f939022c.png" alt="Ecobalyse" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/f51cec17-9b6f-417a-919b-c29f1a77ac1a.png" alt="exiobase" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/f51cec17-9b6f-417a-919b-c29f1a77ac1a.png" alt="exiobase" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/9d73d9ce-baf8-4a47-bdd7-bcbcc41e709d.png" alt="inies" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/9d73d9ce-baf8-4a47-bdd7-bcbcc41e709d.png" alt="inies" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/8edc4de0-1e88-4d97-972f-ed5d481c1b30.png" alt="AGRI BALYSE" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/8edc4de0-1e88-4d97-972f-ed5d481c1b30.png" alt="AGRI BALYSE" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/a39b6717-f7d1-4045-a4ab-921fe28e5c53.png" alt="Electricity Maps" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/a39b6717-f7d1-4045-a4ab-921fe28e5c53.png" alt="Electricity Maps" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/c27135f4-de5c-49fd-9e9f-4dc89a29274f.png" alt="PCAF" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/c27135f4-de5c-49fd-9e9f-4dc89a29274f.png" alt="PCAF" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/5310da27-1ab7-4efe-a090-a25937048f60.png" alt="ecoinvent" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/5310da27-1ab7-4efe-a090-a25937048f60.png" alt="ecoinvent" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/08a66c66-7e5d-4050-918f-aa08fd2d8612.png" alt="AIB" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/08a66c66-7e5d-4050-918f-aa08fd2d8612.png" alt="AIB" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/aa03a266-0170-4b29-b12a-2f86dea065a2.png" alt="EMBER" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/aa03a266-0170-4b29-b12a-2f86dea065a2.png" alt="EMBER" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/c0650cbc-f7d4-40e6-a022-e6b2bac57c2a.png" alt="Climate Trace" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/c0650cbc-f7d4-40e6-a022-e6b2bac57c2a.png" alt="Climate Trace" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/ba02a326-86d5-4773-8777-e613296e2582.png" alt="European Environment Agency" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/ba02a326-86d5-4773-8777-e613296e2582.png" alt="European Environment Agency" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/2d97e89d-91a3-4143-8432-605a4422e9f0.png" alt="Department for Business, Energy & Industrial Strategy" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/2d97e89d-91a3-4143-8432-605a4422e9f0.png" alt="Department for Business, Energy & Industrial Strategy" className="max-h-[50px] w-full h-[50px]" />
             </div>
             <div className="flex flex-col items-center">
-              <MonoLogo src="/lovable-uploads/01ca909f-ef8b-4b32-aea1-50f98ae9e4a6.png" alt="eco" className="max-h-[50px] w-full h-[50px]" />
+              <MonoLogo src="/assets/01ca909f-ef8b-4b32-aea1-50f98ae9e4a6.png" alt="eco" className="max-h-[50px] w-full h-[50px]" />
             </div>
           </div>
         </div>
@@ -195,11 +195,10 @@ const Index = () => {
     puissant et personnalisable
   </h2>
   <Tabs defaultValue="donnees" className="max-w-6xl mx-auto">
-    <TabsList className="grid w-full grid-cols-4 mb-12 rounded-full items-center">
+    <TabsList className="grid w-full grid-cols-3 mb-12 rounded-full items-center">
               <TabsTrigger value="donnees" className="rounded-full">Données</TabsTrigger>
               <TabsTrigger value="recherche" className="rounded-full">Recherche</TabsTrigger>
               <TabsTrigger value="personnalisation" className="rounded-full">Personnalisation</TabsTrigger>
-              <TabsTrigger value="plus-loin" className="rounded-full">Pour aller plus loin</TabsTrigger>
             </TabsList>
             <TabsContent value="donnees" className="grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 py-4">
@@ -222,8 +221,8 @@ const Index = () => {
         </div>
       </div>
               </div>
-              <div className="bg-white rounded-lg p-6">
-                <img src="/lovable-uploads/71d74bc4-61b0-4e95-befc-12b9508a15e4.png" alt="Interface base de données" className="w-full h-auto" />
+              <div>
+                <img src="/assets/onglet-donnees-v4-2025.png" alt="Interface base de données" className="w-full h-auto" />
               </div>
             </TabsContent>
             <TabsContent value="recherche" className="grid lg:grid-cols-2 gap-12 items-start">
@@ -247,8 +246,8 @@ const Index = () => {
       </div>
     </div>
               </div>
-              <div className="bg-white rounded-lg p-6">
-                <img src="/lovable-uploads/501e99e2-29fe-4086-8d1f-9bd8028d151d.png" alt="Interface de recherche" className="w-full h-auto" />
+              <div>
+                <img src="/assets/onglet-recherche-v3-2025.png" alt="Interface de recherche" className="w-full h-auto" />
               </div>
             </TabsContent>
             <TabsContent value="personnalisation" className="grid lg:grid-cols-2 gap-12 items-start">
@@ -272,35 +271,11 @@ const Index = () => {
       </div>
     </div>
               </div>
-              <div className="bg-white rounded-lg p-6">
-                <img src="/lovable-uploads/e3feeaa6-9229-46a9-a227-0700f479943f.png" alt="Interface de personnalisation" className="w-full h-auto" />
+                            <div>
+                <img src="/assets/onglet-personnalisation-v2-2025.png" alt="Interface de personnalisation" className="w-full h-auto" />
               </div>
             </TabsContent>
-            <TabsContent value="plus-loin" className="grid lg:grid-cols-2 gap-12 items-start">
-              <div className="space-y-8 py-4">
-    <h3 className="text-3xl font-bold leading-tight">
-      Allez plus loin que<br />
-      la recherche de FE
-    </h3>
-    <div className="space-y-8">
-      <div>
-        <h4 className="text-lg font-semibold mb-2">Réalisez des benchmarks approfondis</h4>
-        <p className="text-base font-light leading-relaxed">Positionnez facilement un produit ou une entreprise par<br />rapport à des concurrents et des moyennes sectorielles de marché.</p>
-      </div>
-      <div>
-        <h4 className="text-lg font-semibold mb-2">Plan d'action et décarbonation</h4>
-        <p className="text-base font-light leading-relaxed">Identifiez rapidement les bénéfices de changements de produits,<br />relocalisation, de fournisseurs (achats responsables), etc.</p>
-      </div>
-      <div>
-        <h4 className="text-lg font-semibold mb-2">Support expert</h4>
-        <p className="text-base font-light leading-relaxed">Bénéficiez de l'accompagnement de nos experts<br />carbone pour optimiser vos calculs.</p>
-      </div>
-    </div>
-              </div>
-              <div className="bg-white rounded-lg p-6">
-                <img src="/lovable-uploads/d9ebca49-6f11-4b52-a6b0-07a9d348c5b2.png" alt="Interface avancée" className="w-full h-auto" />
-              </div>
-            </TabsContent>
+
           </Tabs>
         </div>
       </section>
@@ -322,45 +297,45 @@ const Index = () => {
                 {["AIB", "Agribalyse", "BEIS", "Base Carbone", "Base Impacts", "CCF", "Climate Trace", "EEA", "EPA", "Exiobase", "EcoInvent", "Ecobalyse", "Electricity Maps", "Ember", "GESPoint5", "GLEC", "Kering", "OMEGA TP", "Open CEDA", "PCAF"].map((name, index) => <div key={index} className="flex flex-col items-center space-y-2">
                     <div className="w-16 h-16 rounded-lg flex items-center justify-center">
                       {name === "AIB" ? (
-                        <MonoLogo src="/lovable-uploads/04c097ec-c73b-4fb8-8788-7db8dce6aae6.png" alt="AIB Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/04c097ec-c73b-4fb8-8788-7db8dce6aae6.png" alt="AIB Logo" className="w-full h-full" />
                       ) : name === "Agribalyse" ? (
-                        <MonoLogo src="/lovable-uploads/fda086b7-f932-4837-beff-453157e04098.png" alt="Agribalyse Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/fda086b7-f932-4837-beff-453157e04098.png" alt="Agribalyse Logo" className="w-full h-full" />
                       ) : name === "BEIS" ? (
-                        <MonoLogo src="/lovable-uploads/6a36c45c-748d-4f7b-83c3-06ab2651649f.png" alt="BEIS Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/6a36c45c-748d-4f7b-83c3-06ab2651649f.png" alt="BEIS Logo" className="w-full h-full" />
                       ) : name === "Base Carbone" ? (
-                        <MonoLogo src="/lovable-uploads/e9be0482-b48d-476b-8536-b92ea3b88ea5.png" alt="Base Carbone Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/e9be0482-b48d-476b-8536-b92ea3b88ea5.png" alt="Base Carbone Logo" className="w-full h-full" />
                       ) : name === "Base Impacts" ? (
-                        <MonoLogo src="/lovable-uploads/8351c94f-afcc-498e-b8fa-73f47451686a.png" alt="Base Impacts Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/8351c94f-afcc-498e-b8fa-73f47451686a.png" alt="Base Impacts Logo" className="w-full h-full" />
                       ) : name === "CCF" ? (
-                        <MonoLogo src="/lovable-uploads/c9bb06bc-2cc4-4420-9704-4c9f16118e97.png" alt="CCF Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/c9bb06bc-2cc4-4420-9704-4c9f16118e97.png" alt="CCF Logo" className="w-full h-full" />
                       ) : name === "Climate Trace" ? (
-                        <MonoLogo src="/lovable-uploads/47300cd4-f205-4264-a5b0-6f1406b312f8.png" alt="Climate Trace Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/47300cd4-f205-4264-a5b0-6f1406b312f8.png" alt="Climate Trace Logo" className="w-full h-full" />
                       ) : name === "EEA" ? (
-                        <MonoLogo src="/lovable-uploads/d2dffb4b-f32d-43ed-82bf-b071db714f91.png" alt="European Environment Agency Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/d2dffb4b-f32d-43ed-82bf-b071db714f91.png" alt="European Environment Agency Logo" className="w-full h-full" />
                       ) : name === "EPA" ? (
-                        <MonoLogo src="/lovable-uploads/75c9eac2-554f-4bb0-9719-08a698c80e1d.png" alt="US EPA Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/75c9eac2-554f-4bb0-9719-08a698c80e1d.png" alt="US EPA Logo" className="w-full h-full" />
                       ) : name === "Exiobase" ? (
-                        <MonoLogo src="/lovable-uploads/373cff1a-5089-4167-b40a-38ff4d50cc36.png" alt="Exiobase Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/373cff1a-5089-4167-b40a-38ff4d50cc36.png" alt="Exiobase Logo" className="w-full h-full" />
                       ) : name === "EcoInvent" ? (
-                        <MonoLogo src="/lovable-uploads/5cc1caa1-f312-4760-849c-0b4ec3ab5f76.png" alt="EcoInvent Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/5cc1caa1-f312-4760-849c-0b4ec3ab5f76.png" alt="EcoInvent Logo" className="w-full h-full" />
                       ) : name === "Ecobalyse" ? (
-                        <MonoLogo src="/lovable-uploads/f775ed4f-912f-41cf-9ade-08338aadf665.png" alt="Ecobalyse Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/f775ed4f-912f-41cf-9ade-08338aadf665.png" alt="Ecobalyse Logo" className="w-full h-full" />
                       ) : name === "Electricity Maps" ? (
-                        <MonoLogo src="/lovable-uploads/0cc5974c-e436-42f5-9776-ad4cd768b072.png" alt="Electricity Maps Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/0cc5974c-e436-42f5-9776-ad4cd768b072.png" alt="Electricity Maps Logo" className="w-full h-full" />
                       ) : name === "Ember" ? (
-                        <MonoLogo src="/lovable-uploads/88e14343-4589-4e34-b420-395130de1641.png" alt="Ember Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/88e14343-4589-4e34-b420-395130de1641.png" alt="Ember Logo" className="w-full h-full" />
                       ) : name === "GESPoint5" ? (
-                        <MonoLogo src="/lovable-uploads/8de84824-fb1b-441b-a7c2-50b92b4072e2.png" alt="1point5 Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/8de84824-fb1b-441b-a7c2-50b92b4072e2.png" alt="1point5 Logo" className="w-full h-full" />
                       ) : name === "GLEC" ? (
-                        <MonoLogo src="/lovable-uploads/a5f3dea0-840a-4eed-b0ce-58ef94a75d67.png" alt="GLEC Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/a5f3dea0-840a-4eed-b0ce-58ef94a75d67.png" alt="GLEC Logo" className="w-full h-full" />
                       ) : name === "Kering" ? (
-                        <MonoLogo src="/lovable-uploads/faa38581-8c17-443c-b8de-77a4ffc6c72e.png" alt="Kering Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/faa38581-8c17-443c-b8de-77a4ffc6c72e.png" alt="Kering Logo" className="w-full h-full" />
                       ) : name === "OMEGA TP" ? (
-                        <MonoLogo src="/lovable-uploads/4cce460f-a743-4cdf-9fdf-215ba86522d8.png" alt="OMEGA TP Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/4cce460f-a743-4cdf-9fdf-215ba86522d8.png" alt="OMEGA TP Logo" className="w-full h-full" />
                       ) : name === "Open CEDA" ? (
-                        <MonoLogo src="/lovable-uploads/6bd2c0d0-f9d1-4f7d-853f-cc2a7932bff5.png" alt="Open CEDA Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/6bd2c0d0-f9d1-4f7d-853f-cc2a7932bff5.png" alt="Open CEDA Logo" className="w-full h-full" />
                       ) : name === "PCAF" ? (
-                        <MonoLogo src="/lovable-uploads/b5978785-2cff-49c0-996a-225457820050.png" alt="PCAF Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/b5978785-2cff-49c0-996a-225457820050.png" alt="PCAF Logo" className="w-full h-full" />
                       ) : (
                         <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
                           <div className="w-8 h-8 bg-primary rounded"></div>
@@ -376,11 +351,11 @@ const Index = () => {
                 {["Inies", "Eco-platform", "EcoInvent"].map((name, index) => <div key={index} className="flex flex-col items-center space-y-2">
                     <div className="w-16 h-16 rounded-lg flex items-center justify-center">
                       {name === "Inies" ? (
-                        <MonoLogo src="/lovable-uploads/59011962-91d0-4310-a1a6-4ce1c3bbb4b6.png" alt="Inies Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/59011962-91d0-4310-a1a6-4ce1c3bbb4b6.png" alt="Inies Logo" className="w-full h-full" />
                       ) : name === "Eco-platform" ? (
-                        <MonoLogo src="/lovable-uploads/7d492fef-d5aa-4fa5-9732-938c9b53680d.png" alt="Eco-platform Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/7d492fef-d5aa-4fa5-9732-938c9b53680d.png" alt="Eco-platform Logo" className="w-full h-full" />
                       ) : name === "EcoInvent" ? (
-                        <MonoLogo src="/lovable-uploads/95586b3d-873f-4be8-a627-63fce61a19fd.png" alt="EcoInvent Logo" className="w-full h-full" />
+                        <MonoLogo src="/assets/95586b3d-873f-4be8-a627-63fce61a19fd.png" alt="EcoInvent Logo" className="w-full h-full" />
                       ) : (
                          <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
                            <div className="w-8 h-8 bg-primary rounded"></div>
@@ -400,7 +375,7 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-start">
             <div className="flex justify-center">
-              <img src="/lovable-uploads/aa4e0a75-7d42-444e-8f29-bd985c64a491.png" alt="Expert" className="w-full max-w-lg h-auto object-cover rounded-lg" />
+              <img src="/assets/aa4e0a75-7d42-444e-8f29-bd985c64a491.png" alt="Expert" className="w-full max-w-lg h-auto object-cover rounded-lg" />
             </div>
             <div className="space-y-8 py-4">
               <h2 className="text-3xl md:text-4xl font-bold leading-tight">
@@ -531,31 +506,31 @@ const Index = () => {
       <footer className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center text-center space-y-8">
-            <img src="/lovable-uploads/c8972ef9-8dcc-4223-95de-2f4927d40419.png" alt="DataCarb" className="h-12" />
-            <p className="text-primary-foreground/80 max-w-md">
+            <img src="/assets/logo-datacarb-white-horizontal.png" alt="DataCarb" className="h-12" />
+            <p className="text-white max-w-md">
               Le moteur de recherche de facteurs d'émission le plus puissant du marché.
             </p>
             <div className="flex space-x-4">
-              <Button variant="ghost" size="sm" className="p-2 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
+              <Button variant="ghost" size="sm" className="p-2 text-white hover:text-white hover:bg-white/10">
                 <Linkedin className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" className="p-2 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
+              <Button variant="ghost" size="sm" className="p-2 text-white hover:text-white hover:bg-white/10">
                 <Mail className="h-4 w-4" />
               </Button>
             </div>
             
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 w-full pt-8 border-t border-primary-foreground/20">
-              <div className="text-primary-foreground/80 text-sm">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 w-full pt-8 border-t border-white/20">
+              <div className="text-white text-sm">
                 © 2025 DataCarb. Tous droits réservés.
               </div>
-              <div className="flex space-x-6 text-sm text-primary-foreground/80">
-                <Link to="/privacy" className="hover:text-primary-foreground transition-colors">
+              <div className="flex space-x-6 text-sm text-white">
+                <Link to="/privacy" className="hover:text-white transition-colors">
                   Politique de confidentialité
                 </Link>
-                <Link to="/terms" className="hover:text-primary-foreground transition-colors">
+                <Link to="/terms" className="hover:text-white transition-colors">
                   Conditions d'utilisation
                 </Link>
-                <Link to="/cookies" className="hover:text-primary-foreground transition-colors">
+                <Link to="/cookies" className="hover:text-white transition-colors">
                   Cookies
                 </Link>
               </div>
