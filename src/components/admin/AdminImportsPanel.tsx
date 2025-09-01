@@ -66,12 +66,14 @@ export const AdminImportsPanel: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Fonction de compression côté client
-  const compressFileToGzip = async (file: File): Promise<Blob> => {
+  // Fonction de compression côté client (retourne un File typé application/gzip)
+  const compressFileToGzip = async (file: File): Promise<File> => {
     const stream = file.stream();
     const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
     const response = new Response(compressedStream);
-    return await response.blob();
+    const blob = await response.blob();
+    // Important: typer explicitement pour éviter application/octet-stream
+    return new File([blob], `${file.name.replace(/\.(csv|xlsx)$/i, '')}.csv.gz`, { type: 'application/gzip' });
   };
 
   const handleUpload = async () => {
@@ -115,7 +117,7 @@ export const AdminImportsPanel: React.FC = () => {
       setProgress(75);
       
       // 3. Upload du fichier compressé
-      const { error } = await supabase.storage.from('imports').upload(finalPath, compressedFile, { upsert: true });
+      const { error } = await supabase.storage.from('imports').upload(finalPath, compressedFile, { upsert: true, contentType: 'application/gzip' });
       if (error) throw error;
       setFilePath(finalPath);
       setProgress(100);
