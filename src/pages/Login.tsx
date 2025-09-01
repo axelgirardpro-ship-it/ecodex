@@ -23,51 +23,16 @@ const LoginForm = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check if user was redirected due to expired trial
-    const checkTrialExpired = async () => {
+    // Active l'alerte si flag session ou query param est présent
+    try {
       const urlParams = new URLSearchParams(location.search);
-      if (urlParams.get('trial_expired') === 'true') {
+      const fromQuery = urlParams.get('trial_expired') === 'true';
+      const fromSession = sessionStorage.getItem('trial_expired') === 'true';
+      if (fromQuery || fromSession) {
         setTrialExpiredMessage(true);
-        return;
+        sessionStorage.removeItem('trial_expired');
       }
-
-      // Also check if current user has expired trial
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('workspace_id')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (userData) {
-            const { data: workspace } = await supabase
-              .from('workspaces')
-              .select('plan_type')
-              .eq('id', userData.workspace_id)
-              .single();
-
-            if (workspace?.plan_type === 'freemium') {
-              const { data: trial } = await supabase
-                .from('workspace_trials')
-                .select('expires_at')
-                .eq('workspace_id', userData.workspace_id)
-                .single();
-
-              if (trial && new Date(trial.expires_at) <= new Date()) {
-                setTrialExpiredMessage(true);
-                await supabase.auth.signOut();
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking trial status:', error);
-      }
-    };
-
-    checkTrialExpired();
+    } catch {}
   }, [location]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -80,6 +45,10 @@ const LoginForm = () => {
       const result = await signIn(email, password);
       
       if (result.error) {
+        // Si l'essai est expiré, afficher l'alerte dédiée
+        if ((result.error as any).code === 'TRIAL_EXPIRED') {
+          setTrialExpiredMessage(true);
+        }
         toast({
           variant: "destructive",
           title: "Erreur lors de la connexion",
@@ -142,7 +111,7 @@ const LoginForm = () => {
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 mx-auto mb-4">
-              <img src="/lovable-uploads/8c10071b-a5e9-495c-ac9b-f3cf48b467a1.png" alt="DataCarb" className="w-full h-full object-contain" />
+              <img src="/assets/8c10071b-a5e9-495c-ac9b-f3cf48b467a1.png" alt="DataCarb" className="w-full h-full object-contain" />
             </div>
             <CardTitle className="text-2xl">Se connecter</CardTitle>
             <CardDescription>

@@ -31,6 +31,29 @@ export const AuthCallback = () => {
         if (data.session?.user) {
           console.log('Utilisateur authentifié:', data.session.user.email);
 
+          // Vérifier essai freemium expiré et rediriger vers login si nécessaire
+          try {
+            const { data: userData, error: userErr } = await supabase
+              .from('users')
+              .select('workspace_id')
+              .eq('user_id', data.session.user.id)
+              .single();
+
+            if (!userErr && userData?.workspace_id) {
+              const { data: hasAccess, error: accessErr } = await supabase
+                .rpc('workspace_has_access', { workspace_uuid: userData.workspace_id });
+
+              if (!accessErr && hasAccess === false) {
+                try { sessionStorage.setItem('trial_expired', 'true'); } catch {}
+                await supabase.auth.signOut();
+                navigate('/login?trial_expired=true');
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('Vérification essai expiré (OAuth) échouée:', e);
+          }
+
           // Si c'est une invitation à un workspace
           if (type === 'invite' && workspaceId && role) {
             await handleWorkspaceInvitation(data.session.user, workspaceId, role);
