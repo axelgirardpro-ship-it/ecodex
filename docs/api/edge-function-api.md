@@ -392,3 +392,177 @@ const results = await unifiedClient.search([{
 **Version API** : 1.0  
 **Dernière mise à jour** : Janvier 2025  
 **Support** : Équipe technique DataCarb
+
+---
+
+## Imports — Utilisateur (import-csv-user)
+
+### Endpoint
+
+- `https://[project-ref].supabase.co/functions/v1/import-csv-user`
+
+### Authentification
+
+- JWT Supabase requis (Authorization: Bearer <token>)
+
+### Corps de requête
+
+```json
+{
+  "file_path": "<imports/nom-fichier.csv|.csv.gz|.xlsx>",
+  "dataset_name": "<Nom de votre dataset>",
+  "language": "fr" // optionnel, défaut: fr
+}
+```
+
+### Comportement
+
+- Lecture du fichier depuis Storage (`imports`) avec URL signée
+- Parsing robuste CSV (supporte CSV, CSV.GZ, XLSX→CSV)
+- Validation des colonnes requises (ID optionnel):
+  - Requises: `Nom`, `FE`, `Unité donnée d'activité`, `Source`, `Périmètre`, `Localisation`, `Date`
+- Résolution du workspace utilisateur via `user_roles.workspace_id` (priorité de rôle: `super_admin` > `admin` > `gestionnaire` > `lecteur`; fallback: workspace possédé)
+- Journalisation `data_imports` (status `processing` → `completed/failed`)
+- Upsert de la `source` dans `fe_sources` (access_level=`standard`, is_global=false) + assignation dans `fe_source_workspace_assignments`
+- Ingestion SCD2 par lots (1000):
+  - `factor_key = ID` si fourni, sinon clé calculée (`Nom|Unité|Source|Périmètre|Localisation|lang`)
+  - Invalidation des versions précédentes (`is_latest=false`) par `factor_key`
+  - Insert des nouvelles versions dans `emission_factors`
+- Rafraîchissement ciblé de la projection: `rpc refresh_ef_all_for_source(dataset_name)`
+- Synchronisation Algolia incrémentale par Source:
+  - `deleteByQuery(Source:"dataset_name")` puis réinjection paginée (chunks de 1000) depuis `emission_factors_all_search`
+  - Compteur `algolia_api_calls` mis à jour dans `data_imports`
+
+### Réponse
+
+```json
+{
+  "import_id": "<uuid>",
+  "processed": <number>,
+  "inserted": <number>,
+  "sources": ["<dataset_name>"],
+  "parsing_method": "robust_csv_parser",
+  "compression_supported": true
+}
+```
+
+### Notes & limites
+
+- Taille conseillée avant compression: ~10 MB (la compression `.gz` est supportée)
+- La colonne `Source` des lignes est normalisée sur `dataset_name` pour uniformiser la provenance
+
+---
+
+## Imports — Admin (import-csv)
+
+### Endpoint
+
+- `https://[project-ref].supabase.co/functions/v1/import-csv`
+
+### Authentification & autorisation
+
+- JWT requis + contrôle d’accès via `rpc is_supra_admin(user_uuid)`
+
+### Corps de requête
+
+```json
+// Analyse (dry run)
+{
+  "file_path": "<imports/nom-fichier.csv|.csv.gz|.xlsx>",
+  "language": "fr",
+  "dry_run": true
+}
+
+// Import effectif
+{
+  "file_path": "<imports/nom-fichier.csv|.csv.gz|.xlsx>",
+  "language": "fr",
+  "dry_run": false,
+  "replace_all": false, // true = mode remplacement intégral pour la langue
+  "mapping": {
+    "<Source A>": { "access_level": "standard", "is_global": true },
+    "<Source B>": { "access_level": "premium",  "is_global": false }
+  }
+}
+```
+
+### Comportement
+
+- Parsing robuste (ID désormais optionnel)
+- `dry_run=true`:
+  - Retourne `sources` détectées (compte de lignes), `ids_missing`, échantillon d’erreurs
+  - Aucune modification de données
+- `dry_run=false`:
+  - Si `replace_all=true`: clôture toutes les versions `is_latest=true` pour la `language` ciblée, puis import
+  - Sinon: import incrémental (SCD2 par lots de 1000)
+  - `fe_sources` upsert selon `mapping` (accès `standard|premium`, portée `global|non global`)
+  - Si `is_global=false`: assignation automatique au workspace de l’admin courant (résolu via `user_roles.workspace_id`)
+  - Projection:
+    - `replace_all=true` → `rpc rebuild_emission_factors_all_search()`
+    - sinon → `rpc refresh_ef_all_for_source(source)` pour chaque source impactée
+  - Indexation Algolia: non effectuée ici (déclenchée via le panneau admin par `reindex-ef-all-atomic`)
+
+### Réindexation Algolia atomique
+
+- Edge Function: `reindex-ef-all-atomic`
+  - Applique les settings depuis `algolia_settings/ef_all.json` (via `apply-algolia-settings`)
+  - Stream `emission_factors_all_search` → index temporaire `<ef_all>_tmp` → `move` atomique vers `ef_all`
+
+---
+
+## Références techniques
+
+### Tables utilisées
+
+- `user_roles` (résolution `workspace_id`)
+- `workspaces`
+- `data_imports`
+- `fe_sources`
+- `fe_source_workspace_assignments`
+- `emission_factors` (SCD2)
+- `emission_factors_all_search` (projection de recherche)
+
+### RPC & fonctions SQL
+
+- `is_supra_admin(user_uuid uuid)`
+- `refresh_ef_all_for_source(p_source text)`
+- `rebuild_emission_factors_all_search()`
+- `refresh_emission_factors_teaser_public_fr()` (teaser public)
+
+### Triggers clés
+
+- `trg_ef_refresh_projection` (sur `emission_factors`)
+- `trg_fe_sources_refresh_projection` (sur `fe_sources`)
+- `trg_assignments_refresh_projection_{ins|upd|del}` (sur `fe_source_workspace_assignments`)
+- `ef_all_after_insert_refresh_teaser` (sur `emission_factors_all_search`)
+
+### Buckets Storage
+
+- `imports` (fichiers d’import)
+- `algolia_settings` (ex: `ef_all.json`)
+
+---
+
+## Procédures de test rapides
+
+### Import utilisateur (end-to-end)
+
+1. Uploader un `CSV`/`CSV.GZ`/`XLSX` dans `imports/`
+2. Appeler `import-csv-user` avec `{ file_path, dataset_name, language }`
+3. Vérifier `data_imports.status=completed`, `processed/inserted`
+4. Contrôler la projection `emission_factors_all_search` filtrée par `Source=dataset_name`
+5. Vérifier Algolia (présence des objets après purge + réinjection)
+
+### Import admin (analyse + import + réindex)
+
+1. `dry_run=true` → vérifier `sources`, `ids_missing`
+2. `dry_run=false` avec `mapping` et option `replace_all` si besoin
+3. Lancer `reindex-ef-all-atomic` pour un basculement atomique d’Algolia
+
+---
+
+## Changements récents (janv 2025)
+
+- Résolution workspace via `user_roles.workspace_id` (fin de dépendance à `profiles`)
+- Flow utilisateur: sync Algolia paginée + `deleteByQuery(Source)` avant réinjection
+- Flow admin: colonne `ID` devenue optionnelle dans le parser
