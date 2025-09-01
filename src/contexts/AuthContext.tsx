@@ -63,25 +63,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
               if (!userData) return;
 
-              const { data: workspace, error: workspaceError } = await supabase
-                .from('workspaces')
-                .select('plan_type')
-                .eq('id', userData.workspace_id)
-                .single();
+              const { data: hasAccess, error: accessErr } = await supabase
+                .rpc('workspace_has_access', { workspace_uuid: userData.workspace_id });
 
-              if (workspaceError || !workspace) return;
-
-              if (workspace.plan_type === 'freemium') {
-                const { data: trial, error: trialError } = await supabase
-                  .from('workspace_trials')
-                  .select('expires_at')
-                  .eq('workspace_id', userData.workspace_id)
-                  .single();
-
-                if (!trialError && trial && new Date(trial.expires_at) <= new Date()) {
-                  // Trial expired, sign out user
-                  await supabase.auth.signOut();
-                }
+              if (!accessErr && hasAccess === false) {
+                try { sessionStorage.setItem('trial_expired', 'true'); } catch {}
+                await supabase.auth.signOut();
+                try {
+                  const currentUrl = new URL(window.location.href);
+                  if (currentUrl.pathname !== '/login') {
+                    window.location.replace('/login?trial_expired=true');
+                  }
+                } catch {}
               }
             } catch (error) {
               // Log global error une seule fois par session
@@ -132,29 +125,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           .single();
 
         if (!userError && userData) {
-          const { data: workspace, error: workspaceError } = await supabase
-            .from('workspaces')
-            .select('plan_type')
-            .eq('id', userData.workspace_id)
-            .single();
+          const { data: hasAccess, error: accessErr } = await supabase
+            .rpc('workspace_has_access', { workspace_uuid: userData.workspace_id });
 
-          if (!workspaceError && workspace && workspace.plan_type === 'freemium') {
-            const { data: trial, error: trialError } = await supabase
-              .from('workspace_trials')
-              .select('expires_at')
-              .eq('workspace_id', userData.workspace_id)
-              .single();
-
-            if (!trialError && trial && new Date(trial.expires_at) <= new Date()) {
-              // Trial expired, sign out immediately and return error
-              await supabase.auth.signOut();
-              return { 
-                data: null, 
-                error: { 
-                  message: 'Votre période d\'essai est expirée. Contactez notre équipe commerciale pour souscrire à un plan payant.' 
-                } 
-              };
-            }
+          if (!accessErr && hasAccess === false) {
+            await supabase.auth.signOut();
+            try { sessionStorage.setItem('trial_expired', 'true'); } catch {}
+            return {
+              data: null,
+              error: {
+                message: "Votre période d'essai de 7 jours est expirée. Contactez notre équipe commerciale pour souscrire à un plan.",
+                code: 'TRIAL_EXPIRED'
+              }
+            };
           }
         }
       } catch (trialError) {
@@ -180,7 +163,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/search`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       }
     });
     
