@@ -1,6 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
+// Cache mémoire côté Edge (TTL court) pour limiter les hits
+const CACHE_TTL_MS = Number(Deno.env.get('ADMIN_WS_CACHE_TTL_MS') || '30000')
+type CacheEntry = { expiresAt: number; payload: any }
+const cache: Record<string, CacheEntry> = {}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, Authorization, x-client-info, X-Client-Info, apikey, content-type, Content-Type',
@@ -48,6 +53,17 @@ serve(async (req) => {
       const url = new URL(req.url);
       planFilter = url.searchParams.get('planFilter') || 'paid';
       console.log('GET request - planFilter:', planFilter);
+    }
+
+    // Réponse en cache si disponible
+    const cacheKey = `ws:${planFilter}`
+    const now = Date.now()
+    const cached = cache[cacheKey]
+    if (cached && now < cached.expiresAt) {
+      return new Response(
+        JSON.stringify({ data: cached.payload }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Define plan types based on filter
@@ -110,15 +126,12 @@ serve(async (req) => {
       })
     )
 
-    return new Response(
-      JSON.stringify({ data: workspacesWithDetails }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
-      }
-    )
+    // Mettre en cache la réponse
+    cache[cacheKey] = { expiresAt: now + CACHE_TTL_MS, payload: workspacesWithDetails }
+
+    return new Response(JSON.stringify({ data: workspacesWithDetails }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
 
   } catch (error) {
     console.error('Error:', error)

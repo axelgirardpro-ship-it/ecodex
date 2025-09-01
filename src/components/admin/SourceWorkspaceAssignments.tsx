@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { assignFeSourceToWorkspace, unassignFeSourceFromWorkspace, syncWorkspaceAssignments } from '@/lib/adminApi'
+import { assignFeSourceToWorkspace, unassignFeSourceFromWorkspace, syncWorkspaceAssignments, getAdminWorkspaces } from '@/lib/adminApi'
 import { useFeSources } from '@/contexts/FeSourcesContext'
 import { useWorkspaceAssignmentsRealtime } from "@/hooks/useOptimizedRealtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,9 +37,8 @@ export const SourceWorkspaceAssignments = () => {
   const getSourceBadgeVariant = (accessLevel: string) => accessLevel === 'premium' ? 'default' : 'secondary';
 
   const fetchWorkspaces = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke('get-admin-workspaces', { body: { planFilter: 'all' } });
-    if (error) throw error
-    const ws: Workspace[] = (data?.data || []).map((w: any)=>({ id: w.id, name: w.name, plan_type: w.plan_type }))
+    const rows = await getAdminWorkspaces('all')
+    const ws: Workspace[] = (rows || []).map((w: any)=>({ id: w.id, name: w.name, plan_type: w.plan_type }))
     setWorkspaces(ws)
     if (!selectedWorkspaceId && ws.length) setSelectedWorkspaceId(ws[0].id)
   }, [selectedWorkspaceId])

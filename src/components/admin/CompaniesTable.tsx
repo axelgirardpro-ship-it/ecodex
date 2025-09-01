@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminWorkspaces } from '@/lib/adminApi'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -40,23 +41,11 @@ export const CompaniesTable = () => {
       setLoading(true);
       
       // Get only paying workspaces (standard and premium)
-      console.log('CompaniesTable: Calling edge function for paying workspaces only');
-      const { data, error } = await supabase.functions.invoke('get-admin-workspaces', {
-        body: { planFilter: 'paying' }
-      });
-
-      console.log('CompaniesTable: Edge function response:', { data, error });
-
-      if (error) throw error;
-
-      if (data?.data) {
-        // Filter client-side as well to ensure only standard/premium plans
-        const payingCompanies = data.data.filter((company: Company) => 
-          company.plan_type === 'standard' || company.plan_type === 'premium'
-        );
-        console.log('CompaniesTable: Setting paying companies:', payingCompanies.map((c: any) => `${c.name}: ${c.plan_type}`));
-        setCompanies(payingCompanies);
-      }
+      const rows = await getAdminWorkspaces('paid')
+      const payingCompanies = rows.filter((company: Company) => 
+        company.plan_type === 'standard' || company.plan_type === 'premium'
+      );
+      setCompanies(payingCompanies);
     } catch (error) {
       console.error('Error fetching companies:', error);
     } finally {

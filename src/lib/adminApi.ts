@@ -1,5 +1,14 @@
 import { supabase } from '@/integrations/supabase/client'
 
+// Cache mémoire simple pour éviter les appels redondants vers get-admin-workspaces
+type WorkspacesCacheEntry = { data: any[]; expiresAt: number; inflight?: Promise<any[]> }
+const WORKSPACES_CACHE_TTL_MS = 60_000
+const workspacesCache: Record<string, WorkspacesCacheEntry> = {}
+
+export function invalidateAdminWorkspacesCache() {
+  Object.keys(workspacesCache).forEach(k=> delete workspacesCache[k])
+}
+
 async function invokeWithAuth<T = any>(fn: string, options?: {
   body?: any,
   headers?: Record<string, string>,
@@ -19,12 +28,25 @@ async function invokeWithAuth<T = any>(fn: string, options?: {
 
 export type PlanFilter = 'all' | 'paid' | 'freemium'
 
-export async function getAdminWorkspaces(planFilter: PlanFilter) {
-  const { data, error } = await invokeWithAuth('get-admin-workspaces', {
-    body: { planFilter }
-  })
-  if (error) throw error
-  return data?.data ?? []
+export async function getAdminWorkspaces(planFilter: PlanFilter, opts?: { force?: boolean }) {
+  const key = `v1:${planFilter}`
+  const now = Date.now()
+  const cached = workspacesCache[key]
+  // Retour immédiat si encore valide
+  if (!opts?.force && cached && now < cached.expiresAt && Array.isArray(cached.data)) {
+    return cached.data
+  }
+  // Dédoublonnage des requêtes concurrentes
+  if (!opts?.force && cached?.inflight) return cached.inflight
+  const inflight = (async () => {
+    const { data, error } = await invokeWithAuth('get-admin-workspaces', { body: { planFilter } })
+    if (error) throw error
+    const value = (data?.data ?? []) as any[]
+    workspacesCache[key] = { data: value, expiresAt: now + WORKSPACES_CACHE_TTL_MS }
+    return value
+  })()
+  workspacesCache[key] = { data: cached?.data ?? [], expiresAt: 0, inflight }
+  return inflight
 }
 
 export async function getAdminContacts(workspaceId: string | 'all', page = 1, pageSize = 25) {
@@ -40,6 +62,8 @@ export async function updateWorkspacePlan(workspaceId: string, newPlan: 'freemiu
     body: { action: 'update_workspace_plan', workspaceId, newPlan }
   })
   if (error) throw error
+  // Invalidation du cache des workspaces
+  invalidateAdminWorkspacesCache()
   return data
 }
 
@@ -56,6 +80,8 @@ export async function deleteWorkspace(workspaceId: string) {
     body: { type: 'workspace', id: workspaceId }
   })
   if (error) throw error
+  // Invalidation du cache des workspaces
+  invalidateAdminWorkspacesCache()
 }
 
 export async function deleteUser(userId: string) {

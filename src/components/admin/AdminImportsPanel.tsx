@@ -34,6 +34,8 @@ export const AdminImportsPanel: React.FC = () => {
 
   const [jobs, setJobs] = React.useState<ImportJob[]>([]);
   const [loadingJobs, setLoadingJobs] = React.useState(false);
+  const inflightRef = React.useRef(false);
+  const hasRunningRef = React.useRef(false);
 
   const [importStatus, setImportStatus] = React.useState<'idle'|'importing'|'success'|'error'>('idle');
   const [importMessage, setImportMessage] = React.useState<string | null>(null);
@@ -226,6 +228,8 @@ export const AdminImportsPanel: React.FC = () => {
 
   const loadJobs = React.useCallback(async () => {
     try {
+      if (inflightRef.current) return; // anti-chevauchement
+      inflightRef.current = true;
       setLoadingJobs(true);
       const { data, error } = await supabase
         .from('data_imports')
@@ -241,17 +245,34 @@ export const AdminImportsPanel: React.FC = () => {
         started_at: d.started_at,
       }));
       setJobs(mapped);
+      // Suivi job actif
+      hasRunningRef.current = mapped.some((j) => j.status === 'processing' || j.status === 'analyzing' || j.status === 'rebuilding');
     } catch (e) {
       // silencieux
     } finally {
       setLoadingJobs(false);
+      inflightRef.current = false;
     }
   }, []);
 
+  // Boucle d'auto-refresh adaptative (pause onglet caché, intervalle long si aucun job en cours)
   React.useEffect(() => {
-    loadJobs();
-    const h = setInterval(loadJobs, 5000);
-    return () => clearInterval(h);
+    let canceled = false;
+    let timer: any;
+    const tick = async () => {
+      try {
+        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+          await loadJobs();
+        }
+      } finally {
+        const delay = (typeof document !== 'undefined' && document.visibilityState !== 'visible')
+          ? 60000
+          : (hasRunningRef.current ? 5000 : 30000);
+        if (!canceled) timer = setTimeout(tick, delay);
+      }
+    };
+    tick();
+    return () => { canceled = true; if (timer) clearTimeout(timer); };
   }, [loadJobs]);
 
   if (!isSupraAdmin) return null;
