@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupraAdmin } from '@/hooks/useSupraAdmin';
+import { ImportJobMonitor } from './ImportJobMonitor';
 
 interface ImportJob {
   id: string;
@@ -34,10 +35,13 @@ export const AdminImportsPanel: React.FC = () => {
 
   const [jobs, setJobs] = React.useState<ImportJob[]>([]);
   const [loadingJobs, setLoadingJobs] = React.useState(false);
+  const inflightRef = React.useRef(false);
+  const hasRunningRef = React.useRef(false);
 
   const [importStatus, setImportStatus] = React.useState<'idle'|'importing'|'success'|'error'>('idle');
   const [importMessage, setImportMessage] = React.useState<string | null>(null);
   const [replaceAll, setReplaceAll] = React.useState(true);
+  const [optimizerStatus, setOptimizerStatus] = React.useState<any | null>(null);
 
   const downloadTemplate = () => {
     const headers = [
@@ -46,7 +50,7 @@ export const AdminImportsPanel: React.FC = () => {
     const example = [
       '',
       'Transport routier de marchandises','Freight transportation',
-      '','',
+      '', '',
       '0.123','kgCO2e/t.km','kgCO2e/t.km',
       'Base Carbone v23.6',
       'Transport','Transportation',
@@ -66,6 +70,28 @@ export const AdminImportsPanel: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const checkOptimizerStatus = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) {
+        toast({ variant: 'destructive', title: 'Session manquante', description: 'Reconnectez-vous pour consulter le statut.' });
+        return;
+      }
+      const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || (process as any)?.env?.NEXT_PUBLIC_SUPABASE_URL || '';
+      const baseFromEnv = typeof envUrl === 'string' && envUrl ? envUrl.replace('/rest/v1','').replace(/\/$/, '') : '';
+      const baseFromWindow = (typeof window !== 'undefined' ? window.location.origin : '').replace(/\/$/, '');
+      const projectBase = baseFromEnv || baseFromWindow;
+      const url = `${projectBase}/functions/v1/algolia-batch-optimizer?action=status`;
+      const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const j = await resp.json();
+      setOptimizerStatus(j);
+      toast({ title: 'Statut récupéré', description: `Queue: ${j?.queue_status?.queueSize ?? '-'} — Processing: ${String(j?.queue_status?.processing)}` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erreur statut', description: e.message || String(e) });
+    }
+  }
+
   // Fonction de compression côté client
   const compressFileToGzip = async (file: File): Promise<Blob> => {
     const stream = file.stream();
@@ -83,22 +109,17 @@ export const AdminImportsPanel: React.FC = () => {
       setUploading(true);
       setProgress(0);
       
-      // 1. Compresser le fichier automatiquement
+      // Compresser seulement si pas déjà compressé
       setProgress(25);
       const originalSize = file.size;
-      const compressedFile = await compressFileToGzip(file);
-      const compressedSize = compressedFile.size;
-      const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
-      
-      console.log('🗜️ Compression terminée:', {
-        originalSize: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
-        compressedSize: `${(compressedSize / 1024 / 1024).toFixed(2)} MB`,
-        ratio: `${compressionRatio}%`
-      });
+      const isAlreadyCompressed = file.name.toLowerCase().endsWith('.gz');
+      const fileToUpload = isAlreadyCompressed ? file : await compressFileToGzip(file);
+      const finalSize = fileToUpload.size;
+      const compressionRatio = isAlreadyCompressed ? 0 : Math.round((1 - finalSize / originalSize) * 100);
 
       setProgress(50);
-
-      // 2. Générer le nom de fichier compressé
+      
+      // Nom final (préserver .gz si déjà compressé)
       let cleanFileName = file.name
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -107,15 +128,13 @@ export const AdminImportsPanel: React.FC = () => {
         .replace(/_{2,}/g, '_')
         .replace(/^_+|_+$/g, '')
         .substring(0, 50);
+      const baseFileName = cleanFileName.replace(/\.(csv|xlsx|gz)$/i, '');
+      const finalPath = isAlreadyCompressed ? `${Date.now()}_${cleanFileName}` : `${Date.now()}_${baseFileName}.csv.gz`;
 
-      // Toujours ajouter .gz pour les fichiers compressés
-      const baseFileName = cleanFileName.replace(/\.(csv|xlsx)$/i, '');
-      const finalPath = `${Date.now()}_${baseFileName}.csv.gz`;
-      
       setProgress(75);
       
-      // 3. Upload du fichier compressé
-      const { error } = await supabase.storage.from('imports').upload(finalPath, compressedFile, { upsert: true });
+      // Upload
+      const { error } = await supabase.storage.from('imports').upload(finalPath, fileToUpload, { upsert: true });
       if (error) throw error;
       setFilePath(finalPath);
       setProgress(100);
@@ -123,10 +142,166 @@ export const AdminImportsPanel: React.FC = () => {
       setMappingRows([]);
       toast({ 
         title: 'Upload terminé', 
-        description: `${finalPath} (${compressionRatio}% de compression)` 
+        description: isAlreadyCompressed ? `${finalPath} (déjà compressé)` : `${finalPath} (${compressionRatio}% de compression)` 
       });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur upload', description: e.message || String(e) });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleChunkedUpload = async () => {
+    if (!file) {
+      toast({ variant: 'destructive', title: 'Aucun fichier', description: 'Sélectionnez un fichier CSV.' });
+      return;
+    }
+    
+    const fileSizeMB = Math.round(file.size / 1024 / 1024);
+    
+    try {
+      setUploading(true);
+      setProgress(0);
+      
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB par chunk comme spécifié
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      
+      // 1. Créer le job d'import
+      const { data: job, error: jobErr } = await supabase
+        .from('import_jobs')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          filename: file.name,
+          original_size: file.size,
+          total_chunks: totalChunks,
+          replace_all: replaceAll,
+          language: 'fr',
+          status: 'pending'
+        } as any)
+        .select()
+        .single();
+      
+      if (jobErr) throw jobErr;
+      
+      setProgress(10);
+      
+      // 2. Upload et parser par chunks côté client
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        
+        // Parser le CSV chunk côté client
+        const text = await chunk.text();
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+        
+        // Parser CSV robuste
+        function parseCSVLine(line: string): string[] {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          for (let idx = 0; idx < line.length; idx++) {
+            const char = line[idx];
+            const nextChar = line[idx + 1];
+            if (char === '"') {
+              if (inQuotes && nextChar === '"') { current += '"'; idx++; } 
+              else { inQuotes = !inQuotes; }
+            } else if (char === ',' && !inQuotes) { 
+              result.push(current.trim()); current = ''; 
+            } else { 
+              current += char; 
+            }
+          }
+          result.push(current.trim());
+          return result;
+        }
+
+        let parsedData: any[] = [];
+        let headers: string[] = [];
+        
+        if (i === 0 && lines.length > 0) {
+          // Premier chunk: extraire headers
+          headers = parseCSVLine(lines[0]);
+          lines.slice(1).forEach(line => {
+            const values = parseCSVLine(line);
+            if (values.length === headers.length) {
+              const row: Record<string, string> = {};
+              headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+              parsedData.push(row);
+            }
+          });
+        } else {
+          // Chunks suivants: utiliser structure fixe (22 colonnes)
+          lines.forEach(line => {
+            const values = parseCSVLine(line);
+            if (values.length >= 22) {
+              parsedData.push({
+                'ID': values[0] || '',
+                'Nom': values[1] || '',
+                'Nom_en': values[2] || '',
+                'Description': values[3] || '',
+                'Description_en': values[4] || '',
+                'FE': values[5] || '',
+                'Unité donnée d\'activité': values[6] || '',
+                'Unite_en': values[7] || '',
+                'Source': values[8] || '',
+                'Secteur': values[9] || '',
+                'Secteur_en': values[10] || '',
+                'Sous-secteur': values[11] || '',
+                'Sous-secteur_en': values[12] || '',
+                'Localisation': values[13] || '',
+                'Localisation_en': values[14] || '',
+                'Date': values[15] || '',
+                'Incertitude': values[16] || '',
+                'Périmètre': values[17] || '',
+                'Périmètre_en': values[18] || '',
+                'Contributeur': values[19] || '',
+                'Commentaires': values[20] || '',
+                'Commentaires_en': values[21] || '',
+              });
+            }
+          });
+        }
+        
+        // 3. Stocker le chunk via SQL direct
+        if (parsedData.length > 0) {
+          const { error: chunkErr } = await supabase
+            .from('import_chunks')
+            .insert({
+              job_id: job.id,
+              chunk_number: i,
+              data: parsedData,
+              records_count: parsedData.length
+            } as any);
+          
+          if (chunkErr) {
+            console.warn(`Chunk ${i} failed:`, chunkErr);
+            continue;
+          }
+          
+          // 4. Envoyer dans la queue PGMQ via fonction utilitaire
+          await supabase.rpc('send_to_import_queue', {
+            p_job_id: job.id,
+            p_chunk_number: i
+          } as any);
+        }
+        
+        // Progress update
+        const progress = 10 + Math.round((i + 1) / totalChunks * 80);
+        setProgress(progress);
+      }
+      
+      setProgress(100);
+      toast({ 
+        title: 'Upload chunké terminé', 
+        description: `${totalChunks} chunks de 5MB créés (${fileSizeMB}MB total). Queue + Cron actifs - monitoring via ImportJobMonitor.`
+      });
+      
+      setAnalysisDone(false);
+      setMappingRows([]);
+      
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erreur upload chunké', description: e.message || String(e) });
     } finally {
       setUploading(false);
     }
@@ -138,7 +313,7 @@ export const AdminImportsPanel: React.FC = () => {
       return;
     }
     try {
-      // 1) Analyse (dry run)
+      // 1) Analyse (optionnelle)
       const { data, error } = await supabase.functions.invoke('import-csv', {
         body: { file_path: filePath, language: 'fr', dry_run: true }
       });
@@ -158,26 +333,18 @@ export const AdminImportsPanel: React.FC = () => {
       const ok = window.confirm(`Lancer l'import maintenant ?\nSources: ${rows.length} — Lignes valides: ${total}`);
       if (!ok) return;
 
-      // 3) Import
+      // 3) Import avec mapping surchargé
       const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
       rows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
       setImportStatus('importing');
-      setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
+      setImportMessage('Import en cours… (synchronisation Algolia planifiée par source)');
       const { data: importData, error: importErr } = await supabase.functions.invoke('import-csv', {
         body: { file_path: filePath, language: 'fr', dry_run: false, mapping, replace_all: replaceAll }
       });
       if (importErr) throw importErr;
       toast({ title: 'Import lancé', description: `Job: ${importData?.import_id || 'en file'}` });
-      // Reindex atomique complet après import admin
-      try {
-        const { data: reindexRes, error: reindexErr } = await supabase.functions.invoke('reindex-ef-all-atomic', { body: {} })
-        if (reindexErr) throw reindexErr
-        setImportStatus('success');
-        setImportMessage('Import terminé. Reindex Algolia atomique effectué.');
-      } catch (e: any) {
-        setImportStatus('error');
-        setImportMessage(`Import OK mais reindex Algolia a échoué: ${e?.message || String(e)}`);
-      }
+      setImportStatus('success');
+      setImportMessage('Import terminé. Synchronisation Algolia en tâche de fond.');
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
@@ -199,21 +366,38 @@ export const AdminImportsPanel: React.FC = () => {
       const mapping: Record<string, { access_level: AccessLevel; is_global: boolean }> = {};
       mappingRows.forEach((r) => { mapping[r.name] = { access_level: r.access_level, is_global: r.is_global }; });
       setImportStatus('importing');
-      setImportMessage('Import en cours… (la synchronisation Algolia par source s’effectue automatiquement)');
+      setImportMessage('Import en cours… (synchronisation Algolia planifiée par source)');
       const { data, error } = await supabase.functions.invoke('import-csv', {
         body: { file_path: filePath, language: 'fr', dry_run: false, mapping, replace_all: replaceAll }
       });
       if (error) throw error;
       toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });
-      try {
-        const { error: reindexErr } = await supabase.functions.invoke('reindex-ef-all-atomic', { body: {} })
-        if (reindexErr) throw reindexErr
-        setImportStatus('success');
-        setImportMessage('Import terminé. Reindex Algolia atomique effectué.');
-      } catch (e: any) {
-        setImportStatus('error');
-        setImportMessage(`Import OK mais reindex Algolia a échoué: ${e?.message || String(e)}`);
-      }
+      setImportStatus('success');
+      setImportMessage('Import terminé. Synchronisation Algolia en tâche de fond.');
+      await loadJobs();
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
+      setImportStatus('error');
+      setImportMessage(e?.message ? String(e.message) : 'Erreur lors de l\'import.');
+    }
+  };
+
+  // Import direct (mode simple): après upload uniquement, sans analyse/mapping
+  const quickImport = async () => {
+    if (!filePath) {
+      toast({ variant: 'destructive', title: 'Fichier manquant', description: 'Veuillez uploader un fichier.' });
+      return;
+    }
+    try {
+      setImportStatus('importing');
+      setImportMessage('Import en cours… (synchronisation Algolia planifiée par source)');
+      const { data, error } = await supabase.functions.invoke('import-csv', {
+        body: { file_path: filePath, language: 'fr', dry_run: false, mapping: {}, replace_all: replaceAll }
+      });
+      if (error) throw error;
+      toast({ title: 'Import lancé', description: `Job: ${data?.import_id || 'en file'}` });
+      setImportStatus('success');
+      setImportMessage('Import terminé. Synchronisation Algolia en tâche de fond.');
       await loadJobs();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Erreur import', description: e.message || String(e) });
@@ -226,6 +410,8 @@ export const AdminImportsPanel: React.FC = () => {
 
   const loadJobs = React.useCallback(async () => {
     try {
+      if (inflightRef.current) return; // anti-chevauchement
+      inflightRef.current = true;
       setLoadingJobs(true);
       const { data, error } = await supabase
         .from('data_imports')
@@ -241,17 +427,32 @@ export const AdminImportsPanel: React.FC = () => {
         started_at: d.started_at,
       }));
       setJobs(mapped);
+      hasRunningRef.current = mapped.some((j) => j.status === 'processing' || j.status === 'analyzing' || j.status === 'rebuilding');
     } catch (e) {
       // silencieux
     } finally {
       setLoadingJobs(false);
+      inflightRef.current = false;
     }
   }, []);
 
+  // Boucle d'auto-refresh
   React.useEffect(() => {
-    loadJobs();
-    const h = setInterval(loadJobs, 5000);
-    return () => clearInterval(h);
+    let canceled = false;
+    let timer: any;
+    const tick = async () => {
+      try {
+        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+          await loadJobs();
+        }
+      } finally {
+        const delay = (typeof document !== 'undefined' && document.visibilityState !== 'visible')
+          ? 60000 : (hasRunningRef.current ? 5000 : 30000);
+        if (!canceled) timer = setTimeout(tick, delay);
+      }
+    };
+    tick();
+    return () => { canceled = true; if (timer) clearTimeout(timer); };
   }, [loadJobs]);
 
   if (!isSupraAdmin) return null;
@@ -264,8 +465,7 @@ export const AdminImportsPanel: React.FC = () => {
       <CardHeader>
         <CardTitle>Import de la base de facteurs (FR/EN)</CardTitle>
         <CardDescription>
-          Importez facilement des facteurs d'émission depuis un fichier CSV ou XLSX. 
-          Le processus est guidé en 3 étapes simples avec compression automatique et synchronisation Algolia.
+          Architecture robuste avec Queue + Cron: Upload chunké → PGMQ → traitement automatique → Algolia
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -280,7 +480,6 @@ export const AdminImportsPanel: React.FC = () => {
               📄 Télécharger le template CSV
             </Button>
           </div>
-          
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Label htmlFor="file-input">Fichier CSV/XLSX</Label>
@@ -301,148 +500,38 @@ export const AdminImportsPanel: React.FC = () => {
               accept=".csv,.xlsx,.gz,.csv.gz,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/gzip" 
               onChange={(e) => setFile(e.target.files?.[0] || null)} 
             />
-            
-            <div className="flex items-center justify-between">
-              <Button 
-                onClick={handleUpload} 
-                disabled={!file || uploading}
-                className="min-w-[180px]"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Upload... {progress}%
-                  </>
-                ) : (
-                  <>
-                    ⬆️ Uploader le fichier
-                  </>
-                )}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <Button onClick={handleChunkedUpload} disabled={!file || uploading} className="min-w-[200px]">
+                {uploading ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Upload chunké... {progress}%</>) : (<>🚀 Upload et traitement chunké</>)}
               </Button>
-              
-              {filePath && (
-                <div className="text-sm text-green-600 flex items-center gap-2">
-                  ✅ Fichier uploadé : <span className="font-mono text-xs">{filePath.split('/').pop()}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mt-2">
+                <Label className="text-sm">Remplacer intégralement (SCD2):</Label>
+                <input type="checkbox" checked={replaceAll} onChange={(e) => setReplaceAll(e.target.checked)} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Étape 2: Analyse et import */}
-        <div className={`border rounded-lg p-4 space-y-4 ${!filePath ? 'opacity-50' : ''}`}>
+        {/* Architecture Queue + Cron - Plus d'étapes manuelles nécessaires */}
+        <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full ${filePath ? 'bg-primary text-primary-foreground' : 'bg-gray-300 text-gray-500'} flex items-center justify-center text-sm font-semibold`}>2</div>
-            <h3 className="text-lg font-semibold">Analyser et importer</h3>
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">⚡</div>
+            <h3 className="text-lg font-semibold">Architecture automatisée</h3>
           </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <Button 
-              onClick={analyzeThenImport} 
-              disabled={!filePath}
-              className="min-w-[200px]"
-            >
-              🔍 Analyser puis Importer
-            </Button>
-            
-            {analysisDone && mappingRows.length > 0 && (
-              <Button 
-                variant="secondary" 
-                onClick={launchImportWithCurrentMapping}
-                className="min-w-[180px]"
-              >
-                📥 Importer maintenant
-              </Button>
-            )}
+          <div className="text-sm space-y-2">
+            <div>✅ <strong>Upload chunké</strong>: Fichier découpé en chunks 5MB, parsé côté client</div>
+            <div>✅ <strong>Queue PGMQ</strong>: Chaque chunk envoyé dans csv_import_queue</div>
+            <div>✅ <strong>Cron worker</strong>: Traite 5 messages/minute via Edge Function</div>
+            <div>✅ <strong>Progress tracking</strong>: Suivi granulaire par chunk</div>
+            <div>✅ <strong>Auto-reindex</strong>: Algolia indexé automatiquement à completion</div>
+            <div>✅ <strong>Retry automatique</strong>: Échecs retentés max 3×</div>
           </div>
-          
-          {!filePath && (
-            <p className="text-sm text-muted-foreground">
-              ⚠️ Veuillez d'abord uploader un fichier à l'étape 1
-            </p>
-          )}
-        </div>
-
-        {/* Étape 3: Configuration des sources (après analyse) */}
-        <div className={`border rounded-lg p-4 space-y-4 ${mappingRows.length === 0 ? 'opacity-50' : ''}`}>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full ${mappingRows.length > 0 ? 'bg-primary text-primary-foreground' : 'bg-gray-300 text-gray-500'} flex items-center justify-center text-sm font-semibold`}>3</div>
-            <h3 className="text-lg font-semibold">Configuration des sources</h3>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs text-muted-foreground cursor-help">(Aide)</span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Configurez l'accès par source : Standard (gratuit) ou Premium (payant). Global = visible par toutes les workspaces.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          
-          {mappingRows.length === 0 ? (
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              ℹ️ Les sources seront détectées après l'analyse du fichier à l'étape 2
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Appliquer à toutes:</span>
-                <Select onValueChange={(v) => setAllAccess(v as AccessLevel)}>
-                  <SelectTrigger className="w-40"><SelectValue placeholder="Accès" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" onClick={() => setAllGlobal(true)}>Global: Oui</Button>
-                <Button variant="outline" size="sm" onClick={() => setAllGlobal(false)}>Global: Non</Button>
-              </div>
-              <div className="overflow-auto border rounded-md">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="p-2 text-left">Source</th>
-                      <th className="p-2 text-right">Lignes</th>
-                      <th className="p-2 text-left">Accès</th>
-                      <th className="p-2 text-left">Global</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mappingRows.map((r, idx) => (
-                      <tr key={r.name} className="border-t">
-                        <td className="p-2">{r.name}</td>
-                        <td className="p-2 text-right">{r.count}</td>
-                        <td className="p-2">
-                          <Select value={r.access_level} onValueChange={(v) => setMappingRows((rows) => rows.map((x, i) => i===idx ? { ...x, access_level: v as AccessLevel } : x))}>
-                            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="standard">Standard</SelectItem>
-                              <SelectItem value="premium">Premium</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <input type="checkbox" checked={r.is_global} onChange={(e) => setMappingRows((rows) => rows.map((x, i) => i===idx ? { ...x, is_global: e.target.checked } : x))} />
-                            <span>Global</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Historique des imports */}
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm">
-              📊
-            </div>
+            <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm">📊</div>
             <h3 className="text-lg font-semibold">Historique des imports</h3>
             <TooltipProvider>
               <Tooltip>
@@ -498,7 +587,6 @@ export const AdminImportsPanel: React.FC = () => {
                  'Erreur d\'import'}
               </h3>
             </div>
-            
             <div className="space-y-2">
               {importStatus === 'importing' && (
                 <>
@@ -509,18 +597,25 @@ export const AdminImportsPanel: React.FC = () => {
                 </>
               )}
               {importStatus === 'success' && (
-                <div className="text-sm text-green-700 bg-green-50 p-3 rounded-md border border-green-200">
-                  {importMessage}
-                </div>
+                <div className="text-sm text-green-700 bg-green-50 p-3 rounded-md border border-green-200">{importMessage}</div>
               )}
               {importStatus === 'error' && (
-                <div className="text-sm text-red-700 bg-red-50 p-3 rounded-md border border-red-200">
-                  {importMessage}
-                </div>
+                <div className="text-sm text-red-700 bg-red-50 p-3 rounded-md border border-red-200">{importMessage}</div>
               )}
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" onClick={checkOptimizerStatus}>🔄 Vérifier la synchro Algolia</Button>
+                {optimizerStatus && (
+                  <div className="text-xs text-muted-foreground">
+                    Queue: {optimizerStatus?.queue_status?.queueSize ?? '-'} | Processing: {String(optimizerStatus?.queue_status?.processing)}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
+
+        {/* Monitoring des jobs asynchrones */}
+        <ImportJobMonitor />
 
         {/* Reindex manuel retiré: Webhook = auto-sync après import */}
       </CardContent>

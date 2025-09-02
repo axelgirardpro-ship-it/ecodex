@@ -53,8 +53,8 @@ export class RobustCsvParser {
     // Parser l'en-tête
     const headers = this.parseCSVLine(lines[0]);
     
-    // Validation des colonnes requises
-    const requiredColumns = ['ID', 'Nom', 'FE', 'Unité donnée d\'activité', 'Source', 'Périmètre', 'Localisation', 'Date'];
+    // Validation des colonnes requises (ID optionnel)
+    const requiredColumns = ['Nom', 'FE', 'Unité donnée d\'activité', 'Source', 'Périmètre', 'Localisation', 'Date'];
     const missingColumns = requiredColumns.filter(col => 
       !headers.some(h => h.toLowerCase() === col.toLowerCase())
     );

@@ -126,7 +126,7 @@ const SignupForm = () => {
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 mx-auto mb-4">
-              <img src="/lovable-uploads/8c10071b-a5e9-495c-ac9b-f3cf48b467a1.png" alt="DataCarb" className="w-full h-full object-contain" />
+              <img src="/assets/8c10071b-a5e9-495c-ac9b-f3cf48b467a1.png" alt="DataCarb" className="w-full h-full object-contain" />
             </div>
             <CardTitle className="text-2xl">Créer un compte</CardTitle>
             <CardDescription>

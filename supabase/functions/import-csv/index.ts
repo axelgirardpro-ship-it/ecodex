@@ -3,8 +3,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @ts-ignore - Import XLSX pour parsing Excel
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
-// Import du parser CSV robuste
-import { RobustCsvParser } from './csv-parser.ts'
+// Parsing CSV en streaming pour gros fichiers
 
 // Types pour l'environnement Deno/Edge Functions
 interface DenoEnv {
@@ -21,6 +20,223 @@ declare const Deno: DenoGlobal;
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function formatError(err: any): string {
+  try {
+    if (!err) return 'unknown_error';
+    if (typeof err === 'string') return err;
+    const message = err.message || err.error_description || err.msg || err.code || 'error';
+    const details = err.details || err.hint || err.explanation || '';
+    return details ? `${message} | ${details}` : String(message);
+  } catch {
+    return String(err);
+  }
+}
+
+// Helpers de parsing/streaming pour gros CSV
+function parseCSVLineStreaming(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  let i = 0
+  while (i < line.length) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') { current += '"'; i += 2 } else { inQuotes = !inQuotes; i += 1 }
+    } else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; i += 1 }
+    else { current += char; i += 1 }
+  }
+  result.push(current.trim())
+  return result
+}
+
+async function openTextStream(url: string): Promise<ReadableStream<string>> {
+  const res = await fetch(url)
+  if (!res.ok || !res.body) throw new Error('Cannot fetch file from storage')
+  const isGz = url.toLowerCase().endsWith('.gz') || url.toLowerCase().includes('.csv.gz')
+  // @ts-ignore
+  const base = isGz ? res.body.pipeThrough(new DecompressionStream('gzip')) : res.body
+  // @ts-ignore
+  return base.pipeThrough(new TextDecoderStream())
+}
+
+async function* iterateLines(textStream: ReadableStream<string>): AsyncGenerator<string> {
+  const reader = textStream.getReader()
+  let { value, done } = await reader.read()
+  let buffer = ''
+  while (!done) {
+    buffer += value || ''
+    let idx = buffer.indexOf('\n')
+    while (idx !== -1) {
+      let line = buffer.slice(0, idx)
+      if (line.endsWith('\r')) line = line.slice(0, -1)
+      yield line
+      buffer = buffer.slice(idx + 1)
+      idx = buffer.indexOf('\n')
+    }
+    ;({ value, done } = await reader.read())
+  }
+  if (buffer.length > 0) yield buffer
+}
+
+function validateRequiredHeaders(headers: string[]): string[] {
+  const required = ['Nom', 'FE', "Unité donnée d'activité", 'Source', 'Périmètre', 'Localisation', 'Date']
+  const lower = headers.map(h => h.toLowerCase())
+  return required.filter(col => !lower.includes(col.toLowerCase()))
+}
+
+async function streamAnalyzeCsv(url: string, _language: string) {
+  const textStream = await openTextStream(url)
+  const errors: string[] = []
+  let headers: string[] | null = null
+  let processed = 0
+  let idsMissing = 0
+  const sourcesCount = new Map<string, number>()
+  for await (const line of iterateLines(textStream)) {
+    if (headers === null) { headers = parseCSVLineStreaming(line); const missing = validateRequiredHeaders(headers); if (missing.length) throw new Error(`Colonnes manquantes: ${missing.join(', ')}`); continue }
+    if (!line || line.trim() === '') continue
+    const values = parseCSVLineStreaming(line)
+    if (values.length !== headers.length) { if (errors.length < 20) errors.push(`Colonnes ${values.length}/${headers.length}`); continue }
+    const row: Record<string,string> = {}; headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+    const source = row['Source']?.trim(); const nom = row['Nom']?.trim(); const fe = row['FE']?.trim()
+    if (!source || !nom || !fe) { if (errors.length < 20) errors.push(`Champs manquants`); continue }
+    processed++; if (!row['ID'] || !row['ID'].trim()) idsMissing++
+    if (source) sourcesCount.set(source, (sourcesCount.get(source) || 0) + 1)
+  }
+  return { headers: headers || [], processed, idsMissing, errors, sourcesCount }
+}
+
+async function collectSources(url: string): Promise<Set<string>> {
+  const textStream = await openTextStream(url)
+  const set = new Set<string>()
+  let headers: string[] | null = null
+  for await (const line of iterateLines(textStream)) {
+    if (headers === null) { headers = parseCSVLineStreaming(line); continue }
+    if (!line || line.trim() === '') continue
+    const values = parseCSVLineStreaming(line)
+    if (values.length < (headers?.length || 0)) continue
+    const idx = headers!.indexOf('Source')
+    if (idx >= 0 && values[idx]) set.add(values[idx].trim())
+  }
+  return set
+}
+
+async function streamImportCsvReplaceAll(url: string, language: string, mapping: Record<string, { access_level: 'standard' | 'premium'; is_global?: boolean }>, supabase: any, user: any) {
+  // SUPRA-ADMIN: Streaming par chunks + TRUNCATE initial (évite WORKER_LIMIT)
+  const { data: roles } = await supabase.from('user_roles').select('workspace_id, role').eq('user_id', user.id)
+  let userWorkspaceId: string | null = null
+  if (roles && roles.length > 0) {
+    const priority: Record<string, number> = { super_admin: 0, admin: 1, gestionnaire: 2, lecteur: 3 }
+    const sorted = roles.slice().sort((a: any, b: any) => (priority[a.role] ?? 99) - (priority[b.role] ?? 99))
+    userWorkspaceId = (sorted[0] as any)?.workspace_id || null
+  } else {
+    const { data: ownedWs } = await supabase.from('workspaces').select('id').eq('owner_id', user.id).limit(1).maybeSingle()
+    userWorkspaceId = (ownedWs as any)?.id || null
+  }
+  
+  // TRUNCATE initial pour replace all
+  await supabase.from('emission_factors').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  
+  const sourcesSet = new Set<string>()
+  const textStream = await openTextStream(url)
+  let headers: string[] | null = null
+  let processed = 0
+  let inserted = 0
+  let batch: any[] = []
+  const chunkSize = Number(Deno.env.get('IMPORT_CHUNK_SIZE') || '100') // Chunks très petits pour éviter timeout
+  const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
+  const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
+  
+  async function flush() {
+    if (batch.length === 0) return
+    // INSERT direct sans RPC (plus rapide, moins de timeout)
+    const { data: result, error: insertErr } = await supabase.from('emission_factors').insert(batch).select('id')
+    if (insertErr) throw insertErr
+    inserted += result?.length || 0
+    batch = []
+  }
+  // Streaming par chunks (évite WORKER_LIMIT Edge Functions)
+  let lineCount = 0
+  for await (const line of iterateLines(textStream)) {
+    lineCount++
+    if (headers === null) { 
+      headers = parseCSVLineStreaming(line)
+      console.log(`📋 Headers détectés (${headers.length}):`, headers.slice(0,10))
+      continue 
+    }
+    if (!line || line.trim() === '') continue
+    const values = parseCSVLineStreaming(line)
+    if (values.length !== headers.length) continue
+    const row: Record<string,string> = {}; headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+    
+    // Validation stricte
+    const hasRequired = Boolean(
+      row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
+    )
+    const feNum = toNumber(row['FE'])
+    if (!hasRequired || feNum === null) continue
+    
+    processed++
+    if (row['Source'] && row['Source'].trim()) sourcesSet.add(row['Source'].trim())
+    const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
+    
+    batch.push({
+      factor_key: factorKey,
+      version_id: (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`,
+      is_latest: true,
+      valid_from: new Date().toISOString(),
+      language,
+      "Nom": row['Nom'],
+      "Description": row['Description'] || null,
+      "FE": feNum,
+      "Unité donnée d'activité": row["Unité donnée d'activité"],
+      "Source": row['Source'],
+      "Secteur": row['Secteur'] || 'Non spécifié', // NOT NULL constraint
+      "Sous-secteur": row['Sous-secteur'] || null,
+      "Localisation": row['Localisation'],
+      "Date": toInt(row['Date']),
+      "Incertitude": row['Incertitude'] || null,
+      "Périmètre": row['Périmètre'] || null,
+      "Contributeur": row['Contributeur'] || null,
+      "Commentaires": row['Commentaires'] || null,
+      "Nom_en": row['Nom_en'] || null,
+      "Description_en": row['Description_en'] || null,
+      "Commentaires_en": row['Commentaires_en'] || null,
+      "Secteur_en": row['Secteur_en'] || null,
+      "Sous-secteur_en": row['Sous-secteur_en'] || null,
+      "Périmètre_en": row['Périmètre_en'] || null,
+      "Localisation_en": row['Localisation_en'] || null,
+      "Unite_en": row['Unite_en'] || null,
+    })
+    
+    if (batch.length >= chunkSize) await flush()
+  }
+  await flush()
+  
+  console.log(`📊 Streaming terminé: ${lineCount} lignes lues, ${processed} lignes traitées, ${inserted} insérés`)
+  // Upsert en masse des sources et assignations après ingestion
+  const allSources = Array.from(sourcesSet)
+  if (allSources.length > 0) {
+    const sourcesRows = allSources.map((name) => {
+      const cfg = mapping?.[name] || { access_level: 'standard', is_global: true }
+      return { source_name: name, access_level: cfg.access_level, is_global: cfg.is_global }
+    })
+    await supabase.from('fe_sources').upsert(sourcesRows, { onConflict: 'source_name' })
+    if (userWorkspaceId) {
+      const assignRows = allSources
+        .filter((name) => {
+          const cfg = mapping?.[name] || { access_level: 'standard', is_global: true }
+          return !cfg.is_global
+        })
+        .map((name) => ({ source_name: name, workspace_id: userWorkspaceId, assigned_by: user.id }))
+      if (assignRows.length > 0) {
+        await supabase.from('fe_source_workspace_assignments').upsert(assignRows, { onConflict: 'source_name,workspace_id' })
+      }
+    }
+  }
+  return { inserted, processed, sources: allSources }
 }
 
 function computeFactorKey(row: Record<string,string>, language: string) {
@@ -85,29 +301,7 @@ async function readXlsxLines(url: string, maxErrors = 50) {
   return csvString.split(/\r?\n/).filter(l => l !== '');
 }
 
-async function readFileContent(url: string): Promise<string> {
-  // Détecter le type de fichier par l'URL
-  const lower = url.toLowerCase();
-  const isXlsx = lower.includes('.xlsx');
-  const isGz = lower.endsWith('.gz') || lower.includes('.csv.gz');
-  
-  if (isXlsx) {
-    console.log('📊 Détection fichier XLSX, parsing Excel...');
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
-    const arrayBuffer = await res.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    return XLSX.utils.sheet_to_csv(worksheet);
-  } else if (isGz) {
-    console.log('🗜️ Détection fichier CSV GZ, décompression streaming...');
-    return await readGzipCsvContent(url);
-  } else {
-    console.log('📄 Détection fichier CSV, parsing texte...');
-    return await readCsvContent(url);
-  }
-}
+// Supprimé: lecture entière non streaming (remplacée par openTextStream/iterateLines)
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -160,162 +354,69 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Cannot sign storage url' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const fileContent = await readFileContent(signed.signedUrl)
-    
-    let parsedData;
+    // Streaming: analyse si dry_run; sinon ingestion par flux
+    if (dryRun) {
+      const analysis = await streamAnalyzeCsv(signed.signedUrl, language)
+      await supabase.from('data_imports').update({ status: 'analyzed', processed: analysis.processed, failed: analysis.errors.length, error_samples: analysis.errors.length ? JSON.stringify({ errors: analysis.errors }) : null }).eq('id', importRecord.id)
+      const sources = Array.from(analysis.sourcesCount.entries()).map(([name, count]) => ({ name, count, access_level: mapping?.[name]?.access_level || 'standard', is_global: mapping?.[name]?.is_global ?? true }))
+      return new Response(JSON.stringify({ import_id: importRecord.id, total_rows: analysis.processed, processed: analysis.processed, errors_sample: analysis.errors.slice(0, 20), ids_missing: analysis.idsMissing, sources }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // Non dry-run – Créer un job asynchrone pour traitement en arrière-plan
     try {
-      parsedData = RobustCsvParser.parseCSVContent(fileContent);
-      console.log(`✅ Parser robuste: ${parsedData.rows.length} lignes parsées`);
-    } catch (parseError) {
+      // Créer le job d'import dans la table
+      const { data: job, error: jobErr } = await supabase
+        .from('import_jobs')
+        .insert({
+          user_id: user.id,
+          file_path: filePath,
+          file_name: fileNameOnly,
+          language,
+          mapping,
+          replace_all: replaceAll,
+          status: 'queued'
+        })
+        .select()
+        .single()
+
+      if (jobErr) throw jobErr
+
+      // Envoyer le job dans la queue pgmq (traitement asynchrone)
+      const { error: queueErr } = await supabase.rpc('pgmq.send', {
+        queue_name: 'import_jobs',
+        msg: {
+          job_id: job.id,
+          user_id: user.id,
+          file_path: filePath,
+          language,
+          replace_all: replaceAll,
+          mapping
+        }
+      })
+      
+      if (queueErr) {
+        console.warn('Queue send failed:', queueErr)
+        // Fallback: marquer comme queued, le cron le trouvera
+      }
+
       await supabase.from('data_imports').update({ 
-        status: 'failed', 
-        error_details: { error: `Erreur de parsing CSV: ${parseError.message}` }, 
+        status: 'queued', 
         finished_at: new Date().toISOString() 
       }).eq('id', importRecord.id)
-      return new Response(JSON.stringify({ error: `Erreur de parsing CSV: ${parseError.message}` }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      })
-    }
 
-    const { headers, rows } = parsedData;
-    
-    if (rows.length === 0) {
-      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: 'empty csv after parsing' }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
-      return new Response(JSON.stringify({ error: 'CSV vide après parsing' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+      return new Response(JSON.stringify({ 
+        import_id: importRecord.id, 
+        job_id: job.id,
+        status: 'queued',
+        message: 'Import job créé. Traitement en arrière-plan en cours.'
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-    // Extraire les sources avec validation
-    const sourcesCount = RobustCsvParser.extractSourcesFromRows(rows);
-    console.log(`🔍 Sources détectées: ${Array.from(sourcesCount.keys()).join(', ')}`);
-    
-    const errors: string[] = []
-    const processed = rows.length
-    let idsMissing = 0
-
-    // Compter les IDs manquants
-    for (const row of rows) {
-      const providedId = (row['ID'] || '').trim()
-      if (!providedId) idsMissing++
-    }
-
-    if (dryRun) {
-      await supabase.from('data_imports').update({ status: 'analyzed', processed: processed, failed: errors.length, error_samples: errors.length ? JSON.stringify({ errors }) : null }).eq('id', importRecord.id)
-      const sources = Array.from(sourcesCount.entries()).map(([name, count]) => ({ name, count, access_level: mapping?.[name]?.access_level || 'standard', is_global: mapping?.[name]?.is_global ?? true }))
-      return new Response(JSON.stringify({ import_id: importRecord.id, total_rows: rows.length, processed, errors_sample: errors.slice(0, 20), ids_missing: idsMissing, sources }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    // Non dry-run – pipeline: upsert fe_sources + SCD2 par factor_key (ID prioritaire)
-    try {
-      // Mode remplacement intégral: remettre à false tous les is_latest pour la langue visée
-      if (replaceAll) {
-        await supabase
-          .from('emission_factors')
-          .update({ is_latest: false, valid_to: new Date().toISOString() })
-          .eq('language', language)
-          .eq('is_latest', true)
-      }
-      // Récupérer le workspace de l'utilisateur pour les assignations
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('workspace_id')
-        .eq('id', user.id)
-        .single()
-      
-      const userWorkspaceId = profile?.workspace_id
-
-      for (const [name] of sourcesCount) {
-        const cfg = mapping?.[name] || { access_level: 'standard', is_global: true }
-        await supabase.from('fe_sources').upsert({ source_name: name, access_level: cfg.access_level, is_global: cfg.is_global }, { onConflict: 'source_name' })
-        
-        // IMPORTANT: Pour les imports utilisateur (non globaux), assigner automatiquement au workspace
-        if (!cfg.is_global && userWorkspaceId) {
-          await supabase
-            .from('fe_source_workspace_assignments')
-            .upsert({ 
-              source_name: name, 
-              workspace_id: userWorkspaceId,
-              assigned_by: user.id
-            }, { onConflict: 'source_name,workspace_id' })
-        }
-      }
-
-      let inserted = 0
-      const chunkSize = 1000
-      for (let i = 0; i < rows.length; i += chunkSize) {
-        const slice = rows.slice(i, i + chunkSize)
-        const batch: any[] = []
-        const keys: string[] = []
-
-        for (const row of slice) {
-          const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
-          keys.push(factorKey)
-
-          const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
-          const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
-
-          batch.push({
-            factor_key: factorKey,
-            version_id: (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`,
-            is_latest: true,
-            valid_from: new Date().toISOString(),
-            language,
-            "Nom": row['Nom'],
-            "Description": row['Description'] || null,
-            "FE": toNumber(row['FE']),
-            "Unité donnée d'activité": row["Unité donnée d'activité"],
-            "Source": row['Source'],
-            "Secteur": row['Secteur'] || null,
-            "Sous-secteur": row['Sous-secteur'] || null,
-            "Localisation": row['Localisation'],
-            "Date": toInt(row['Date']),
-            "Incertitude": row['Incertitude'] || null,
-            "Périmètre": row['Périmètre'] || null,
-            "Contributeur": row['Contributeur'] || null,
-            "Commentaires": row['Commentaires'] || null,
-            "Nom_en": row['Nom_en'] || null,
-            "Description_en": row['Description_en'] || null,
-            "Commentaires_en": row['Commentaires_en'] || null,
-            "Secteur_en": row['Secteur_en'] || null,
-            "Sous-secteur_en": row['Sous-secteur_en'] || null,
-            "Périmètre_en": row['Périmètre_en'] || null,
-            "Localisation_en": row['Localisation_en'] || null,
-            "Unite_en": row['Unite_en'] || null,
-          })
-        }
-
-        if (keys.length) {
-          await supabase
-            .from('emission_factors')
-            .update({ is_latest: false, valid_to: new Date().toISOString() })
-            .in('factor_key', keys)
-            .eq('language', language)
-            .eq('is_latest', true)
-
-          const { error: insErr } = await supabase.from('emission_factors').insert(batch)
-          if (!insErr) inserted += batch.length
-        }
-      }
-
-      if (replaceAll) {
-        // Rebuild complet de la projection pour refléter uniquement le nouveau dataset
-        await supabase.rpc('rebuild_emission_factors_all_search')
-      } else {
-        // Rafraîchir projection par source (évite gros rebuild si ciblé)
-        for (const [sourceName] of sourcesCount) {
-          await supabase.rpc('refresh_ef_all_for_source', { p_source: sourceName })
-        }
-      }
-
-      // L'indexation Algolia se fera via reindex atomique déclenché côté admin (pas ici)
-
-      await supabase.from('data_imports').update({ status: 'completed', finished_at: new Date().toISOString(), processed: processed, inserted: inserted }).eq('id', importRecord.id)
-      return new Response(JSON.stringify({ import_id: importRecord.id, processed, inserted, status: 'completed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     } catch (e) {
-      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: String(e) }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
-      return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const errText = formatError(e)
+      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: errText }, finished_at: new Date().toISOString() }).eq('id', importRecord.id)
+      return new Response(JSON.stringify({ error: errText }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as any)?.message || String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: formatError(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })

@@ -46,7 +46,7 @@ export const WorkspacesTable = () => {
     try {
       await updateWorkspacePlan(id, newPlan)
       toast({ title: 'Plan mis à jour', description: `Nouveau plan: ${newPlan}` })
-      const data = await getAdminWorkspaces(filter)
+      const data = await getAdminWorkspaces(filter, { force: true })
       setRows(data)
       setEditingPlanId(null)
     } catch (e) {
@@ -61,7 +61,7 @@ export const WorkspacesTable = () => {
     try {
       await deleteWorkspace(id)
       toast({ title: 'Entreprise supprimée', description: name })
-      const data = await getAdminWorkspaces(filter)
+      const data = await getAdminWorkspaces(filter, { force: true })
       setRows(data)
     } catch (e) {
       console.error(e)

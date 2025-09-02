@@ -27,7 +27,7 @@ export const UnifiedNavbar = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to={user ? "/search" : "/"} className="flex items-center">
-              <img src="/lovable-uploads/6c4e21a7-850d-42ab-8370-017b8e71d180.png" alt="DataCarb" className="h-10" />
+              <img src="/assets/6c4e21a7-850d-42ab-8370-017b8e71d180.png" alt="DataCarb" className="h-10" />
             </Link>
           </div>
           
