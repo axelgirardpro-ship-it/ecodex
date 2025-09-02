@@ -1,0 +1,97 @@
+{
+  "fetched_at": "2025-09-01T00:00:00.000Z",
+  "service": "edge-function",
+  "window": "last_minute",
+  "entries": [
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_69067045-289f-4bad-b4cc-50c8bbd582c7_116",
+      "event_message": "POST | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-contacts",
+      "execution_time_ms": 895,
+      "function_id": "69067045-289f-4bad-b4cc-50c8bbd582c7",
+      "id": "4dbbc964-1694-4468-911b-184c0a3e9665",
+      "method": "POST",
+      "status_code": 200,
+      "timestamp": 1756736463864000,
+      "version": "116"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_69067045-289f-4bad-b4cc-50c8bbd582c7_116",
+      "event_message": "POST | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-contacts",
+      "execution_time_ms": 820,
+      "function_id": "69067045-289f-4bad-b4cc-50c8bbd582c7",
+      "id": "75df2ea8-4868-497a-93eb-7eaea86adf27",
+      "method": "POST",
+      "status_code": 200,
+      "timestamp": 1756736463770000,
+      "version": "116"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_715b3e7a-5173-43ba-ac55-ce007c8b94e5_125",
+      "event_message": "POST | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-workspaces",
+      "execution_time_ms": 643,
+      "function_id": "715b3e7a-5173-43ba-ac55-ce007c8b94e5",
+      "id": "132c84f5-6076-4154-a69f-d48623315e5a",
+      "method": "POST",
+      "status_code": 200,
+      "timestamp": 1756736463683000,
+      "version": "125"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_715b3e7a-5173-43ba-ac55-ce007c8b94e5_125",
+      "event_message": "POST | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-workspaces",
+      "execution_time_ms": 743,
+      "function_id": "715b3e7a-5173-43ba-ac55-ce007c8b94e5",
+      "id": "34cdcbe9-2cc8-4512-a76d-91cc8afdc5d6",
+      "method": "POST",
+      "status_code": 200,
+      "timestamp": 1756736463670000,
+      "version": "125"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_715b3e7a-5173-43ba-ac55-ce007c8b94e5_125",
+      "event_message": "OPTIONS | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-workspaces",
+      "execution_time_ms": 224,
+      "function_id": "715b3e7a-5173-43ba-ac55-ce007c8b94e5",
+      "id": "65ad5296-1f2f-4e54-995a-80967a99c234",
+      "method": "OPTIONS",
+      "status_code": 200,
+      "timestamp": 1756736463014000,
+      "version": "125"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_69067045-289f-4bad-b4cc-50c8bbd582c7_116",
+      "event_message": "OPTIONS | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-contacts",
+      "execution_time_ms": 149,
+      "function_id": "69067045-289f-4bad-b4cc-50c8bbd582c7",
+      "id": "4c3ed575-c286-4865-b579-31b5c6a15c55",
+      "method": "OPTIONS",
+      "status_code": 200,
+      "timestamp": 1756736462938000,
+      "version": "116"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_69067045-289f-4bad-b4cc-50c8bbd582c7_116",
+      "event_message": "OPTIONS | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-contacts",
+      "execution_time_ms": 138,
+      "function_id": "69067045-289f-4bad-b4cc-50c8bbd582c7",
+      "id": "8bf25379-f277-4b02-8969-ffaa95282c89",
+      "method": "OPTIONS",
+      "status_code": 200,
+      "timestamp": 1756736462928000,
+      "version": "116"
+    },
+    {
+      "deployment_id": "wrodvaatdujbpfpvrzge_715b3e7a-5173-43ba-ac55-ce007c8b94e5_125",
+      "event_message": "OPTIONS | 200 | https://wrodvaatdujbpfpvrzge.supabase.co/functions/v1/get-admin-workspaces",
+      "execution_time_ms": 111,
+      "function_id": "715b3e7a-5173-43ba-ac55-ce007c8b94e5",
+      "id": "9d7ebd18-cf01-4d0e-ac92-90e517c0dee4",
+      "method": "OPTIONS",
+      "status_code": 200,
+      "timestamp": 1756736462903000,
+      "version": "125"
+    }
+  ]
+}
+
+

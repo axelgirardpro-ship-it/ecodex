@@ -125,8 +125,8 @@ class AlgoliaBatchOptimizer {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
-    const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
+    const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') || Deno.env.get('ALGOLIA_APPLICATION_ID') || ''
+    const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') || Deno.env.get('ALGOLIA_SEARCH_API_KEY') || ''
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
 
     if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {

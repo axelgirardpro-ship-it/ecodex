@@ -20,6 +20,30 @@ function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
+function formatError(err: any): string {
+  try {
+    if (!err) return 'unknown_error'
+    if (typeof err === 'string') return err
+    const message = (err as any).message || (err as any).error_description || (err as any).msg || (err as any).code || 'error'
+    const details = (err as any).details || (err as any).hint || (err as any).explanation || ''
+    return details ? `${message} | ${details}` : String(message)
+  } catch {
+    return String(err)
+  }
+}
+
+function formatError(err: any): string {
+  try {
+    if (!err) return 'unknown_error'
+    if (typeof err === 'string') return err
+    const message = (err as any).message || (err as any).error_description || (err as any).msg || (err as any).code || 'error'
+    const details = (err as any).details || (err as any).hint || (err as any).explanation || ''
+    return details ? `${message} | ${details}` : String(message)
+  } catch {
+    return String(err)
+  }
+}
+
 function computeFactorKey(row: Record<string,string>, language: string) {
   const nom = (row['Nom'] || '').toLowerCase().trim();
   const unite = (row["Unité donnée d'activité"] || '').toLowerCase().trim();
@@ -142,10 +166,31 @@ Deno.serve(async (req) => {
     const missing = required.filter(r => !lowerHeaders.includes(r.toLowerCase()))
     if (missing.length) return json(400, { error: 'Missing headers', missing })
 
-    // Récupérer le workspace de l'utilisateur
-    const { data: profile } = await supabase.from('profiles').select('workspace_id').eq('id', user.id).single()
-    const userWorkspaceId = (profile as any)?.workspace_id || null
-    if (!userWorkspaceId) return json(400, { error: 'No workspace bound to user' })
+    // Récupérer le workspace de l'utilisateur via user_roles (workspace_id)
+    const { data: roles, error: rolesErr } = await supabase
+      .from('user_roles')
+      .select('workspace_id, role')
+      .eq('user_id', user.id)
+
+    if (rolesErr) return json(500, { error: 'Failed to fetch user roles', details: rolesErr.message })
+
+    let userWorkspaceId: string | null = null
+    if (roles && roles.length > 0) {
+      const priority: Record<string, number> = { super_admin: 0, admin: 1, gestionnaire: 2, lecteur: 3 }
+      const sorted = roles.slice().sort((a: any, b: any) => (priority[a.role] ?? 99) - (priority[b.role] ?? 99))
+      userWorkspaceId = (sorted[0] as any)?.workspace_id || null
+    } else {
+      // Fallback: workspace possédé par l'utilisateur (au cas où aucun rôle explicite)
+      const { data: ownedWs } = await supabase
+        .from('workspaces')
+        .select('id')
+        .eq('owner_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      userWorkspaceId = (ownedWs as any)?.id || null
+    }
+
+    if (!userWorkspaceId) return json(400, { error: 'No workspace bound to user (via user_roles)' })
 
     const importInsert = await supabase
       .from('data_imports')
@@ -176,8 +221,9 @@ Deno.serve(async (req) => {
     const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
 
     let processed = 0, inserted = 0
-    for (let i = 0; i < rows.length; i += 1000) {
-      const slice = rows.slice(i, i + 1000)
+    const CHUNK = Number(Deno.env.get('IMPORT_CHUNK_SIZE') || '500')
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const slice = rows.slice(i, i + CHUNK)
       const batch: any[] = []
       
       for (const row of slice) {
@@ -222,71 +268,34 @@ Deno.serve(async (req) => {
 
       if (batch.length === 0) continue
 
-      // SCD2: invalider les anciens enregistrements
-      const keys = batch.map(r => r.factor_key)
-      await supabase
-        .from('emission_factors')
-        .update({ is_latest: false, valid_to: new Date().toISOString() })
-        .in('factor_key', keys)
-        .eq('is_latest', true)
-
-      // Insérer les nouveaux enregistrements
-      const { data: insertResult, error: insertError } = await supabase
-        .from('emission_factors')
-        .insert(batch)
-        .select('id')
-
-      if (insertError) {
-        console.error('Erreur insertion batch utilisateur:', insertError)
-        await supabase.from('data_imports').update({
-          status: 'failed',
-          error_details: { error: insertError.message },
-          finished_at: new Date().toISOString()
-        }).eq('id', importId)
-        return json(500, { error: 'Database insertion failed', details: insertError.message })
+      // SCD2 via RPC workspace-scoped
+      const { data: upserted, error: rpcErr } = await supabase.rpc('batch_upsert_user_emission_factors', { 
+        p_workspace_id: userWorkspaceId, 
+        p_records: batch 
+      })
+      if (rpcErr) {
+        console.error('Erreur RPC insertion batch utilisateur:', rpcErr)
+        await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(rpcErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
+        return json(500, { error: 'Database insertion failed', details: formatError(rpcErr) })
       }
-
-      inserted += insertResult?.length || 0
-      console.log(`Batch utilisateur ${Math.ceil((i + 1000) / 1000)} inséré: ${insertResult?.length || 0} records`)
+      inserted += (upserted as number) || 0
+      console.log(`Batch utilisateur ${Math.ceil((i + CHUNK) / CHUNK)} inséré: ${upserted || 0} records`)
     }
 
     const t1 = Date.now()
     console.log(`Import utilisateur terminé: ${processed} traités, ${inserted} insérés en ${t1 - t0}ms`)
 
-    // Refresh projection par source (optimisé)
+    // Algolia partial update pour user (par source workspace)
     try {
-      const { error: refreshErr } = await supabase.rpc('refresh_ef_all_for_source', { p_source: datasetName })
-      if (refreshErr) console.warn('Refresh projection error:', refreshErr)
-    } catch (e) {
-      console.warn('Refresh projection failed:', e)
-    }
-
-    // Sync Algolia incrémentale
-    let algoliaApiCalls = 0
-    try {
-      const algoliaClient = (await import('https://esm.sh/algoliasearch@4')).default(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY)
-      const index = algoliaClient.initIndex(ALGOLIA_INDEX_ALL)
-      
-      // Récupérer les données fraîchement insérées pour Algolia
-      const { data: algoliaData } = await supabase
-        .from('emission_factors_all_search')
-        .select('*')
-        .eq('Source', datasetName)
-        .limit(1000)
-      
-      if (algoliaData && algoliaData.length > 0) {
-        const algoliaObjects = algoliaData.map((row: any) => ({
-          objectID: row.object_id,
-          ...row
-        }))
-        
-        await index.saveObjects(algoliaObjects)
-        algoliaApiCalls = Math.ceil(algoliaObjects.length / 1000)
-        console.log(`Algolia sync utilisateur: ${algoliaObjects.length} objets, ${algoliaApiCalls} API calls`)
-      }
-    } catch (algoliaErr) {
-      console.warn('Algolia sync failed:', algoliaErr)
-    }
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/algolia-batch-optimizer?action=sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' },
+        body: JSON.stringify({ sources: [datasetName], operation: 'incremental_sync', priority: 3, estimated_records: inserted })
+      })
+      const text = await resp.text()
+      await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_partial_sync_attempt', details: { sources: [datasetName], status: resp.status, response: text } })
+    } catch (e) { await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_partial_sync_error', details: { error: formatError(e) } }) }
 
     // Finaliser l'import
     await supabase.from('data_imports').update({
@@ -297,7 +306,7 @@ Deno.serve(async (req) => {
       failed: 0,
       finished_at: new Date().toISOString(),
       db_ms: t1 - t0,
-      algolia_api_calls: algoliaApiCalls
+      algolia_api_calls: null
     }).eq('id', importId)
 
     return json(200, { 
@@ -311,6 +320,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Import utilisateur error:', error)
-    return json(500, { error: 'Internal server error', details: error.message })
+    return json(500, { error: formatError(error) })
   }
 })
