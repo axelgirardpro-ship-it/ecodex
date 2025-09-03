@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
     const file_size: number | null = body?.file_size ?? null
     const replace_all: boolean = Boolean(body?.replace_all ?? true)
     const language: string = String(body?.language || 'fr')
+    const dataset_name: string | null = body?.dataset_name || null
 
     if (!file_path) {
       return new Response(JSON.stringify({ error: 'file_path is required' }), {
@@ -49,6 +50,22 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    // Déterminer workspace_id utilisateur (pour jobs user)
+    let workspace_id: string | null = null
+    try {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('workspace_id, role')
+        .eq('user_id', user.id)
+      if (roles && roles.length > 0) {
+        const priority: Record<string, number> = { supra_admin: 0, admin: 1, gestionnaire: 2, lecteur: 3 }
+        const sorted = roles.slice().sort((a: any, b: any) => (priority[a.role] ?? 99) - (priority[b.role] ?? 99))
+        workspace_id = sorted[0]?.workspace_id || null
+      }
+    } catch {}
+
+    const isUserJob = Boolean(dataset_name)
 
     const { data: job, error: jobErr } = await supabase
       .from('import_jobs')
@@ -61,12 +78,20 @@ Deno.serve(async (req) => {
         processed_chunks: 0,
         replace_all,
         language,
-        status: 'queued'
+        status: 'queued',
+        job_kind: isUserJob ? 'user' : 'admin',
+        workspace_id: isUserJob ? workspace_id : null,
+        dataset_name: isUserJob ? dataset_name : null
       })
       .select()
       .single()
 
     if (jobErr) throw jobErr
+
+    // Pour les jobs utilisateur, assurer l'assignation de la source
+    if (isUserJob && job?.id) {
+      try { await supabase.rpc('ensure_user_source_assignment', { p_job_id: job.id }) } catch {}
+    }
 
     // Optionnel: tenter d'enclencher immédiatement l'orchestration côté DB
     try { await supabase.rpc('enqueue_chunk_creation') } catch {}

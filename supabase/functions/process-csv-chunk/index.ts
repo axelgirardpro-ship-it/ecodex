@@ -31,7 +31,12 @@ function formatError(err: any): string {
   }
 }
 
-function transformRow(row: Record<string, any>, language: string = 'fr'): any {
+function transformRow(
+  row: Record<string, any>, 
+  language: string = 'fr',
+  overrideSource?: string,
+  workspaceId?: string,
+): any {
   const toNumber = (s: string) => { 
     const n = parseFloat(String(s).replace(',', '.'))
     return Number.isFinite(n) ? n : null 
@@ -41,12 +46,15 @@ function transformRow(row: Record<string, any>, language: string = 'fr'): any {
     return Number.isFinite(n) ? n : null 
   }
 
-  // Générer factor_key
+  // Source effective (utilisateur: dataset_name)
+  const effectiveSource = overrideSource ?? String(row['Source'] || 'Source inconnue')
+
+  // Générer factor_key (dépend de la source effective)
   const factorKey = (row['ID'] && String(row['ID']).trim()) ? 
     String(row['ID']).trim() : 
-    `${String(row['Nom'] || '').toLowerCase()}_${String(row['Source'] || '').toLowerCase()}_${String(row['Localisation'] || '').toLowerCase()}_${language}`.replace(/[^a-z0-9_]/g, '_')
+    `${String(row['Nom'] || '').toLowerCase()}_${String(effectiveSource || '').toLowerCase()}_${String(row['Localisation'] || '').toLowerCase()}_${language}`.replace(/[^a-z0-9_]/g, '_')
 
-  return {
+  const rec: any = {
     factor_key: factorKey,
     version_id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substring(2)}`,
     is_latest: true,
@@ -56,7 +64,7 @@ function transformRow(row: Record<string, any>, language: string = 'fr'): any {
     "Description": row['Description'] || null,
     "FE": toNumber(String(row['FE'] || '0')),
     "Unité donnée d'activité": String(row["Unité donnée d'activité"] || row['Unite'] || 'unité'),
-    "Source": String(row['Source'] || 'Source inconnue'),
+    "Source": effectiveSource,
     "Secteur": String(row['Secteur'] || 'Non spécifié'),
     "Sous-secteur": row['Sous-secteur'] || null,
     "Localisation": String(row['Localisation'] || 'Non spécifié'),
@@ -74,6 +82,8 @@ function transformRow(row: Record<string, any>, language: string = 'fr'): any {
     "Localisation_en": row['Localisation_en'] || null,
     "Unite_en": row['Unite_en'] || null,
   }
+  if (workspaceId) (rec as any).workspace_id = workspaceId
+  return rec
 }
 
 Deno.serve(async (req) => {
@@ -163,6 +173,10 @@ Deno.serve(async (req) => {
       triggersDisabled = true
 
       // Traiter par micro-batches pour éviter timeout
+      const isUserJob = String(job?.job_kind || '') === 'user'
+      const overrideSource = isUserJob ? String(job?.dataset_name || '') : undefined
+      const overrideWorkspace = isUserJob ? String(job?.workspace_id || '') : undefined
+
       for (let batchStart = 0; batchStart < chunkData.length; batchStart += MICRO_BATCH_SIZE) {
         const microBatch: any[] = []
         const batchEnd = Math.min(batchStart + MICRO_BATCH_SIZE, chunkData.length)
@@ -175,7 +189,7 @@ Deno.serve(async (req) => {
           // Validation assouplie
           const nom = String(row['Nom'] || '').trim()
           const fe = String(row['FE'] || '').trim()
-          const source = String(row['Source'] || '').trim()
+          const source = String((overrideSource ?? row['Source']) || '').trim()
           
           const hasBasicRequired = Boolean(nom && fe && source)
           const feNum = parseFloat(fe.replace(',', '.'))
@@ -186,7 +200,7 @@ Deno.serve(async (req) => {
           }
           
           processedCount++
-          const transformedRow = transformRow(row, job.language)
+          const transformedRow = transformRow(row, job.language, overrideSource, overrideWorkspace)
           microBatch.push(transformedRow)
         }
         
