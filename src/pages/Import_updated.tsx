@@ -324,9 +324,9 @@ const Import = () => {
       setUploadProgress(80);
       setIndexingStatus("indexing");
       
-      // Appeler l'Edge Function mise à jour avec le parser robuste
-      const { data: resp, error: invErr } = await supabase.functions.invoke('import-csv-user', {
-        body: { file_path: finalPath, dataset_name: dataset.name, language: 'fr' }
+      // Orchestration robuste via chunked-upload
+      const { data: resp, error: invErr } = await supabase.functions.invoke('chunked-upload', {
+        body: { file_path: finalPath, filename: fileToUpload.name, file_size: fileToUpload.size, replace_all: true, language: 'fr', dataset_name: dataset.name }
       });
       if (invErr) throw invErr;
       setIndexingStatus("success");
@@ -347,14 +347,11 @@ const Import = () => {
 
       setUploadProgress(100);
       setImportStatus("success");
-      setImportResults({
-        success: (resp?.inserted as number) || 0,
-        errors: []
-      });
+      setImportResults({ success: 0, errors: [] });
 
       toast({
-        title: "Import réussi",
-        description: `Import lancé: traitement côté serveur (id: ${resp?.import_id || 'n/a'}). ${compressionMsg}`,
+        title: "Job créé",
+        description: `Job créé: ${resp?.job_id || 'n/a'} — création des chunks et traitement en arrière-plan. ${compressionMsg}`,
       });
 
       // Reset form après succès

@@ -1,5 +1,18 @@
 // IMPORT PROCESSOR: Worker dédié pour traiter les jobs depuis import_jobs table
+// @ts-ignore - Import ESM valide pour Deno/Edge Functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Types pour l'environnement Deno/Edge Functions
+interface DenoEnv {
+  get(key: string): string | undefined;
+}
+
+interface DenoGlobal {
+  env: DenoEnv;
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+}
+
+declare const Deno: DenoGlobal;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

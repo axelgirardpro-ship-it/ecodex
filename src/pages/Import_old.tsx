@@ -198,8 +198,8 @@ const Import = () => {
       if (upErr) throw upErr;
 
       setIndexingStatus("indexing");
-      const { data: resp, error: invErr } = await supabase.functions.invoke('import-csv-user', {
-        body: { file_path: finalPath, dataset_name: dataset.name, language: 'fr' }
+      const { data: resp, error: invErr } = await supabase.functions.invoke('chunked-upload', {
+        body: { file_path: finalPath, filename: file.name, file_size: file.size, replace_all: true, language: 'fr', dataset_name: dataset.name }
       });
       if (invErr) throw invErr;
       setIndexingStatus("success");
@@ -220,14 +220,11 @@ const Import = () => {
 
       setUploadProgress(100);
       setImportStatus("success");
-      setImportResults({
-        success: (resp?.inserted as number) || 0,
-        errors: []
-      });
+      setImportResults({ success: 0, errors: [] });
 
       toast({
         title: "Import réussi",
-        description: `Import lancé: traitement côté serveur (id: ${resp?.import_id || 'n/a'}).`,
+        description: `Job créé: ${resp?.job_id || 'n/a'} — création des chunks et traitement en arrière-plan.`,
       });
 
       // Reset form après succès

@@ -78,9 +78,6 @@ vector_port = 54329
 [functions.import-csv]
 verify_jwt = true
 
-[functions.import-csv-user]
-verify_jwt = true
-
 [functions.reindex-ef-all-atomic]
 verify_jwt = true
 

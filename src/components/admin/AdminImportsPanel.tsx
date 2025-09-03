@@ -12,10 +12,17 @@ import { ImportJobMonitor } from './ImportJobMonitor';
 
 interface ImportJob {
   id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed' | 'analyzing' | 'analyzed' | 'rebuilding' | string | null;
-  processed: number | null;
-  failed: number | null;
-  started_at: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed' | string | null;
+  processed_chunks: number | null;
+  total_chunks: number | null;
+  progress_percent: number | null;
+  inserted_records: number | null;
+  total_records: number | null;
+  created_at: string;
+  finished_at?: string | null;
+  indexed_at?: string | null;
+  eta_seconds?: number | null;
+  estimated_completion_at?: string | null;
 }
 
 type AccessLevel = 'standard' | 'premium';
@@ -163,138 +170,27 @@ export const AdminImportsPanel: React.FC = () => {
       setUploading(true);
       setProgress(0);
       
-      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB par chunk comme spécifié
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      
-      // 1. Créer le job d'import
-      const { data: job, error: jobErr } = await supabase
-        .from('import_jobs')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          filename: file.name,
-          original_size: file.size,
-          total_chunks: totalChunks,
-          replace_all: replaceAll,
-          language: 'fr',
-          status: 'pending'
-        } as any)
-        .select()
-        .single();
-      
-      if (jobErr) throw jobErr;
-      
-      setProgress(10);
-      
-      // 2. Upload et parser par chunks côté client
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-        
-        // Parser le CSV chunk côté client
-        const text = await chunk.text();
-        const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-        
-        // Parser CSV robuste
-        function parseCSVLine(line: string): string[] {
-          const result: string[] = [];
-          let current = '';
-          let inQuotes = false;
-          for (let idx = 0; idx < line.length; idx++) {
-            const char = line[idx];
-            const nextChar = line[idx + 1];
-            if (char === '"') {
-              if (inQuotes && nextChar === '"') { current += '"'; idx++; } 
-              else { inQuotes = !inQuotes; }
-            } else if (char === ',' && !inQuotes) { 
-              result.push(current.trim()); current = ''; 
-            } else { 
-              current += char; 
-            }
-          }
-          result.push(current.trim());
-          return result;
-        }
-
-        let parsedData: any[] = [];
-        let headers: string[] = [];
-        
-        if (i === 0 && lines.length > 0) {
-          // Premier chunk: extraire headers
-          headers = parseCSVLine(lines[0]);
-          lines.slice(1).forEach(line => {
-            const values = parseCSVLine(line);
-            if (values.length === headers.length) {
-              const row: Record<string, string> = {};
-              headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
-              parsedData.push(row);
-            }
-          });
-        } else {
-          // Chunks suivants: utiliser structure fixe (22 colonnes)
-          lines.forEach(line => {
-            const values = parseCSVLine(line);
-            if (values.length >= 22) {
-              parsedData.push({
-                'ID': values[0] || '',
-                'Nom': values[1] || '',
-                'Nom_en': values[2] || '',
-                'Description': values[3] || '',
-                'Description_en': values[4] || '',
-                'FE': values[5] || '',
-                'Unité donnée d\'activité': values[6] || '',
-                'Unite_en': values[7] || '',
-                'Source': values[8] || '',
-                'Secteur': values[9] || '',
-                'Secteur_en': values[10] || '',
-                'Sous-secteur': values[11] || '',
-                'Sous-secteur_en': values[12] || '',
-                'Localisation': values[13] || '',
-                'Localisation_en': values[14] || '',
-                'Date': values[15] || '',
-                'Incertitude': values[16] || '',
-                'Périmètre': values[17] || '',
-                'Périmètre_en': values[18] || '',
-                'Contributeur': values[19] || '',
-                'Commentaires': values[20] || '',
-                'Commentaires_en': values[21] || '',
-              });
-            }
-          });
-        }
-        
-        // 3. Stocker le chunk via SQL direct
-        if (parsedData.length > 0) {
-          const { error: chunkErr } = await supabase
-            .from('import_chunks')
-            .insert({
-              job_id: job.id,
-              chunk_number: i,
-              data: parsedData,
-              records_count: parsedData.length
-            } as any);
-          
-          if (chunkErr) {
-            console.warn(`Chunk ${i} failed:`, chunkErr);
-            continue;
-          }
-          
-          // 4. Envoyer dans la queue PGMQ via fonction utilitaire
-          await supabase.rpc('send_to_import_queue', {
-            p_job_id: job.id,
-            p_chunk_number: i
-          } as any);
-        }
-        
-        // Progress update
-        const progress = 10 + Math.round((i + 1) / totalChunks * 80);
-        setProgress(progress);
+      // Lancer l'orchestration côté DB (chunking différé): nécessite un file_path (après upload)
+      if (!filePath) {
+        toast({ variant: 'destructive', title: 'Chemin manquant', description: 'Veuillez d\'abord uploader le fichier (bouton Upload).' });
+        return;
       }
+      const { data, error } = await supabase.functions.invoke('chunked-upload', {
+        body: {
+          file_path: filePath,
+          filename: file.name,
+          replace_all: replaceAll,
+          file_size: file.size,
+          language: 'fr'
+        }
+      });
+      
+      if (error) throw error;
       
       setProgress(100);
       toast({ 
-        title: 'Upload chunké terminé', 
-        description: `${totalChunks} chunks de 5MB créés (${fileSizeMB}MB total). Queue + Cron actifs - monitoring via ImportJobMonitor.`
+        title: 'Job créé', 
+        description: `Job ${data?.job_id || ''} en file. Création des chunks et traitement en arrière-plan.`
       });
       
       setAnalysisDone(false);
@@ -413,21 +309,30 @@ export const AdminImportsPanel: React.FC = () => {
       if (inflightRef.current) return; // anti-chevauchement
       inflightRef.current = true;
       setLoadingJobs(true);
-      const { data, error } = await supabase
-        .from('data_imports')
-        .select('id,status,processed,failed,started_at,finished_at')
-        .order('started_at', { ascending: false })
+      // Utiliser la vue public.import_status pour récupérer progress et ETA
+      const { data, error } = await (supabase as any)
+        .from('import_status')
+        .select('id,status,processed_chunks,total_chunks,progress_percent,inserted_records,total_records,created_at,finished_at,indexed_at,eta_seconds,estimated_completion_at')
+        .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       const mapped: ImportJob[] = (data || []).map((d: any) => ({
         id: d.id,
         status: d.status,
-        processed: d.processed ?? null,
-        failed: d.failed ?? null,
-        started_at: d.started_at,
+        processed_chunks: d.processed_chunks ?? null,
+        total_chunks: d.total_chunks ?? null,
+        progress_percent: d.progress_percent ?? null,
+        inserted_records: d.inserted_records ?? null,
+        total_records: d.total_records ?? null,
+        created_at: d.created_at,
+        finished_at: d.finished_at ?? null,
+        indexed_at: d.indexed_at ?? null,
+        eta_seconds: d.eta_seconds ?? null,
+        estimated_completion_at: d.estimated_completion_at ?? null,
       }));
       setJobs(mapped);
-      hasRunningRef.current = mapped.some((j) => j.status === 'processing' || j.status === 'analyzing' || j.status === 'rebuilding');
+      // Suivi job actif
+      hasRunningRef.current = mapped.some((j) => j.status === 'processing' || j.status === 'queued');
     } catch (e) {
       // silencieux
     } finally {
@@ -436,7 +341,7 @@ export const AdminImportsPanel: React.FC = () => {
     }
   }, []);
 
-  // Boucle d'auto-refresh
+  // Boucle d'auto-refresh adaptative (pause onglet caché, intervalle long si aucun job en cours)
   React.useEffect(() => {
     let canceled = false;
     let timer: any;
@@ -447,7 +352,8 @@ export const AdminImportsPanel: React.FC = () => {
         }
       } finally {
         const delay = (typeof document !== 'undefined' && document.visibilityState !== 'visible')
-          ? 60000 : (hasRunningRef.current ? 5000 : 30000);
+          ? 60000
+          : (hasRunningRef.current ? 5000 : 30000);
         if (!canceled) timer = setTimeout(tick, delay);
       }
     };
@@ -528,11 +434,11 @@ export const AdminImportsPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Historique des imports */}
+        {/* Import + Monitoring fusionnés */}
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm">📊</div>
-            <h3 className="text-lg font-semibold">Historique des imports</h3>
+            <h3 className="text-lg font-semibold">Historique et monitoring des imports</h3>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -546,10 +452,13 @@ export const AdminImportsPanel: React.FC = () => {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-muted">
-                  <th className="p-2 text-left">Date</th>
+                  <th className="p-2 text-left">Créé</th>
                   <th className="p-2 text-left">Statut</th>
-                  <th className="p-2 text-right">Traitées</th>
-                  <th className="p-2 text-right">Échecs</th>
+                  <th className="p-2 text-right">Chunks</th>
+                  <th className="p-2 text-right">Progress</th>
+                  <th className="p-2 text-right">ETA</th>
+                  <th className="p-2 text-right">Records</th>
+                  <th className="p-2 text-left">Indexé à</th>
                 </tr>
               </thead>
               <tbody>
@@ -559,10 +468,26 @@ export const AdminImportsPanel: React.FC = () => {
                   <tr><td className="p-2" colSpan={4}>Aucun import pour le moment.</td></tr>
                 ) : jobs.map((j) => (
                   <tr key={j.id} className="border-t">
-                    <td className="p-2 whitespace-nowrap">{new Date(j.started_at).toLocaleString()}</td>
+                    <td className="p-2 whitespace-nowrap">{new Date(j.created_at).toLocaleString()}</td>
                     <td className="p-2">{j.status ?? '-'}</td>
-                    <td className="p-2 text-right">{j.processed ?? '-'}</td>
-                    <td className="p-2 text-right">{j.failed ?? '-'}</td>
+                    <td className="p-2 text-right">{(j.processed_chunks ?? 0)}/{j.total_chunks ?? 0}</td>
+                    <td className="p-2 text-right">
+                      {j.progress_percent != null ? (
+                        <div className="flex items-center gap-2 justify-end">
+                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-2 bg-blue-500" style={{width: `${Math.max(0, Math.min(100, j.progress_percent))}%`}} />
+                          </div>
+                          <span>{j.progress_percent}%</span>
+                        </div>
+                      ) : '-'}
+                    </td>
+                    <td className="p-2 text-right">
+                      {j.eta_seconds != null ? (
+                        <span>~ {Math.floor((j.eta_seconds || 0) / 60).toString().padStart(2,'0')}:{((j.eta_seconds || 0) % 60).toString().padStart(2,'0')}</span>
+                      ) : '-'}
+                    </td>
+                    <td className="p-2 text-right">{j.inserted_records ?? 0}{j.total_records ? ` / ${j.total_records}` : ''}</td>
+                    <td className="p-2 whitespace-nowrap">{j.indexed_at ? new Date(j.indexed_at).toLocaleString() : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -614,9 +539,9 @@ export const AdminImportsPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Monitoring des jobs asynchrones */}
-        <ImportJobMonitor />
-
+        {/* Monitoring détaillé (optionnel) */}
+        {/* <ImportJobMonitor /> */}
+        
         {/* Reindex manuel retiré: Webhook = auto-sync après import */}
       </CardContent>
     </Card>

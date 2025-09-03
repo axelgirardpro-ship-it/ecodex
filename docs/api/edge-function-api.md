@@ -361,45 +361,11 @@ const searchDirectly = async (query: string, origin: 'public' | 'private') => {
 };
 ```
 
-## Migration depuis l'ancienne API
-
-### Changements requis
-
-```typescript
-// AVANT : Requêtes multiples
-const publicResults = await searchClient.search([{
-  indexName: 'emission_factors_fr',
-  params: { query: 'électricité' }
-}]);
-
-// APRÈS : Requête unifiée
-const results = await unifiedClient.search([{
-  indexName: 'emission_factors_fr',
-  params: { query: 'électricité' },
-  origin: 'public'  // Nouveau paramètre requis
-}]);
-```
-
-### Compatibilité
-
-- ✅ **Paramètres Algolia** : Tous supportés
-- ✅ **Format de réponse** : Compatible
-- ✅ **InstantSearch** : Fonctionne sans modification
-- ⚠️ **Nouveaux champs** : `_isTeaser`, `_upgradeRequired`
-
----
-
-**Version API** : 1.0  
-**Dernière mise à jour** : Janvier 2025  
-**Support** : Équipe technique DataCarb
-
----
-
-## Imports — Utilisateur (import-csv-user)
+## Imports — Utilisateur et Admin (chunked-upload)
 
 ### Endpoint
 
-- `https://[project-ref].supabase.co/functions/v1/import-csv-user`
+- `https://[project-ref].supabase.co/functions/v1/chunked-upload`
 
 ### Authentification
 
@@ -409,47 +375,60 @@ const results = await unifiedClient.search([{
 
 ```json
 {
-  "file_path": "<imports/nom-fichier.csv|.csv.gz|.xlsx>",
-  "dataset_name": "<Nom de votre dataset>",
-  "language": "fr" // optionnel, défaut: fr
+  "file_path": "imports/nom-fichier.csv|.csv.gz",
+  "filename": "nom-fichier.csv.gz",
+  "file_size": 123456,
+  "replace_all": true,
+  "language": "fr",
+  "dataset_name": "<Nom du dataset>" // présent pour les imports users
 }
 ```
 
 ### Comportement
 
-- Lecture du fichier depuis Storage (`imports`) avec URL signée
-- Parsing robuste CSV (supporte CSV, CSV.GZ, XLSX→CSV)
-- Validation des colonnes requises (ID optionnel):
-  - Requises: `Nom`, `FE`, `Unité donnée d'activité`, `Source`, `Périmètre`, `Localisation`, `Date`
-- Résolution du workspace utilisateur via `user_roles.workspace_id` (priorité de rôle: `super_admin` > `admin` > `gestionnaire` > `lecteur`; fallback: workspace possédé)
-- Journalisation `data_imports` (status `processing` → `completed/failed`)
-- Upsert de la `source` dans `fe_sources` (access_level=`standard`, is_global=false) + assignation dans `fe_source_workspace_assignments`
-- Ingestion SCD2 par lots (1000):
-  - `factor_key = ID` si fourni, sinon clé calculée (`Nom|Unité|Source|Périmètre|Localisation|lang`)
-  - Invalidation des versions précédentes (`is_latest=false`) par `factor_key`
-  - Insert des nouvelles versions dans `emission_factors`
-- Rafraîchissement ciblé de la projection: `rpc refresh_ef_all_for_source(dataset_name)`
-- Synchronisation Algolia incrémentale par Source:
-  - `deleteByQuery(Source:"dataset_name")` puis réinjection paginée (chunks de 1000) depuis `emission_factors_all_search`
-  - Compteur `algolia_api_calls` mis à jour dans `data_imports`
+- Crée un enregistrement `import_jobs` avec:
+  - `job_kind = 'user'` si `dataset_name` est fourni (sinon `admin`)
+  - `workspace_id` résolu via `user_roles`
+  - `dataset_name` (validé par `validate_dataset_name`)
+- Appelle `ensure_user_source_assignment(job_id)` pour les jobs `user`
+- Déclenche l’orchestration de chunking différé (`create-chunks`) → `csv_import_queue` → `process-csv-chunk`
+- Suivi de progression via `public.import_status` (admin) et `public.user_import_status` (users)
 
 ### Réponse
 
 ```json
 {
-  "import_id": "<uuid>",
-  "processed": <number>,
-  "inserted": <number>,
-  "sources": ["<dataset_name>"],
-  "parsing_method": "robust_csv_parser",
-  "compression_supported": true
+  "success": true,
+  "job_id": "<uuid>",
+  "status": "queued"
 }
 ```
 
-### Notes & limites
+## Suivi de progression
 
-- Taille conseillée avant compression: ~10 MB (la compression `.gz` est supportée)
-- La colonne `Source` des lignes est normalisée sur `dataset_name` pour uniformiser la provenance
+- Vue `public.user_import_status` (users): `processed_chunks/total_chunks`, `progress_percent`, `eta_seconds`
+- Vue `public.import_status` (admin): idem + dates `indexed_at`
+
+## Finalisation
+
+- Cron `finalize_completed_imports()` route en fonction de `job_kind`:
+  - `admin`: déclenche `reindex-ef-all-atomic` (atomique, SRK via Vault)
+  - `user`: déclenche `algolia-batch-optimizer?action=sync` pour `dataset_name`
+
+## Migration depuis import-csv-user (déprécié)
+
+- L’ancienne fonction `import-csv-user` est supprimée.
+- Remplacer par `chunked-upload` avec `dataset_name`.
+- Conversion XLSX → CSV.gz côté client recommandée.
+
+---
+
+## Références techniques (imports)
+
+- Tables: `import_jobs`, `import_chunks`, `emission_factors`, `fe_sources`, `fe_source_workspace_assignments`
+- Queues: `csv_import_queue` (+ `failed_jobs_queue`)
+- Edge: `chunked-upload`, `create-chunks`, `process-csv-chunk`, `reindex-ef-all-atomic`, `algolia-batch-optimizer`
+- RPC: `ensure_user_source_assignment`, `validate_dataset_name`, `finalize_completed_imports`
 
 ---
 
