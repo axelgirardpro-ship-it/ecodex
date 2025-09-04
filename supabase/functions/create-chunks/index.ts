@@ -156,13 +156,12 @@ Deno.serve(async (req) => {
         job_id: jobId,
         chunk_number: myChunkNumber,
         data: bufferRows,
-        records_count: bufferRows.length
+        records_count: bufferRows.length,
+        processed: false
       })
       if (insErr) throw insErr
-      await supabase.rpc('pgmq.send', {
-        queue_name: 'csv_import_queue',
-        msg: { job_id: jobId, chunk_number: myChunkNumber, timestamp: new Date().toISOString() }
-      })
+      // Enfiler le chunk dans PGMQ via RPC dédiée
+      await supabase.rpc('enqueue_csv_chunk', { p_job_id: jobId, p_chunk_number: myChunkNumber })
       bufferRows = []
       chunkCount++
     }
@@ -191,8 +190,7 @@ Deno.serve(async (req) => {
     await supabase.from('import_jobs').update({
       total_chunks: totalChunks,
       status: 'processing',
-      progress_percent: 0,
-      total_lines: totalLines
+      progress_percent: 0
     }).eq('id', jobId)
 
     return new Response(JSON.stringify({

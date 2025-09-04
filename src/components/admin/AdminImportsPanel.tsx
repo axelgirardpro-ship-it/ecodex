@@ -170,14 +170,40 @@ export const AdminImportsPanel: React.FC = () => {
       setUploading(true);
       setProgress(0);
       
-      // Lancer l'orchestration côté DB (chunking différé): nécessite un file_path (après upload)
-      if (!filePath) {
-        toast({ variant: 'destructive', title: 'Chemin manquant', description: 'Veuillez d\'abord uploader le fichier (bouton Upload).' });
-        return;
+      // Si le fichier n'a pas encore été uploadé dans Storage, on l'upload maintenant (fallback 1-clic)
+      let effectiveFilePath = filePath
+      if (!effectiveFilePath) {
+        // Empêcher l'usage XLSX sur le pipeline chunké (non supporté côté create-chunks)
+        const lower = file.name.toLowerCase()
+        if (lower.endsWith('.xlsx')) {
+          toast({ variant: 'destructive', title: 'Format non supporté', description: 'Le pipeline chunké supporte CSV/CSV.GZ. Convertissez votre XLSX en CSV avant de continuer.' })
+          setUploading(false)
+          return;
+        }
+        setProgress(10)
+        const isAlreadyCompressed = lower.endsWith('.gz') || lower.endsWith('.csv.gz')
+        const fileToUpload = isAlreadyCompressed ? file : await compressFileToGzip(file)
+        setProgress(30)
+        // Nom final (préserver .gz si déjà compressé)
+        let cleanFileName = file.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9.]/g, '_')
+          .replace(/_{2,}/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .substring(0, 50);
+        const baseFileName = cleanFileName.replace(/\.(csv|xlsx|gz)$/i, '')
+        effectiveFilePath = isAlreadyCompressed ? `${Date.now()}_${cleanFileName}` : `${Date.now()}_${baseFileName}.csv.gz`
+        setProgress(45)
+        const { error: upErr } = await supabase.storage.from('imports').upload(effectiveFilePath, fileToUpload, { upsert: true })
+        if (upErr) throw upErr
+        setFilePath(effectiveFilePath)
+        setProgress(60)
       }
       const { data, error } = await supabase.functions.invoke('chunked-upload', {
         body: {
-          file_path: filePath,
+          file_path: effectiveFilePath,
           filename: file.name,
           replace_all: replaceAll,
           file_size: file.size,
