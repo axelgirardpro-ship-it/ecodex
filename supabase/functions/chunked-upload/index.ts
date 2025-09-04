@@ -12,6 +12,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helpers JWT: décodage local pour éviter un aller-retour réseau
+const base64UrlDecode = (str: string) => {
+  try {
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const decoded = atob(padded)
+    const bytes = new Uint8Array([...decoded].map(c => c.charCodeAt(0)))
+    const decoder = new TextDecoder('utf-8', { fatal: false })
+    return decoder.decode(bytes)
+  } catch {
+    return ''
+  }
+}
+const decodeJwt = (token: string): any | null => {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payloadJson = base64UrlDecode(parts[1])
+    return JSON.parse(payloadJson)
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   try {
@@ -28,8 +52,9 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader)
-    if (authError || !user) {
+    const jwt = decodeJwt(authHeader)
+    const userId: string | null = jwt?.sub || null
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -57,7 +82,7 @@ Deno.serve(async (req) => {
       const { data: roles } = await supabase
         .from('user_roles')
         .select('workspace_id, role')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
       if (roles && roles.length > 0) {
         const priority: Record<string, number> = { supra_admin: 0, admin: 1, gestionnaire: 2, lecteur: 3 }
         const sorted = roles.slice().sort((a: any, b: any) => (priority[a.role] ?? 99) - (priority[b.role] ?? 99))
@@ -70,15 +95,15 @@ Deno.serve(async (req) => {
     const { data: job, error: jobErr } = await supabase
       .from('import_jobs')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         filename,
         file_path,
         original_size: file_size,
-        total_chunks: null,
+        total_chunks: 0,
         processed_chunks: 0,
         replace_all,
         language,
-        status: 'queued',
+        status: 'pending',
         job_kind: isUserJob ? 'user' : 'admin',
         workspace_id: isUserJob ? workspace_id : null,
         dataset_name: isUserJob ? dataset_name : null
@@ -90,11 +115,11 @@ Deno.serve(async (req) => {
 
     // Pour les jobs utilisateur, assurer l'assignation de la source
     if (isUserJob && job?.id) {
-      try { await supabase.rpc('ensure_user_source_assignment', { p_job_id: job.id }) } catch {}
+      try { await supabase.rpc('ensure_user_source_assignment', { p_job_id: job.id }) } catch (e) { console.error('ensure_user_source_assignment error', e) }
     }
 
     // Optionnel: tenter d'enclencher immédiatement l'orchestration côté DB
-    try { await supabase.rpc('enqueue_chunk_creation') } catch {}
+    try { await supabase.rpc('enqueue_chunk_creation') } catch (e) { console.error('enqueue_chunk_creation error', e) }
 
     return new Response(JSON.stringify({
       success: true,
@@ -103,8 +128,9 @@ Deno.serve(async (req) => {
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-  } catch (error) {
-    return new Response(JSON.stringify({ error: String(error) }), {
+  } catch (error: any) {
+    console.error('chunked-upload fatal', error)
+    return new Response(JSON.stringify({ error: error?.message || String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

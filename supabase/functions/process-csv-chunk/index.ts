@@ -89,13 +89,21 @@ function transformRow(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   
+  // Capture pour le catch (éviter de relire le body)
+  let job_id: string | undefined
+  let chunk_number: number | undefined
+  
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { job_id, chunk_number } = await req.json()
+    const body = await req.json()
+    job_id = body?.job_id
+    chunk_number = body?.chunk_number
+    const overrideMicroBatch = Number(body?.micro_batch_size)
+    const MICRO_BATCH_SIZE = Number.isFinite(overrideMicroBatch) && overrideMicroBatch > 0 ? overrideMicroBatch : 25
     
     if (!job_id || chunk_number === undefined) {
       return new Response(JSON.stringify({ error: 'job_id and chunk_number required' }), { 
@@ -105,6 +113,11 @@ Deno.serve(async (req) => {
     }
 
     console.log(`🔄 Processing chunk ${chunk_number} for job ${job_id}`)
+
+    const { data: claimed } = await supabase.rpc('claim_chunk_for_processing', { p_job_id: job_id, p_chunk_number: chunk_number }) as any
+    if (claimed !== true) {
+      return new Response(JSON.stringify({ error: 'Chunk is locked by another worker' }), { status: 423, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // Récupérer le chunk depuis la vraie table
     const { data: chunk, error: chunkErr } = await supabase
@@ -160,16 +173,14 @@ Deno.serve(async (req) => {
     const chunkData = Array.isArray(chunk.data) ? chunk.data : []
     let processedCount = 0
     let insertedCount = 0
-    const MICRO_BATCH_SIZE = 25 // Réduit pour chunks volumineux (7k+ records)
 
     console.log(`📊 Processing chunk ${chunk_number}: ${chunkData.length} records`)
 
     // Désactiver temporairement les webhooks pour éviter les appels massifs
     let triggersDisabled = false
     try {
-      await supabase.rpc('exec', { 
-        query: 'ALTER TABLE emission_factors DISABLE TRIGGER emission_factors' 
-      }).catch(() => {})
+      try { await supabase.rpc('disable_emission_factors_triggers') } catch (_) {}
+      try { await supabase.rpc('disable_emission_factors_all_search_triggers') } catch (_) {}
       triggersDisabled = true
 
       // Traiter par micro-batches pour éviter timeout
@@ -178,7 +189,7 @@ Deno.serve(async (req) => {
       const overrideWorkspace = isUserJob ? String(job?.workspace_id || '') : undefined
 
       for (let batchStart = 0; batchStart < chunkData.length; batchStart += MICRO_BATCH_SIZE) {
-        const microBatch: any[] = []
+        const microBatchMap: Record<string, any> = {}
         const batchEnd = Math.min(batchStart + MICRO_BATCH_SIZE, chunkData.length)
         
         // Préparer le micro-batch
@@ -201,44 +212,29 @@ Deno.serve(async (req) => {
           
           processedCount++
           const transformedRow = transformRow(row, job.language, overrideSource, overrideWorkspace)
-          microBatch.push(transformedRow)
+          microBatchMap[transformedRow.factor_key] = {
+            ...transformedRow,
+            _job_id: job_id,
+            _chunk_number: chunk_number
+          }
         }
+        const microBatch = Object.values(microBatchMap)
         
         // SCD2 : Invalider puis insérer (gère les doublons)
         if (microBatch.length > 0) {
-          const factorKeys = microBatch.map(r => r.factor_key)
-          await supabase
-            .from('emission_factors')
-            .update({ is_latest: false, valid_to: new Date().toISOString() })
-            .in('factor_key', factorKeys)
-            .eq('is_latest', true)
-          const { data: result, error: insertErr } = await supabase
-            .from('emission_factors')
-            .insert(microBatch)
-            .select('id')
-          if (insertErr) throw new Error(`Insert failed: ${insertErr.message}`)
-          insertedCount += result?.length || 0
-          console.log(`✅ Micro-batch ${Math.floor(batchStart/MICRO_BATCH_SIZE) + 1}: ${result?.length || 0} inserted (SCD2)`)
+          const { data: upCount, error: upErr } = await supabase.rpc('scd2_upsert_emission_factors', { p_records: microBatch as any }) as any
+          if (upErr) throw new Error(`Insert failed: ${upErr.message}`)
+          insertedCount += Number(upCount) || microBatch.length
+          console.log(`✅ Micro-batch ${Math.floor(batchStart/MICRO_BATCH_SIZE) + 1}: ${Number(upCount) || microBatch.length} inserted (SCD2)`)
         }
       }
     } finally {
-      if (triggersDisabled) {
-        await supabase.rpc('exec', { 
-          query: 'ALTER TABLE emission_factors ENABLE TRIGGER emission_factors' 
-        }).catch(() => {})
-      }
+      if (triggersDisabled) { try { await supabase.rpc('enable_emission_factors_triggers') } catch (_) {}; try { await supabase.rpc('enable_emission_factors_all_search_triggers') } catch (_) {} }
+      try { await supabase.rpc('release_chunk_lock', { p_job_id: job_id, p_chunk_number: chunk_number }) } catch (_) {}
     }
 
     // Marquer le chunk comme traité
-    await supabase
-      .from('import_chunks')
-      .update({ 
-        processed: true,
-        records_count: processedCount,
-        inserted_count: insertedCount,
-        processed_at: new Date().toISOString()
-      })
-      .eq('id', chunk.id)
+    await supabase.from('import_chunks').update({ processed: true, records_count: processedCount, inserted_count: insertedCount, processed_at: new Date().toISOString(), error_message: null }).eq('id', chunk.id)
 
     // Mettre à jour le progrès du job (compatible avec data_imports)
     try {
@@ -280,7 +276,6 @@ Deno.serve(async (req) => {
     
     // Marquer le chunk en erreur
     try {
-      const { job_id, chunk_number } = await req.json()
       if (job_id && chunk_number !== undefined) {
         const supabaseError = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
