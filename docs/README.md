@@ -24,11 +24,10 @@ Cette documentation couvre la nouvelle architecture de recherche unifiée déplo
 - Tests de sécurité et conformité
 - **Lecture recommandée** : Équipe sécurité et développeurs
 
-### 🔌 [API Edge Function](./api/edge-function-api.md)
-- Interface complète de la edge function unifiée
-- Formats de requête et réponse
-- Gestion des erreurs et authentification
-- **Lecture recommandée** : Développeurs frontend et backend
+### 🔌 Imports de données (nouveau)
+- Users: 100% DB → RunTask EU après import
+- Admin: Dataiku → run_import_from_staging() → RunTask EU
+- Voir README ci‑dessous
 
 ### ⚛️ [Intégration Frontend](./frontend/integration-guide.md)
 - Guide d'utilisation des composants React
@@ -87,19 +86,11 @@ Cette documentation couvre la nouvelle architecture de recherche unifiée déplo
 
 ```mermaid
 graph TD
-    A[Frontend React] --> B[UnifiedAlgoliaClient]
-    B --> C[ProxySearchClient]
-    C --> D[Edge Function: algolia-search-proxy]
-    D --> E[Supabase Auth & Permissions]
-    D --> F[Algolia API - Une seule requête]
-    D --> G[Post-traitement sécurisé]
-    
-    H[Base de données] --> D
+    A[Frontend React] --> B[Client]
+    B --> E[Supabase Auth & Permissions]
+    H[Base de données] --> J[Algolia Ingestion RunTask EU]
     I[Projections optimisées] --> H
-    
-    style D fill:#ff9999
-    style F fill:#99ff99
-    style G fill:#ff9999
+    J --> F[Algolia Index ef_all]
 ```
 
 ### Sécurité renforcée

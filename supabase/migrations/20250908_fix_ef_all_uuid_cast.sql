@@ -1,5 +1,6 @@
--- Corriger la projection ef_all: champs EN et tableau languages correct
--- Rebuild complet
+-- Corrige le type de object_id/record_id (uuid) et retire stable_id
+-- Renforce le typage de FE/Date et le calcul du tableau languages
+
 CREATE OR REPLACE FUNCTION public.rebuild_emission_factors_all_search()
 RETURNS void
 LANGUAGE plpgsql
@@ -18,8 +19,8 @@ BEGIN
     "FE","Date","Incertitude","Source"
   )
   SELECT
-    COALESCE(ef.stable_id, ef.id) AS object_id,
-    ef.id AS record_id,
+    (ef.id)::uuid AS object_id,
+    (ef.id)::uuid AS record_id,
     CASE WHEN ef.workspace_id IS NULL THEN 'public' ELSE 'private' END AS scope,
     ef.workspace_id,
     fs.access_level,
@@ -48,8 +49,8 @@ BEGIN
     ef."Périmètre_en"       AS "Périmètre_en",
     ef."Localisation_en"    AS "Localisation_en",
     ef."Unite_en"           AS "Unite_en",
-    NULLIF(ef."FE", '')::numeric AS "FE",
-    CASE WHEN ef."Date" ~ '^\d+$' THEN ef."Date"::integer ELSE NULL END AS "Date",
+    public.safe_to_numeric((ef."FE")::text) AS "FE",
+    public.safe_to_int((ef."Date")::text) AS "Date",
     ef."Incertitude"        AS "Incertitude",
     ef."Source"             AS "Source"
   FROM public.emission_factors ef
@@ -60,7 +61,7 @@ BEGIN
 END;
 $$;
 
--- Refresh par source (utilisé par le pipeline)
+-- Refresh par source
 CREATE OR REPLACE FUNCTION public.refresh_ef_all_for_source(p_source text)
 RETURNS void
 LANGUAGE plpgsql
@@ -73,6 +74,8 @@ BEGIN
     RETURN;
   END IF;
 
+  PERFORM set_config('statement_timeout', '0', true);
+
   DELETE FROM public.emission_factors_all_search WHERE "Source" = p_source;
 
   INSERT INTO public.emission_factors_all_search (
@@ -82,8 +85,8 @@ BEGIN
     "FE","Date","Incertitude","Source"
   )
   SELECT
-    COALESCE(ef.stable_id, ef.id) AS object_id,
-    ef.id AS record_id,
+    (ef.id)::uuid AS object_id,
+    (ef.id)::uuid AS record_id,
     CASE WHEN ef.workspace_id IS NULL THEN 'public' ELSE 'private' END AS scope,
     ef.workspace_id,
     fs.access_level,
@@ -112,8 +115,8 @@ BEGIN
     ef."Périmètre_en"       AS "Périmètre_en",
     ef."Localisation_en"    AS "Localisation_en",
     ef."Unite_en"           AS "Unite_en",
-    NULLIF(ef."FE", '')::numeric AS "FE",
-    CASE WHEN ef."Date" ~ '^\d+$' THEN ef."Date"::integer ELSE NULL END AS "Date",
+    public.safe_to_numeric((ef."FE")::text) AS "FE",
+    public.safe_to_int((ef."Date")::text) AS "Date",
     ef."Incertitude"        AS "Incertitude",
     ef."Source"             AS "Source"
   FROM public.emission_factors ef
@@ -123,4 +126,5 @@ BEGIN
   RAISE NOTICE 'ef_all refreshed for source: %', p_source;
 END;
 $$;
+
 
