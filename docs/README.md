@@ -24,10 +24,67 @@ Cette documentation couvre la nouvelle architecture de recherche unifiée déplo
 - Tests de sécurité et conformité
 - **Lecture recommandée** : Équipe sécurité et développeurs
 
-### 🔌 Imports de données (nouveau)
-- Users: 100% DB → RunTask EU après import
-- Admin: Dataiku → run_import_from_staging() → RunTask EU
-- Voir README ci‑dessous
+### 🧩 Imports de données (nouveau)
+
+- Users (100% DB):
+  - Edge Function `import-csv-user` lit le CSV (CSV/XLSX/CSV.GZ), parse robuste, upsert via RPC `batch_upsert_user_factor_overlays` dans `public.user_factor_overlays` (unicité (workspace_id, factor_key)).
+  - Refresh ciblé: `select public.refresh_ef_all_for_source(datasetName);` (projection unifiée admin + overlays).
+  - Ingestion: déclenchement DB `select public.trigger_algolia_users_ingestion(workspace_id);` (RunTask EU côté connector).
+
+- Admin (Dataiku):
+  - Push dans `public.staging_emission_factors` (colonnes texte 1:1 avec CSV).
+  - `select public.run_import_from_staging();` (SCD1 sur `public.emission_factors`, puis refresh unifié par source et RunTask EU admin).
+
+- Clé fonctionnelle: `public.calculate_factor_key(nom, unite, source, perimetre, localisation, fe, date)`
+  - Tous champs optionnels sauf `FE` et `Unité donnée d'activité`.
+  - `factor_key` identique entre admin et users → partitionnement logique par table; overlays users utilisent `(workspace_id, factor_key)` unique.
+
+### 🗃️ Modèle de données
+
+- Table admin: `public.emission_factors` (SCD1 sur `factor_key`, `is_latest=true`).
+- Table overlays users: `public.user_factor_overlays`
+  - Colonnes texte alignées sur le CSV bilingue; `overlay_id` UUID PK; `workspace_id` UUID; `dataset_name` text; `factor_key` text; timestamps.
+  - Index unique: `(workspace_id, factor_key)`.
+
+- Projection unifiée: `public.emission_factors_all_search`
+  - Rebuild/refresh intègrent `emission_factors` (admin) + `user_factor_overlays` (users).
+  - Champs i18n: `Nom_fr/Unite_fr/...` et `Nom_en/Unite_en/...`, `languages` text[] construit dynamiquement.
+
+### 🛠️ RPC / Fonctions
+
+- `public.batch_upsert_user_factor_overlays(p_workspace_id uuid, p_dataset_name text, p_records jsonb) returns jsonb`
+  - Upsert SCD1 par `(workspace_id, factor_key)`, typage sécurisé FE/Date.
+  - Retour `{ inserted, updated }`.
+
+- `public.refresh_ef_all_for_source(p_source text)` et `public.rebuild_emission_factors_all_search()`
+  - Suppriment et réinsèrent depuis admin + overlays.
+
+- `public.run_import_from_staging()`
+  - Prépare/normalise, déduplique (`factor_key`), upsert admin, refresh par source, puis `run_algolia_data_task` (EU) pour la task admin.
+
+### 🔌 Edge Function
+
+- `import-csv-user` (JWT requis)
+  - Parse robuste, validation headers, upsert RPC overlays, refresh projection pour `datasetName`, déclenche `trigger_algolia_users_ingestion(workspace_id)`.
+
+### 🧭 Migrations à appliquer
+
+1) Overlays + RPC
+- `20250910_user_overlays_and_unified_projection.sql` (table, index, RPC initiale).
+- `20250910_fix_batch_upsert_user_overlays.sql` (fix ambiguïté workspace_id).
+
+2) Projection unifiée
+- `20250910_unify_projection_with_overlays.sql` (rebuild/refresh unifiés).
+
+3) Backfill
+- `20250910_backfill_users_to_overlays.sql` (copie des enregistrements privés existants vers overlays).
+
+Aucune opération de rebuild globale n'est nécessaire immédiatement; les fonctions de refresh seront invoquées par flux.
+
+### 🔐 Supabase (sécurité / extensions)
+
+- Extensions: `pgcrypto` (UUID génération), `pg_net` (déjà utilisé pour RunTask via DB).
+- Rôles/accès: la RPC `batch_upsert_user_factor_overlays` est `SECURITY DEFINER`; scoper les `GRANT EXECUTE` selon besoin.
 
 ### ⚛️ [Intégration Frontend](./frontend/integration-guide.md)
 - Guide d'utilisation des composants React

@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
     await supabase.from('fe_sources').upsert({ source_name: datasetName, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
     await supabase.from('fe_source_workspace_assignments').upsert({ source_name: datasetName, workspace_id: userWorkspaceId, assigned_by: user.id }, { onConflict: 'source_name,workspace_id' })
 
-    // Ingestion SCD2 en bulk avec données parsées robustement
+    // Ingestion overlays en bulk via RPC (SCD1 par (workspace_id, factor_key))
     const t0 = Date.now()
     const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
     const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
@@ -239,38 +239,39 @@ Deno.serve(async (req) => {
         }
         
         processed++
-        const factorKey = (row['ID'] && row['ID'].trim()) ? row['ID'].trim() : computeFactorKey(row, language)
-        const versionId = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).substring(2)}`
-        
         const rec: any = {
-          factor_key: factorKey,
-          version_id: versionId,
-          is_latest: true,
-          valid_from: new Date().toISOString(),
-          language,
-          workspace_id: userWorkspaceId,
-          "Nom": row['Nom'],
-          "Description": row['Description'] || null,
-          "FE": toNumber(row['FE']),
+          ID: row['ID'] || null,
+          Nom: row['Nom'] || null,
+          Nom_en: row['Nom_en'] || null,
+          Description: row['Description'] || null,
+          Description_en: row['Description_en'] || null,
+          FE: row['FE'],
           "Unité donnée d'activité": row["Unité donnée d'activité"],
-          "Source": datasetName, // Utiliser le nom du dataset validé
-          "Secteur": row['Secteur'] || null,
+          Unite_en: row['Unite_en'] || null,
+          Source: datasetName,
+          Secteur: row['Secteur'] || null,
+          Secteur_en: row['Secteur_en'] || null,
           "Sous-secteur": row['Sous-secteur'] || null,
-          "Localisation": row['Localisation'],
-          "Date": toInt(row['Date']),
-          "Incertitude": toNumber(row['Incertitude']),
-          "Périmètre": row['Périmètre'],
-          "Contributeur": row['Contributeur'] || null,
-          "Commentaires": row['Commentaires'] || null,
+          "Sous-secteur_en": row['Sous-secteur_en'] || null,
+          Localisation: row['Localisation'] || null,
+          Localisation_en: row['Localisation_en'] || null,
+          Date: row['Date'] || null,
+          Incertitude: row['Incertitude'] || null,
+          Périmètre: row['Périmètre'] || null,
+          Périmètre_en: row['Périmètre_en'] || null,
+          Contributeur: row['Contributeur'] || null,
+          Commentaires: row['Commentaires'] || null,
+          Commentaires_en: row['Commentaires_en'] || null,
         }
         batch.push(rec)
       }
 
       if (batch.length === 0) continue
 
-      // SCD2 via RPC workspace-scoped
-      const { data: upserted, error: rpcErr } = await supabase.rpc('batch_upsert_user_emission_factors', { 
-        p_workspace_id: userWorkspaceId, 
+      // Upsert overlays via RPC
+      const { data: result, error: rpcErr } = await supabase.rpc('batch_upsert_user_factor_overlays', { 
+        p_workspace_id: userWorkspaceId,
+        p_dataset_name: datasetName,
         p_records: batch 
       })
       if (rpcErr) {
@@ -278,12 +279,24 @@ Deno.serve(async (req) => {
         await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(rpcErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
         return json(500, { error: 'Database insertion failed', details: formatError(rpcErr) })
       }
-      inserted += (upserted as number) || 0
-      console.log(`Batch utilisateur ${Math.ceil((i + CHUNK) / CHUNK)} inséré: ${upserted || 0} records`)
+      const batchInserted = Number((result as any)?.inserted || 0)
+      const batchUpdated = Number((result as any)?.updated || 0)
+      inserted += batchInserted
+      console.log(`Batch overlays utilisateur ${Math.ceil((i + CHUNK) / CHUNK)}: ${batchInserted} insérés, ${batchUpdated} mis à jour`)
     }
 
     const t1 = Date.now()
     console.log(`Import utilisateur terminé: ${processed} traités, ${inserted} insérés en ${t1 - t0}ms`)
+
+    // Rafraîchir la projection unifiée pour cette Source (datasetName)
+    try {
+      const { error: refErr } = await supabase.rpc('refresh_ef_all_for_source', { p_source: datasetName })
+      if (refErr) {
+        console.warn('Erreur refresh projection unifiée pour la source', datasetName, refErr)
+      }
+    } catch (e) {
+      console.warn('Exception refresh projection unifiée:', e)
+    }
 
     // Déclenchement Ingestion Algolia (RunTask EU) 100% DB
     try {
