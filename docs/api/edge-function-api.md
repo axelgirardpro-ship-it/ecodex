@@ -547,3 +547,46 @@ const searchDirectly = async (query: string, origin: 'public' | 'private') => {
 - Résolution workspace via `user_roles.workspace_id` (fin de dépendance à `profiles`)
 - Flow utilisateur: sync Algolia paginée + `deleteByQuery(Source)` avant réinjection
 - Flow admin: colonne `ID` devenue optionnelle dans le parser
+
+## Imports — Utilisateur (import-csv-user)
+
+### Endpoint
+
+- `https://[project-ref].supabase.co/functions/v1/import-csv-user`
+
+### Authentification
+
+- JWT Supabase requis (Authorization: Bearer <token>)
+
+### Corps de requête
+
+```json
+{
+  "file_path": "imports/mon-fichier.csv|.csv.gz|.xlsx",
+  "dataset_name": "<Nom du dataset utilisateur>",
+  "language": "fr"
+}
+```
+
+- `dataset_name` sert de `Source` pour les overlays users et d’ancre de refresh par source.
+
+### Comportement
+
+- Parse robuste (CSV/XLSX/CSV.GZ), colonnes attendues (extrait): `Nom`, `FE`, `Unité donnée d'activité`, `Source`, `Périmètre`, `Localisation`, `Date` (ID optionnel).
+- Upsert via RPC `batch_upsert_user_factor_overlays(p_workspace_id, p_dataset_name, p_records)`
+  - Unicité `(workspace_id, factor_key)`; `factor_key` basé sur (Nom/Unité/Source/Périmètre/Localisation/FE/Date).
+- Refresh ciblé: `refresh_ef_all_for_source(dataset_name)`.
+- Déclenchement Ingestion EU: `trigger_algolia_users_ingestion(workspace_id)`.
+
+### Réponse
+
+```json
+{
+  "import_id": "<uuid>",
+  "processed": 1234,
+  "inserted": 1200,
+  "sources": ["<dataset_name>"],
+  "parsing_method": "robust_csv_parser",
+  "compression_supported": true
+}
+```
