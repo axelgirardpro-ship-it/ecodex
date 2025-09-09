@@ -285,17 +285,15 @@ Deno.serve(async (req) => {
     const t1 = Date.now()
     console.log(`Import utilisateur terminé: ${processed} traités, ${inserted} insérés en ${t1 - t0}ms`)
 
-    // Algolia partial update pour user (par source workspace)
+    // Déclenchement Ingestion Algolia (RunTask EU) 100% DB
     try {
-      const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/algolia-batch-optimizer?action=sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' },
-        body: JSON.stringify({ sources: [datasetName], operation: 'incremental_sync', priority: 3, estimated_records: inserted })
-      })
-      const text = await resp.text()
-      await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_partial_sync_attempt', details: { sources: [datasetName], status: resp.status, response: text } })
-    } catch (e) { await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_partial_sync_error', details: { error: formatError(e) } }) }
+      const { error: trigErr } = await supabase.rpc('trigger_algolia_users_ingestion', { p_workspace_id: userWorkspaceId })
+      if (trigErr) {
+        await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_run_data_task_error', details: { error: trigErr.message } })
+      }
+    } catch (e) {
+      await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_run_data_task_exception', details: { error: String(e) } })
+    }
 
     // Finaliser l'import
     await supabase.from('data_imports').update({

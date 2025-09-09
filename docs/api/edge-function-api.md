@@ -1,4 +1,6 @@
-# API Edge Function - algolia-search-proxy
+# API Edge Function - algolia-search-proxy (legacy)
+
+> Remplacé par le connecteur Supabase x Algolia lisant `public.emission_factors_all_search`. Les appels via `/functions/v1/algolia-search-proxy` ne sont plus recommandés côté admin.
 
 ## Vue d'ensemble
 
