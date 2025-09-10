@@ -1,0 +1,57 @@
+// @ts-nocheck
+/* eslint-disable */
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+  try {
+    if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
+
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+
+    const body = await req.json().catch(()=> ({})) as any
+    // Nouveau flux: délègue intégralement à import-csv-user
+    const datasetName = String(body.dataset_name || body.name || '')
+    const filePath = String(body.file_path || body.path || '')
+    const language = String(body.language || 'fr')
+
+    if (!datasetName || !filePath) {
+      return json(400, { error: 'file_path and dataset_name are required' })
+    }
+
+    const { data: session } = await supabase.auth.getUser(req.headers.get('Authorization')?.replace('Bearer ','') || '')
+    if (!session?.user) return json(401, { error: 'Invalid token' })
+
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/import-csv-user`, {
+      method: 'POST',
+      headers: {
+        'Authorization': req.headers.get('Authorization') || '',
+        'Content-Type': 'application/json',
+        'apikey': SERVICE_ROLE_KEY,
+      },
+      body: JSON.stringify({ file_path: filePath, dataset_name: datasetName, language }),
+    })
+
+    const contentType = resp.headers.get('content-type') || ''
+    if (!resp.ok) {
+      let details: any = await (contentType.includes('application/json') ? resp.json() : resp.text())
+      return json(resp.status, { error: 'delegate_failed', details })
+    }
+    const data = await resp.json()
+    return json(200, { delegated: true, data })
+  } catch (e) {
+    return json(500, { error: String(e && (e as any).message || e) })
+  }
+})

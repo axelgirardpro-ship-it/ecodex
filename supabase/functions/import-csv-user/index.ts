@@ -136,6 +136,13 @@ Deno.serve(async (req) => {
 
     if (!filePath || !datasetName) return json(400, { error: 'file_path and dataset_name are required' })
 
+    // 0) RESET COMPLET DES TABLES D'IMPORT (demandé: nettoyer AVANT)
+    // Utilise une RPC SQL de TRUNCATE pour garantir un état propre
+    const { error: resetErr } = await supabase.rpc('reset_user_import_tables')
+    if (resetErr) {
+      return json(500, { error: 'reset_user_import_tables failed', details: formatError(resetErr) })
+    }
+
     const { data: signed, error: signedErr } = await supabase.storage.from('imports').createSignedUrl(filePath, 3600)
     if (signedErr || !signed?.signedUrl) return json(500, { error: 'Cannot sign storage url' })
 
@@ -281,6 +288,16 @@ Deno.serve(async (req) => {
       return json(500, { error: 'prepare_user_batch_projection failed', details: formatError(prepErr) })
     }
 
+    // 2.b) Attente courte pour s'assurer que le batch est visible par Algolia
+    const startWait = Date.now()
+    while (Date.now() - startWait < 3000) { // max 3s
+      const { data: c1 } = await supabase.from('user_batch_algolia').select('record_id', { count: 'exact', head: true })
+      if ((c1 as any)?.length !== undefined) break // compat head
+      const { count } = await supabase.from('user_batch_algolia').select('*', { count: 'exact', head: true })
+      if ((count || 0) > 0) break
+      await new Promise(r => setTimeout(r, 150))
+    }
+
     // 3) Lancer la task Algolia (override query sur user_batch_algolia)
     const USER_TASK_ID = 'ad1fe1bb-a666-4701-b392-944dec2e1326'
     const { data: runResp, error: runErr } = await supabase.rpc('run_algolia_data_task_override', {
@@ -295,7 +312,7 @@ Deno.serve(async (req) => {
       return json(502, { error: 'Algolia RunTask override failed', details: formatError(runErr) })
     }
 
-    // 4) Finaliser: upsert overlays + cleanup staging/batch + close import
+    // 4) Finaliser: upsert overlays + close import (pas de cleanup en fin de flux)
     const { data: finResp, error: finErr } = await supabase.rpc('finalize_user_import', {
       p_workspace_id: userWorkspaceId,
       p_dataset_name: datasetName,
