@@ -215,31 +215,27 @@ Deno.serve(async (req) => {
     await supabase.from('fe_sources').upsert({ source_name: datasetName, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
     await supabase.from('fe_source_workspace_assignments').upsert({ source_name: datasetName, workspace_id: userWorkspaceId, assigned_by: user.id }, { onConflict: 'source_name,workspace_id' })
 
-    // Ingestion overlays en bulk via RPC (SCD1 par (workspace_id, factor_key))
+    // 1) Ecriture staging_user_imports (batch)
     const t0 = Date.now()
-    const toNumber = (s: string) => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : null }
-    const toInt = (s: string) => { const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10); return Number.isFinite(n) ? n : null }
-
-    let processed = 0, inserted = 0
+    let processed = 0
     const CHUNK = Number(Deno.env.get('IMPORT_CHUNK_SIZE') || '500')
     for (let i = 0; i < rows.length; i += CHUNK) {
       const slice = rows.slice(i, i + CHUNK)
       const batch: any[] = []
-      
+
       for (const row of slice) {
-        // Validation supplémentaire des champs critiques
         const rowOk = row['Nom'] && row['FE'] && row["Unité donnée d'activité"] && row['Source'] && row['Périmètre'] && row['Localisation'] && row['Date']
         if (!rowOk) continue
-        
-        // Validation de la source dans la ligne
         const sourceInRow = row['Source']?.trim();
         if (sourceInRow && !RobustCsvParser.validateSourceName(sourceInRow)) {
           console.warn(`Source invalide ignorée: "${sourceInRow}" (ligne ${processed + 1})`);
           continue;
         }
-        
         processed++
-        const rec: any = {
+        batch.push({
+          import_id: importId,
+          workspace_id: userWorkspaceId,
+          dataset_name: datasetName,
           ID: row['ID'] || null,
           Nom: row['Nom'] || null,
           Nom_en: row['Nom_en'] || null,
@@ -248,7 +244,7 @@ Deno.serve(async (req) => {
           FE: row['FE'],
           "Unité donnée d'activité": row["Unité donnée d'activité"],
           Unite_en: row['Unite_en'] || null,
-          Source: datasetName,
+          Source: row['Source'] || datasetName,
           Secteur: row['Secteur'] || null,
           Secteur_en: row['Secteur_en'] || null,
           "Sous-secteur": row['Sous-secteur'] || null,
@@ -262,71 +258,63 @@ Deno.serve(async (req) => {
           Contributeur: row['Contributeur'] || null,
           Commentaires: row['Commentaires'] || null,
           Commentaires_en: row['Commentaires_en'] || null,
+        })
+      }
+
+      if (batch.length > 0) {
+        const { error: insErr } = await supabase.from('staging_user_imports').insert(batch)
+        if (insErr) {
+          console.error('Erreur insertion staging_user_imports:', insErr)
+          await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(insErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
+          return json(500, { error: 'Staging insertion failed', details: formatError(insErr) })
         }
-        batch.push(rec)
       }
+    }
 
-      if (batch.length === 0) continue
+    // 2) Préparer la projection batch vers user_batch_algolia
+    const { data: prepCount, error: prepErr } = await supabase.rpc('prepare_user_batch_projection', {
+      p_workspace_id: userWorkspaceId,
+      p_dataset_name: datasetName
+    })
+    if (prepErr) {
+      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(prepErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
+      return json(500, { error: 'prepare_user_batch_projection failed', details: formatError(prepErr) })
+    }
 
-      // Upsert overlays via RPC
-      const { data: result, error: rpcErr } = await supabase.rpc('batch_upsert_user_factor_overlays', { 
-        p_workspace_id: userWorkspaceId,
-        p_dataset_name: datasetName,
-        p_records: batch 
-      })
-      if (rpcErr) {
-        console.error('Erreur RPC insertion batch utilisateur:', rpcErr)
-        await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(rpcErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
-        return json(500, { error: 'Database insertion failed', details: formatError(rpcErr) })
-      }
-      const batchInserted = Number((result as any)?.inserted || 0)
-      const batchUpdated = Number((result as any)?.updated || 0)
-      inserted += batchInserted
-      console.log(`Batch overlays utilisateur ${Math.ceil((i + CHUNK) / CHUNK)}: ${batchInserted} insérés, ${batchUpdated} mis à jour`)
+    // 3) Lancer la task Algolia (override query sur user_batch_algolia)
+    const USER_TASK_ID = 'ad1fe1bb-a666-4701-b392-944dec2e1326'
+    const { data: runResp, error: runErr } = await supabase.rpc('run_algolia_data_task_override', {
+      p_task_id: USER_TASK_ID,
+      p_region: 'eu',
+      p_workspace_id: userWorkspaceId,
+      p_dataset_name: datasetName
+    })
+    if (runErr) {
+      await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_run_data_task_override_error', details: { error: runErr.message } })
+      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(runErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
+      return json(502, { error: 'Algolia RunTask override failed', details: formatError(runErr) })
+    }
+
+    // 4) Finaliser: upsert overlays + cleanup staging/batch + close import
+    const { data: finResp, error: finErr } = await supabase.rpc('finalize_user_import', {
+      p_workspace_id: userWorkspaceId,
+      p_dataset_name: datasetName,
+      p_import_id: importId
+    })
+    if (finErr) {
+      await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(finErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
+      return json(500, { error: 'finalize_user_import failed', details: formatError(finErr) })
     }
 
     const t1 = Date.now()
-    console.log(`Import utilisateur terminé: ${processed} traités, ${inserted} insérés en ${t1 - t0}ms`)
-
-    // Rafraîchir la projection unifiée pour cette Source (datasetName)
-    try {
-      const { error: refErr } = await supabase.rpc('refresh_ef_all_for_source', { p_source: datasetName })
-      if (refErr) {
-        console.warn('Erreur refresh projection unifiée pour la source', datasetName, refErr)
-      }
-    } catch (e) {
-      console.warn('Exception refresh projection unifiée:', e)
-    }
-
-    // Déclenchement Ingestion Algolia (RunTask EU) 100% DB
-    try {
-      const { error: trigErr } = await supabase.rpc('trigger_algolia_users_ingestion', { p_workspace_id: userWorkspaceId })
-      if (trigErr) {
-        await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_run_data_task_error', details: { error: trigErr.message } })
-      }
-    } catch (e) {
-      await supabase.from('audit_logs').insert({ user_id: user.id, action: 'algolia_run_data_task_exception', details: { error: String(e) } })
-    }
-
-    // Finaliser l'import
-    await supabase.from('data_imports').update({
-      status: 'completed',
+    return json(200, {
+      import_id: importId,
       processed,
-      inserted,
-      updated: 0,
-      failed: 0,
-      finished_at: new Date().toISOString(),
-      db_ms: t1 - t0,
-      algolia_api_calls: null
-    }).eq('id', importId)
-
-    return json(200, { 
-      import_id: importId, 
-      processed, 
-      inserted, 
-      sources: Array.from(sourcesCount.keys()),
+      inserted: (prepCount as number) || 0,
+      algolia: runResp ?? null,
       parsing_method: 'robust_csv_parser',
-      compression_supported: true
+      compression_supported: true,
+      db_ms: t1 - t0
     })
 
   } catch (error) {

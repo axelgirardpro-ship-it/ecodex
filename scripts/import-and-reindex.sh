@@ -205,14 +205,16 @@ COMMIT;
 ANALYZE public.emission_factors;
 SQL
 
-echo "→ Rebuild complet de la projection ef_all"
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v staging="$STAGING" <<'SQL'
+echo "→ Refresh projection ef_all par source (depuis emission_factors)"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 SET statement_timeout = 0;
 DO $$
 DECLARE s text;
 BEGIN
   FOR s IN (
-    SELECT DISTINCT "Source" FROM :staging WHERE "Source" IS NOT NULL
+    SELECT DISTINCT "Source"
+    FROM public.emission_factors
+    WHERE is_latest = true AND "Source" IS NOT NULL
   ) LOOP
     PERFORM public.refresh_ef_all_for_source(p_source => s);
   END LOOP;

@@ -70,7 +70,7 @@ begin
       (rec->>'Description') as "Description",
       (rec->>'Description_en') as "Description_en",
       (rec->>'FE') as "FE",
-      (rec->>'Unité donnée d'activité') as "Unité donnée d'activité",
+      (rec->>'Unité donnée d''activité') as "Unité donnée d'activité",
       (rec->>'Unite_en') as "Unite_en",
       (rec->>'Source') as "Source",
       (rec->>'Secteur') as "Secteur",
@@ -157,8 +157,9 @@ begin
     returning (xmax = 0) as inserted
   )
   select
-    count(*) filter (where inserted) into v_inserted,
-    count(*) filter (where not inserted) into v_updated
+    count(*) filter (where inserted),
+    count(*) filter (where not inserted)
+  into v_inserted, v_updated
   from upsert;
 
   return jsonb_build_object('inserted', v_inserted, 'updated', v_updated);

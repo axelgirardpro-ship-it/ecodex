@@ -26,10 +26,11 @@ Cette documentation couvre la nouvelle architecture de recherche unifiée déplo
 
 ### 🧩 Imports de données (nouveau)
 
-- Users (100% DB):
-  - Edge Function `import-csv-user` lit le CSV (CSV/XLSX/CSV.GZ), parse robuste, upsert via RPC `batch_upsert_user_factor_overlays` dans `public.user_factor_overlays` (unicité (workspace_id, factor_key)).
-  - Refresh ciblé: `select public.refresh_ef_all_for_source(datasetName);` (projection unifiée admin + overlays).
-  - Ingestion: déclenchement DB `select public.trigger_algolia_users_ingestion(workspace_id);` (RunTask EU côté connector).
+- Users (100% DB, batch-only Algolia):
+  - Staging: `public.staging_user_imports` reçoit le CSV (colonnes texte 1:1)
+  - Projection batch: `select public.prepare_user_batch_projection(workspace_id, datasetName);` remplit `public.user_batch_algolia`
+  - Sync Algolia ciblée: `select public.run_algolia_data_task_override(task_id, 'eu', workspace_id, datasetName);`
+  - Finalisation: `select public.finalize_user_import(workspace_id, datasetName, import_id);` (upsert overlays + cleanup)
 
 - Admin (Dataiku):
   - Push dans `public.staging_emission_factors` (colonnes texte 1:1 avec CSV).

@@ -35,3 +35,4 @@ function quoteIdent(id) {
 
 const list = cols.map(c => quoteIdent(c || 'col')).join(',');
 process.stdout.write(list);
+
