@@ -573,10 +573,10 @@ const searchDirectly = async (query: string, origin: 'public' | 'private') => {
 ### Comportement
 
 - Parse robuste (CSV/XLSX/CSV.GZ), colonnes attendues (extrait): `Nom`, `FE`, `Unité donnée d'activité`, `Source`, `Périmètre`, `Localisation`, `Date` (ID optionnel).
-- Upsert via RPC `batch_upsert_user_factor_overlays(p_workspace_id, p_dataset_name, p_records)`
-  - Unicité `(workspace_id, factor_key)`; `factor_key` basé sur (Nom/Unité/Source/Périmètre/Localisation/FE/Date).
-- Refresh ciblé: `refresh_ef_all_for_source(dataset_name)`.
-- Déclenchement Ingestion EU: `trigger_algolia_users_ingestion(workspace_id)`.
+- Écriture staging: insertion par lots dans `public.staging_user_imports` (1:1 colonnes texte + métas `import_id`, `workspace_id`, `dataset_name`).
+- Projection batch: `select public.prepare_user_batch_projection(workspace_id, dataset_name);` alimente `public.user_batch_algolia` uniquement pour le batch courant.
+- RunTask Algolia ciblée (EU): `select public.run_algolia_data_task_override(<task_id_users>, 'eu', workspace_id, dataset_name);` avec `parametersOverride.source.options.query` = `SELECT * FROM public.user_batch_algolia ...`.
+- Finalisation: `select public.finalize_user_import(workspace_id, dataset_name, import_id);` qui upsert dans `public.user_factor_overlays` (unicité `(workspace_id, factor_key)`) et nettoie `staging_user_imports` + `user_batch_algolia`.
 
 ### Réponse
 
@@ -585,8 +585,9 @@ const searchDirectly = async (query: string, origin: 'public' | 'private') => {
   "import_id": "<uuid>",
   "processed": 1234,
   "inserted": 1200,
-  "sources": ["<dataset_name>"],
+  "algolia": { /* réponse RunTask override */ },
   "parsing_method": "robust_csv_parser",
-  "compression_supported": true
+  "compression_supported": true,
+  "db_ms": 8452
 }
 ```

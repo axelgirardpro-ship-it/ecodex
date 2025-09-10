@@ -536,7 +536,7 @@ const Import = () => {
                 )}
 
                 {/* Results */}
-                {importResults && (
+                {importStatus !== "idle" && (
                   <div className={`p-4 rounded-lg ${importStatus === "success" ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
                     {importStatus === "success" ? (
                       <div className="flex items-center">
@@ -553,7 +553,7 @@ const Import = () => {
                           <span className="text-red-700 font-medium">Erreurs d'import</span>
                         </div>
                         <ul className="text-sm text-red-600 space-y-1">
-                          {importResults.errors.map((error, index) => (
+                          {(importResults?.errors || []).map((error, index) => (
                             <li key={index}>• {error}</li>
                           ))}
                         </ul>

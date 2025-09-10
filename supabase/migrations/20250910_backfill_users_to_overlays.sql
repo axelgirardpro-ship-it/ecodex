@@ -9,10 +9,10 @@ insert into public.user_factor_overlays (
   "Périmètre","Périmètre_en","Contributeur","Commentaires","Commentaires_en"
 )
 select 
-  ef.workspace_id,
+  (ef.workspace_id)::uuid,
   coalesce(ef."Source", 'import_utilisateur') as dataset_name,
   ef.factor_key,
-  ef."ID",ef."Nom",ef."Nom_en",ef."Description",ef."Description_en",ef."FE",ef."Unité donnée d'activité",ef."Unite_en",ef."Source",
+  null::text as "ID",ef."Nom",ef."Nom_en",ef."Description",ef."Description_en",ef."FE",ef."Unité donnée d'activité",ef."Unite_en",ef."Source",
   ef."Secteur",ef."Secteur_en",ef."Sous-secteur",ef."Sous-secteur_en",ef."Localisation",ef."Localisation_en",ef."Date",ef."Incertitude",
   ef."Périmètre",ef."Périmètre_en",ef."Contributeur",ef."Commentaires",ef."Commentaires_en"
 from public.emission_factors ef
