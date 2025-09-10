@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
           FE: row['FE'],
           "Unité donnée d'activité": row["Unité donnée d'activité"],
           Unite_en: row['Unite_en'] || null,
-          Source: row['Source'] || datasetName,
+          Source: datasetName,
           Secteur: row['Secteur'] || null,
           Secteur_en: row['Secteur_en'] || null,
           "Sous-secteur": row['Sous-secteur'] || null,
