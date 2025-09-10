@@ -87,18 +87,10 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
-  // Empêcher l'origine 'private' sur les workspaces non-Premium
-  useEffect(() => {
-    if ((currentWorkspace?.plan_type !== 'premium') && origin === 'private') {
-      setOriginState('public');
-    }
-  }, [currentWorkspace?.plan_type, origin]);
-
+  // Autoriser l'origine 'private' pour tous les plans (la sécurité est gérée côté proxy)
   const setOriginClamped = React.useCallback((o: Origin) => {
-    const isPremium = currentWorkspace?.plan_type === 'premium';
-    if (!isPremium && o === 'private') return;
     setOriginState(o);
-  }, [currentWorkspace?.plan_type]);
+  }, []);
 
   // Forçage temporaire (< 3 chars) avec fenêtre temporelle pour éviter les courses
   const forceUntilTsRef = useRef<number>(0);
