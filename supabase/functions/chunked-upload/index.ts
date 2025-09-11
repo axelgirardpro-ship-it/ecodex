@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
     const datasetName = String(body.dataset_name || body.name || '')
     const filePath = String(body.file_path || body.path || '')
     const language = String(body.language || 'fr')
+    const addToFavorites = Boolean(body.add_to_favorites === true)
 
     if (!datasetName || !filePath) {
       return json(400, { error: 'file_path and dataset_name are required' })
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         'apikey': SERVICE_ROLE_KEY,
       },
-      body: JSON.stringify({ file_path: filePath, dataset_name: datasetName, language }),
+      body: JSON.stringify({ file_path: filePath, dataset_name: datasetName, language, add_to_favorites: addToFavorites }),
     })
 
     const contentType = resp.headers.get('content-type') || ''

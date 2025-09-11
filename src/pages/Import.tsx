@@ -326,7 +326,7 @@ const Import = () => {
       
       // Orchestration robuste: créer un job et déléguer (chunks+queue+cron)
       const { data: resp, error: invErr } = await supabase.functions.invoke('chunked-upload', {
-        body: { file_path: finalPath, filename: fileToUpload.name, file_size: fileToUpload.size, replace_all: true, language: 'fr', dataset_name: dataset.name }
+        body: { file_path: finalPath, filename: fileToUpload.name, file_size: fileToUpload.size, replace_all: true, language: 'fr', dataset_name: dataset.name, add_to_favorites: addToFavorites }
       });
       if (invErr) throw invErr;
       setIndexingStatus("success");

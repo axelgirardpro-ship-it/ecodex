@@ -118,9 +118,6 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
-    const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
-    const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
@@ -133,6 +130,7 @@ Deno.serve(async (req) => {
     const filePath = String(body.file_path || '')
     const language = String(body.language || 'fr')
     const datasetName = String(body.dataset_name || '')
+    const addToFavorites = Boolean(body.add_to_favorites === true)
 
     if (!filePath || !datasetName) return json(400, { error: 'file_path and dataset_name are required' })
 
@@ -321,6 +319,20 @@ Deno.serve(async (req) => {
     if (finErr) {
       await supabase.from('data_imports').update({ status: 'failed', error_details: { error: formatError(finErr) }, finished_at: new Date().toISOString() }).eq('id', importId)
       return json(500, { error: 'finalize_user_import failed', details: formatError(finErr) })
+    }
+
+    // 4.b) Ajouter aux favoris si demandé
+    if (addToFavorites) {
+      const { error: favErr } = await supabase.rpc('add_import_overlays_to_favorites', {
+        p_user_id: user.id,
+        p_workspace_id: userWorkspaceId,
+        p_dataset_name: datasetName
+      })
+      if (favErr) {
+        console.warn('add_import_overlays_to_favorites failed:', favErr)
+        // Non bloquant pour l'import; on journalise seulement
+        await supabase.from('audit_logs').insert({ user_id: user.id, action: 'add_import_overlays_to_favorites_error', details: { error: favErr.message, workspace_id: userWorkspaceId, dataset_name: datasetName } })
+      }
     }
 
     const t1 = Date.now()
