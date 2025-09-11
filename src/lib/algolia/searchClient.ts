@@ -165,7 +165,11 @@ export function mergeFederatedPair(publicRes: any, privateRes: any, options?: { 
 
 export function buildFavoriteIdsFilter(favoriteIds?: string[]): string {
   if (!favoriteIds || favoriteIds.length === 0) return 'objectID:_none_';
-  return favoriteIds.map(id => `objectID:${id}`).join(' OR ');
+  // Algolia: valeurs string doivent être entre guillemets (UUID avec tirets)
+  const parts = favoriteIds
+    .filter(Boolean)
+    .map(id => `objectID:"${String(id).replace(/"/g, '\"')}"`);
+  return parts.length > 0 ? parts.join(' OR ') : 'objectID:_none_';
 }
 
 export function buildPublicFilters(wsId?: string, favoriteIdsFilter?: string) {
