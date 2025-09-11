@@ -13,7 +13,9 @@ export const VALID_ALGOLIA_PARAMS = [
   'restrictSearchableAttributes','facetingAfterDistinct','naturalLanguages','ruleContexts',
   'personalizationImpact','userToken','enablePersonalization',
   'distinct','attributeForDistinct','customRanking','ranking','relevancyStrictness',
-  'facetQuery','searchForFacetValues','attributesToHighlight','highlightPreTag','highlightPostTag'
+  'facetQuery','searchForFacetValues','attributesToHighlight','highlightPreTag','highlightPostTag',
+  // Paramètres internes destinés au proxy uniquement (filtrés côté edge avant Algolia)
+  'workspace_id','_search_context'
 ];
 
 /**

@@ -17,11 +17,10 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-// Cache TTL (ms) pour les requêtes identiques
-const CACHE_TTL_MS = Number(Deno.env.get('ALGOLIA_CACHE_TTL_MS')) || 30000;
-
-// Cache simple en mémoire (limité à la durée de vie de l'instance)
-const cache = new Map<string, { data: any; timestamp: number }>();
+// Cache TTL (ms) pour les requêtes identiques (version stable)
+const CACHE_TTL_MS = Number(Deno.env.get('EDGE_CACHE_TTL_MS') ?? '3000');
+type CacheEntry = { ts: number; data: any };
+const cacheStore = new Map<string, CacheEntry>();
 
 /**
  * CONFIGURATION TEASER/BLUR - Sécurité côté serveur
@@ -103,17 +102,17 @@ function encodeParams(params: Record<string, any>): string {
 }
 
 function getCache(key: string): any | null {
-  const it = cache.get(key);
+  const it = cacheStore.get(key);
   if (!it) return null;
-  if (Date.now() - it.timestamp > CACHE_TTL_MS) {
-    cache.delete(key);
+  if (Date.now() - it.ts > CACHE_TTL_MS) {
+    cacheStore.delete(key);
     return null;
   }
   return it.data;
 }
 
 function setCache(key: string, data: any): void {
-  cache.set(key, { timestamp: Date.now(), data });
+  cacheStore.set(key, { ts: Date.now(), data });
 }
 
 const corsHeaders = {
@@ -141,6 +140,7 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     // Utiliser les noms de secrets Supabase
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID')!
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!
@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: authHeader ? { headers: { Authorization: authHeader } } : undefined
     })
+    const admin = SUPABASE_SERVICE_ROLE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) : null
 
     let userId: string | null = null
     if (authHeader) {
@@ -175,74 +176,119 @@ Deno.serve(async (req) => {
     const rawBody = await req.json()
     const isBatch = Array.isArray(rawBody?.requests)
     const incomingRequests = isBatch ? rawBody.requests : [rawBody]
+    
+    // DEBUG: Voir ce qui est reçu côté proxy
+    console.log('DEBUG Proxy received:', { 
+      userId, 
+      isBatch, 
+      firstRequest: incomingRequests[0],
+      workspaceIdFromContext: incomingRequests[0]?._search_context?.workspace_id,
+      workspaceIdDirect: incomingRequests[0]?.workspace_id
+    })
 
-    // Récupérer le workspace et les sources assignées de l'utilisateur
+    // Récupérer le workspace avec fallback (users -> user_roles)
     let workspaceId: string | null = null
-    let assignedSources: string[] = []
     if (userId) {
-      const { data: userRow } = await supabase
-        .from('users')
-        .select('workspace_id')
-        .eq('user_id', userId)
-        .single()
-      workspaceId = userRow?.workspace_id ?? null
-      
-      // Récupérer les sources premium assignées au workspace
-      if (workspaceId) {
-        const { data: sourcesData } = await supabase
+      try {
+        // Forcer l'usage du service role pour contourner RLS
+        const client = admin || supabase
+        const { data: userRow, error: userErr } = await client
+          .from('users')
+          .select('workspace_id')
+          .eq('user_id', userId)
+          .single()
+        
+        if (!userErr && userRow?.workspace_id) {
+          workspaceId = userRow.workspace_id
+        } else {
+          const { data: roleRow, error: roleErr } = await client
+            .from('user_roles')
+            .select('workspace_id')
+            .eq('user_id', userId)
+            .limit(1)
+            .single()
+          
+          if (!roleErr && roleRow?.workspace_id) {
+            workspaceId = roleRow.workspace_id
+          }
+        }
+      } catch (e) {
+        console.error('Workspace resolution error:', e)
+      }
+    }
+    
+
+    // Si toujours nul, tenter de lire un workspace_id proposé par le client (contexte)
+    // et le valider contre user_roles pour éviter l'usurpation
+    if (!workspaceId && userId) {
+      let candidateWorkspaceId: string | null = null
+      for (const r of incomingRequests) {
+        const cand = r?._search_context?.workspace_id || r?.workspace_id
+        if (typeof cand === 'string' && cand.length >= 36) {
+          candidateWorkspaceId = cand
+          break
+        }
+      }
+      if (candidateWorkspaceId && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(candidateWorkspaceId)) {
+        try {
+          const { data: roleRow, error: roleErr } = await supabase
+            .from('user_roles')
+            .select('workspace_id')
+            .eq('user_id', userId)
+            .eq('workspace_id', candidateWorkspaceId)
+            .limit(1)
+            .single()
+          if (!roleErr && roleRow?.workspace_id) {
+            workspaceId = roleRow.workspace_id
+          }
+        } catch {}
+      }
+    }
+
+    // Récupérer les sources assignées au workspace (pour le blur côté public)
+    let assignedSources: string[] = []
+    if (workspaceId) {
+      try {
+        const { data: assignRows } = await (admin || supabase)
           .from('fe_source_workspace_assignments')
           .select('source_name')
           .eq('workspace_id', workspaceId)
-        assignedSources = sourcesData?.map(s => s.source_name) || []
-      }
+        assignedSources = (assignRows || []).map((r: any) => r?.source_name).filter((s: any) => typeof s === 'string')
+      } catch {}
     }
+
+    // Utilitaire UUID
+    const isUuid = (v: any) => typeof v === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v)
 
     /**
      * Construction unifiée des requêtes Algolia selon l'origine
-     * 
-     * ORIGINE 'public' (Base commune):
-     * - Scope: public uniquement
-     * - Access: standard (toujours) + premium si assigné au workspace
-     * - Teaser: si pas d'assignation workspace, retourne attributs limités
-     * 
-     * ORIGINE 'private' (Base personnelle):
-     * - Scope: private uniquement  
-     * - Workspace: filtré selon workspace_id de l'utilisateur
-     * - Pas de teaser: accès complet aux données du workspace
+     * Accepte un workspaceId effectif par requête (priorité: requête -> serveur)
      */
-    const buildUnified = (originParam: 'public'|'private'|undefined) => {
-      // Nettoyer les paramètres legacy
-      const origin = originParam || 'public' // Plus de support 'fullPrivate'
+    const buildApplied = (searchType: string, reqWorkspaceId: string | null) => {
+      const ws = isUuid(reqWorkspaceId) ? reqWorkspaceId : null
       let appliedFilters = ''
       let appliedFacetFilters: any[] = []
-      let attributesToRetrieve: string[] | undefined
-      
-      if (origin === 'public') {
-        appliedFilters = `scope:public`
-        if (workspaceId) {
-          // Workspace authentifié: standard + premium assigné
-          appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:${workspaceId}` ]]
-          attributesToRetrieve = undefined // Accès complet
-        } else {
-          // Utilisateur non-authentifié: standard + premium (teaser)
-          appliedFacetFilters = [[ 'access_level:standard', 'access_level:premium' ]]
-          attributesToRetrieve = TEASER_ATTRIBUTES // Teaser seulement
-        }
-      } else {
-        // private: données du workspace uniquement
-        if (!userId) {
-          appliedFilters = `scope:private AND workspace_id:_none_` // Pas d'accès sans auth
-        } else {
-          appliedFilters = workspaceId
-            ? `scope:private AND workspace_id:${workspaceId}`
-            : `scope:private AND workspace_id:_none_`
-        }
-        attributesToRetrieve = undefined // Accès complet aux données du workspace
+      switch (searchType) {
+        case 'fullPublic':
+          appliedFilters = `scope:public`
+          if (ws) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:"${ws}"` ]]
+          else appliedFacetFilters = [[ 'access_level:standard' ]]
+          break
+        case 'teaserPublic':
+          appliedFilters = `scope:public`
+          appliedFacetFilters = [[ 'access_level:premium' ]]
+          break
+        case 'fullPrivate':
+          if (!userId) appliedFilters = `scope:private AND workspace_id:_none_`
+          else appliedFilters = ws ? `scope:private AND workspace_id:"${ws}"` : `scope:private AND workspace_id:_none_`
+          break
+        default:
+          appliedFilters = `scope:public`
+          if (ws) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:"${ws}"` ]]
+          else appliedFacetFilters = [[ 'access_level:standard' ]]
       }
-      return { appliedFilters, appliedFacetFilters, attributesToRetrieve }
+      return { appliedFilters, appliedFacetFilters }
     }
-
-    // Validation stricte: 3 caractères minimum sauf quand facettes/filters présents
 
     // Construire les requêtes Algolia (multi)
     type BuiltReq = {
@@ -251,65 +297,59 @@ Deno.serve(async (req) => {
       index: number
     }
     const built: BuiltReq[] = incomingRequests.map((r: any, idx: number) => {
-      const {
-        query,
-        filters,
-        facetFilters,
-        facets,
-        maxValuesPerFacet,
-        sortFacetValuesBy,
-        maxFacetHits,
-        ruleContexts,
-        origin: reqOrigin,
-        searchType,
-        hitsPerPage,
-        page,
-        attributesToRetrieve: attrsClient,
-        restrictSearchableAttributes
-      } = r || {}
-      const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
-        (reqOrigin as 'public'|'private'|undefined)
-      )
-      const validation = validateQuery(String(query || ''), { facets, filters, facetFilters })
-      if (!validation.valid) {
-        return jsonResponse(200, { hits: [], nbHits: 0, page: 0, nbPages: 0, hitsPerPage: Number(hitsPerPage || 20), message: validation.message }, origin)
+      const { query, filters, facetFilters, searchType, origin: originParam, ...otherParams } = r || {}
+      const effectiveType = String(searchType || (originParam === 'private' ? 'fullPrivate' : 'fullPublic'))
+
+      // Workspace effectif calculé
+      let requestWorkspaceId: string | null = workspaceId
+      const candidates = [ r?.workspace_id, r?.params?.workspace_id, r?.params?._search_context?.workspace_id, r?._search_context?.workspace_id ]
+      for (const cand of candidates) { if (isUuid(cand)) { requestWorkspaceId = cand; break } }
+
+      // Le client a-t-il déjà fourni un filtre workspace_id ?
+      const clientHasWsFilter = typeof filters === 'string' && /workspace_id\s*:\s*\"?[0-9a-fA-F-]{36}\"?/i.test(filters)
+
+      // En recherche privée: si le client n'a pas fourni de filtre ws et qu'aucun ws ne peut être résolu, renvoyer 400
+      if (effectiveType === 'fullPrivate' && !clientHasWsFilter && !requestWorkspaceId) {
+        throw new Error('MISSING_WORKSPACE_ID')
       }
+
+      // Construire applied selon présence d'un filtre ws côté client
+      const buildAppliedFor = (stype: string): { appliedFilters: string, appliedFacetFilters: any[] } => {
+        let appliedFilters = ''
+        let appliedFacetFilters: any[] = []
+        switch (stype) {
+          case 'fullPublic':
+            appliedFilters = `scope:public`
+            if (requestWorkspaceId) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:\"${requestWorkspaceId}\"` ]]; else appliedFacetFilters = [[ 'access_level:standard' ]]
+            break
+          case 'teaserPublic':
+            appliedFilters = `scope:public`
+            appliedFacetFilters = [[ 'access_level:premium' ]]
+            break
+          case 'fullPrivate':
+            // Si le client a déjà mis workspace_id dans filters, on force juste scope:private sans ajouter _none_
+            if (clientHasWsFilter) {
+              appliedFilters = `scope:private`
+            } else {
+              appliedFilters = `scope:private AND workspace_id:\"${requestWorkspaceId}\"`
+            }
+            break
+          default:
+            appliedFilters = `scope:public`
+            if (requestWorkspaceId) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:\"${requestWorkspaceId}\"` ]]; else appliedFacetFilters = [[ 'access_level:standard' ]]
+        }
+        return { appliedFilters, appliedFacetFilters }
+      }
+
+      const { appliedFilters, appliedFacetFilters } = buildAppliedFor(effectiveType)
       const combinedFilters = filters ? `(${appliedFilters}) AND (${filters})` : appliedFilters
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
-      if (facetFilters) {
-        if (Array.isArray(facetFilters)) combinedFacetFilters = [...combinedFacetFilters, ...facetFilters]
-        else combinedFacetFilters.push(facetFilters)
-      }
-      const paramsObj: Record<string, any> = {
-        query: query || '',
-        filters: combinedFilters,
-        facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined,
-        ...(attributesToRetrieve ? { attributesToRetrieve } : (attrsClient ? { attributesToRetrieve: attrsClient } : {})),
-        ...(typeof hitsPerPage === 'number' ? { hitsPerPage } : {}),
-        ...(typeof page === 'number' ? { page } : {}),
-        ...(restrictSearchableAttributes ? { restrictSearchableAttributes } : {}),
-        ...(facets ? { facets } : {}),
-        ...(typeof maxValuesPerFacet === 'number' ? { maxValuesPerFacet } : {}),
-        ...(sortFacetValuesBy ? { sortFacetValuesBy } : {}),
-        ...(typeof maxFacetHits === 'number' ? { maxFacetHits } : {}),
-        ...(Array.isArray(ruleContexts) ? { ruleContexts } : {}),
-        // Balises de highlight attendues par React InstantSearch
-        highlightPreTag: '__ais-highlight__',
-        highlightPostTag: '__/ais-highlight__'
-      }
-      const cacheKey = JSON.stringify({
-        workspaceId,
-        origin: reqOrigin || 'public',
-        params: paramsObj
-      })
-      return {
-        cacheKey,
-        body: {
-          indexName: ALGOLIA_INDEX_ALL,
-          params: encodeParams(paramsObj)
-        },
-        index: idx
-      }
+      if (facetFilters) { if (Array.isArray(facetFilters)) combinedFacetFilters = [...combinedFacetFilters, ...facetFilters]; else combinedFacetFilters.push(facetFilters) }
+
+      const paramsObjRaw: Record<string, any> = { query: query || '', filters: combinedFilters, facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined, ...otherParams }
+      const { _search_context: _ctxIgnored, origin: _originIgnored, workspace_id: _wsParamIgnored, ...paramsObj } = paramsObjRaw
+      const cacheKey = JSON.stringify({ requestWorkspaceId, searchType: effectiveType, params: paramsObj })
+      return { cacheKey, body: { indexName: ALGOLIA_INDEX_ALL, params: encodeParams(paramsObj) }, index: idx }
     })
 
     // Partitionner cache hits / misses
@@ -384,9 +424,9 @@ Deno.serve(async (req) => {
 
     return jsonResponse(200, { results: assembled }, origin)
 
-  } catch (error) {
-    console.error('Proxy error:', error)
-    const origin = req.headers.get('Origin')
-    return jsonResponse(500, { error: 'Internal server error', details: String(error) }, origin)
-  }
+  } catch (error) { const origin = req.headers.get('Origin'); const msg = String((error as any)?.message || error);
+    if (msg.includes('MISSING_WORKSPACE_ID')) {
+      return jsonResponse(400, { error: 'workspace_id requis pour la recherche privée' }, origin)
+    }
+    return jsonResponse(500, { error: 'Internal server error', details: String(error) }, origin) }
 })

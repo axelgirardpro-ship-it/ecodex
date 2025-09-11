@@ -170,12 +170,10 @@ const OriginFilter: React.FC = () => {
       <Button
         size="sm"
         variant={origin === 'private' ? 'default' : 'outline'}
-        onClick={() => isPremium && handleOriginChange('private')}
-        disabled={!isPremium}
-        title={!isPremium ? "Réservé aux workspaces Premium" : undefined}
+        onClick={() => handleOriginChange('private')}
+        title={undefined}
         className="justify-start w-56 px-4 text-sm whitespace-nowrap overflow-hidden text-ellipsis"
       >
-        {!isPremium && <Lock className="h-3 w-3 mr-2" />}
         Base personnelle
       </Button>
     </div>
