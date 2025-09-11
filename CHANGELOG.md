@@ -13,6 +13,13 @@
   - Flux privé: `import-csv-user` ne lit plus d'env `ALGOLIA_*`; l'appel de Task passe via RPC SQL (`run_algolia_data_task_override`) qui s'appuie sur Vault.
   - Ajout des secrets Vault recommandés: `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `SUPABASE_URL`, `service_role_key`.
 
+## 2025-09-11
+
+- Favoris (imports privés)
+  - Front: correction du filtre favoris — `objectID` est maintenant quoté dans les filtres Algolia pour éviter les erreurs de parsing.
+  - SQL: nouvelle version de `add_import_overlays_to_favorites(user_id, workspace_id, dataset_name)` retournant `jsonb` et insérant `item_id = user_batch_algolia.object_id` (au lieu d'un ID composite). Remap des entrées legacy prévu.
+  - Ops: nettoyage des favoris legacy pour le dataset de test "Import 2 du 11 Septembre".
+
 - Front-end Import
   - Message “Erreurs d'import”: affichage uniquement si `importStatus === "error"` (plus d'affichage fantôme en succès).
   - Indexation Algolia: bandeau d'état non bloquant.
