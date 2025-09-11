@@ -8,6 +8,11 @@
   - Overlays non destructifs: `batch_upsert_user_factor_overlays` en INSERT-only; historique conservé dans `user_factor_overlays`.
   - `chunked-upload`: délégation propre à `import-csv-user` (plus d'accès direct BD), évite anciens flux cassés.
 
+- Sécurisation Algolia (admin & privé)
+  - SQL `run_algolia_data_task(...)` lit désormais `ALGOLIA_APP_ID` / `ALGOLIA_ADMIN_KEY` depuis Vault et appelle directement l'API Data Ingestion (RunTask) via `pg_net` (plus de dépendance GUC).
+  - Flux privé: `import-csv-user` ne lit plus d'env `ALGOLIA_*`; l'appel de Task passe via RPC SQL (`run_algolia_data_task_override`) qui s'appuie sur Vault.
+  - Ajout des secrets Vault recommandés: `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `SUPABASE_URL`, `service_role_key`.
+
 - Front-end Import
   - Message “Erreurs d'import”: affichage uniquement si `importStatus === "error"` (plus d'affichage fantôme en succès).
   - Indexation Algolia: bandeau d'état non bloquant.

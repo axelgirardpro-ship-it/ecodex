@@ -118,9 +118,6 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID') ?? ''
-    const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY') ?? ''
-    const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') ?? 'ef_all'
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
