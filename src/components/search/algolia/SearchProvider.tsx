@@ -125,6 +125,11 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           const enrichedRequests = requests.map(r => {
             const baseParams = r?.params || {};
             const computedOrigin = resolveOrigin(baseParams) || originRef.current;
+            console.log('DEBUG SearchProvider:', { 
+              currentWorkspaceId: currentWorkspace?.id, 
+              workspaceIdRef: workspaceIdRef.current,
+              computedOrigin 
+            });
             return {
               ...r,
               origin: computedOrigin,
@@ -135,7 +140,9 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
                   workspace_id: workspaceIdRef.current,
                   origin: computedOrigin,
                   timestamp: Date.now()
-                }
+                },
+                // DEBUG: Temporaire pour diagnostic
+                workspace_id: workspaceIdRef.current
               }
             };
           });

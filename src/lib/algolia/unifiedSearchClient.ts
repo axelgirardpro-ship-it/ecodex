@@ -361,14 +361,19 @@ export class UnifiedAlgoliaClient {
    * Toute la logique métier est déportée côté serveur
    */
   private async searchUnified(origin: 'public'|'private', baseParams: any, safeFacetFilters: any): Promise<any> {
+    const paramsMerged: any = {
+      ...baseParams,
+      facetFilters: safeFacetFilters,
+      filters: baseParams.filters
+    };
+    if (this.workspaceId) {
+      paramsMerged.workspace_id = this.workspaceId;
+    }
+
     const request = {
       indexName: 'ef_all',
       origin,
-      params: {
-        ...baseParams,
-        facetFilters: safeFacetFilters,
-        filters: baseParams.filters
-      }
+      params: paramsMerged
     } as any;
     
     // Délégation complète au client proxy vers l'Edge Function
@@ -389,7 +394,7 @@ export class UnifiedAlgoliaClient {
       cache: algoliaCache.getMetrics(),
       deduplication: requestDeduplicator.getDuplicationStats(),
       queueSize: this.requestQueue.length,
-      clientsInitialized: !!this.clients
+      clientsInitialized: !!this.client
     };
   }
 

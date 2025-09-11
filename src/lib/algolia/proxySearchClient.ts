@@ -63,8 +63,12 @@ export const createProxyClient = (
     const proxyRequests = requests.map(req => {
       const origin = (req.origin as 'public'|'private'|undefined) || undefined;
       const params = req.params || {};
-      // Mode unifié uniquement: transmettre origin et les params bruts
-      return { origin: origin || 'public', ...params } as ProxySearchRequest;
+      const ws = params?._search_context?.workspace_id || params?.workspace_id;
+      const base: any = { origin: origin || 'public', ...params } as ProxySearchRequest;
+      if ((origin || 'public') === 'private' && typeof ws === 'string' && ws.length >= 36) {
+        base.workspace_id = ws;
+      }
+      return base;
     });
     // Toujours envoyer en batch pour simplifier
     const { data: { session } } = await supabase.auth.getSession();
