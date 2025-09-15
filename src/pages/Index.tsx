@@ -36,23 +36,23 @@ const Index = () => {
   }, [navigate, user]);
   return <div className="min-h-screen bg-background">
       {/* Navigation Bar */}
-      <nav className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+      <nav className="bg-background border-b border-border sticky top-0 z-50 overflow-x-clip">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
         {/* Logo */}
-        <div className="flex-shrink-0">
-          <img src="/assets/logo-ecodex-navbar.png" alt="Ecodex" className="h-16" />
+        <div className="shrink sm:shrink-0">
+          <img src="/assets/logo-ecodex-navbar.png" alt="Ecodex" className="h-10 sm:h-12 md:h-16 w-auto" />
         </div>
         
         {/* Boutons de navigation */}
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <Link to="/signup">
-            <Button variant="outline">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm tracking-normal px-3">
               S'inscrire
             </Button>
           </Link>
           <Link to="/login">
-            <Button>
+            <Button size="sm" className="text-xs sm:text-sm tracking-normal px-3">
               Se connecter
             </Button>
           </Link>
@@ -61,28 +61,36 @@ const Index = () => {
         </div>
       </nav>
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-primary text-primary-foreground">
+      <section className="py-14 sm:py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Colonne gauche : H1, Paragraphe, CTAs */}
             <div className="space-y-6 order-2 lg:order-1">
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight text-primary-foreground">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight md:leading-[1.1] text-primary-foreground">
                 Le moteur de recherche<br />
                 de FE le plus puissant<br />
                 du marché
               </h1>
-              <p className="text-primary-foreground/90">
+              <p className="text-primary-foreground/90 text-base sm:text-lg max-w-prose">
                 Accédez à plus de 255 000 facteurs d'émissions français et internationaux<br />
                 agrégés et enrichis par nos experts.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/signup">
-                  <Button variant="hero" className="w-full sm:w-auto">
+                  <Button 
+                    variant="hero" 
+                    size="sm"
+                    className="w-full sm:w-auto text-xs sm:text-sm md:text-base normal-case tracking-normal whitespace-normal text-center px-4 sm:px-6 min-h-[44px]"
+                  >
                     Tester le moteur de recherche
                   </Button>
                 </Link>
                 <Link to="/login">
-                  <Button variant="outline" className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 text-xs sm:text-sm md:text-base normal-case tracking-normal whitespace-normal text-center px-4 sm:px-6 min-h-[44px]"
+                  >
                     Se connecter
                   </Button>
                 </Link>
@@ -91,19 +99,19 @@ const Index = () => {
             
             {/* Colonne droite : Image */}
             <div className="order-1 lg:order-2">
-              <img src="/assets/header-homepage.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" />
+              <img src="/assets/header-homepage.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" loading="eager" decoding="async" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Partner Logos Section */}
-  <section className="py-16 bg-background">
+  <section className="py-14 sm:py-20 bg-background">
     <div className="container mx-auto px-4 text-center">
-      <h4 className="font-bold mb-12">
+      <h4 className="font-bold mb-8 sm:mb-12">
             Retrouvez les plus grandes bases françaises et internationales
           </h4>
-          <div className="grid grid-cols-7 gap-8 items-center">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-6 sm:gap-8 items-center">
             <div className="flex flex-col items-center">
               <MonoLogo src="/assets/3fdbfe68-8e5e-4c44-8ac1-edd24a2d8fac.png" alt="Empreinte" className="max-h-[50px] w-full h-[50px]" />
             </div>
@@ -151,9 +159,9 @@ const Index = () => {
       </section>
 
       {/* Interactive Demo Section */}
-      <section className="py-20 px-4">
+      <section className="py-14 sm:py-20 px-4">
         <div className="container mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight md:leading-[1.1] mb-8 sm:mb-12">
             Découvrez la puissance<br />
             du moteur de recherche
           </h2>
@@ -188,19 +196,19 @@ const Index = () => {
       </section>
 
       {/* Features Tabs Section */}
-      <section className="py-20 px-4 bg-background">
+      <section className="py-14 sm:py-20 px-4 bg-background">
         <div className="container mx-auto">
-  <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+  <h2 className="text-4xl md:text-5xl font-bold leading-tight md:leading-[1.1] text-center mb-10 sm:mb-12">
     Un moteur de recherche<br />
     puissant et personnalisable
   </h2>
   <Tabs defaultValue="donnees" className="max-w-6xl mx-auto">
-    <TabsList className="grid w-full grid-cols-3 mb-12 rounded-full items-center">
-              <TabsTrigger value="donnees" className="rounded-full">Données</TabsTrigger>
-              <TabsTrigger value="recherche" className="rounded-full">Recherche</TabsTrigger>
-              <TabsTrigger value="personnalisation" className="rounded-full">Personnalisation</TabsTrigger>
+    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-12 rounded-full items-center h-auto py-2">
+              <TabsTrigger value="donnees" className="rounded-full w-full text-sm sm:text-base">Données</TabsTrigger>
+              <TabsTrigger value="recherche" className="rounded-full w-full text-sm sm:text-base">Recherche</TabsTrigger>
+              <TabsTrigger value="personnalisation" className="rounded-full w-full text-sm sm:text-base">Personnalisation</TabsTrigger>
             </TabsList>
-            <TabsContent value="donnees" className="grid lg:grid-cols-2 gap-12 items-start">
+            <TabsContent value="donnees" className="mt-6 sm:mt-8 grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 py-4">
       <h3 className="text-3xl font-bold leading-tight">
         Le guichet unique de vos<br />
@@ -225,7 +233,7 @@ const Index = () => {
                 <img src="/assets/onglet-donnees.png" alt="Interface base de données" className="w-full h-auto" />
               </div>
             </TabsContent>
-            <TabsContent value="recherche" className="grid lg:grid-cols-2 gap-12 items-start">
+            <TabsContent value="recherche" className="mt-6 sm:mt-8 grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 py-4">
     <h3 className="text-3xl font-bold leading-tight">
       Moteur fluide et simple<br />
@@ -250,7 +258,7 @@ const Index = () => {
                 <img src="/assets/onglet-recherche.png" alt="Interface de recherche" className="w-full h-auto" />
               </div>
             </TabsContent>
-            <TabsContent value="personnalisation" className="grid lg:grid-cols-2 gap-12 items-start">
+            <TabsContent value="personnalisation" className="mt-6 sm:mt-8 grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 py-4">
     <h3 className="text-3xl font-bold leading-tight">
       Personnalisez le moteur<br />
@@ -281,19 +289,19 @@ const Index = () => {
       </section>
 
       {/* Databases Section */}
-      <section className="py-20 px-4">
+      <section className="py-14 sm:py-20 px-4">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight md:leading-[1.1] text-center mb-8 sm:mb-12">
             Toutes les bases de données<br />
             sur une seule plateforme
           </h2>
           <Tabs defaultValue="standards" className="max-w-6xl mx-auto">
-            <TabsList className="grid w-full grid-cols-2 mb-12 rounded-full items-center">
-              <TabsTrigger value="standards" className="rounded-full">Datasets standards</TabsTrigger>
-              <TabsTrigger value="premium" className="rounded-full">Datasets premium</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-12 rounded-full items-center h-auto py-2">
+              <TabsTrigger value="standards" className="rounded-full w-full text-sm sm:text-base">Datasets standards</TabsTrigger>
+              <TabsTrigger value="premium" className="rounded-full w-full text-sm sm:text-base">Datasets premium</TabsTrigger>
             </TabsList>
-            <TabsContent value="standards">
-              <div className="grid grid-cols-7 gap-8">
+            <TabsContent value="standards" className="mt-6 sm:mt-8">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-6 sm:gap-8">
                 {["AIB", "Agribalyse", "BEIS", "Base Carbone", "Base Impacts", "CCF", "Climate Trace", "EEA", "EPA", "Exiobase", "EcoInvent", "Ecobalyse", "Electricity Maps", "Ember", "GESPoint5", "GLEC", "Kering", "OMEGA TP", "Open CEDA", "PCAF"].map((name, index) => <div key={index} className="flex flex-col items-center space-y-2">
                     <div className="w-16 h-16 rounded-lg flex items-center justify-center">
                       {name === "AIB" ? (
@@ -346,8 +354,8 @@ const Index = () => {
                   </div>)}
               </div>
             </TabsContent>
-            <TabsContent value="premium">
-              <div className="grid grid-cols-7 gap-8">
+            <TabsContent value="premium" className="mt-6 sm:mt-8">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-6 sm:gap-8">
                 {["Inies", "Eco-platform", "EcoInvent"].map((name, index) => <div key={index} className="flex flex-col items-center space-y-2">
                     <div className="w-16 h-16 rounded-lg flex items-center justify-center">
                       {name === "Inies" ? (
@@ -371,7 +379,7 @@ const Index = () => {
       </section>
 
       {/* Expert Section */}
-      <section className="py-20 px-4 bg-background">
+      <section className="py-14 sm:py-20 px-4 bg-background">
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-start">
             <div className="flex justify-center">
@@ -403,9 +411,9 @@ const Index = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 px-4">
+      <section className="py-14 sm:py-20 px-4">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight md:leading-[1.1] text-center mb-8 sm:mb-12">
             Un prix qui s'adapte<br />
             à vos besoins
           </h2>
@@ -478,23 +486,31 @@ const Index = () => {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 px-4 bg-primary">
+      <section className="py-14 sm:py-20 px-4 bg-primary">
         <div className="container mx-auto text-center">
           <div className="space-y-6 max-w-2xl mx-auto">
-            <h2 className="text-5xl md:text-6xl font-bold text-primary-foreground">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight md:leading-[1.1] text-primary-foreground">
               Prêt à explorer nos facteurs d'émission ?
             </h2>
-            <p className="text-primary-foreground text-lg">
+            <p className="text-primary-foreground text-base sm:text-lg">
               Accédez dès maintenant au moteur de recherche le plus puissant du marché
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/signup">
-                <Button variant="hero" className="w-full sm:w-auto">
+                <Button 
+                  variant="hero" 
+                  size="sm"
+                  className="w-full sm:w-auto text-xs sm:text-sm md:text-base tracking-normal whitespace-normal text-center px-4 sm:px-6 min-h-[44px]"
+                >
                   Tester le moteur de recherche
                 </Button>
               </Link>
               <Link to="/login">
-                <Button variant="outline" className="border-primary-foreground px-8 py-3 rounded-md font-semibold font-montserrat w-full sm:w-auto hover:bg-primary-foreground/10 text-primary-foreground">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-primary-foreground rounded-md font-semibold font-montserrat w-full sm:w-auto hover:bg-primary-foreground/10 text-primary-foreground text-xs sm:text-sm md:text-base tracking-normal whitespace-normal text-center px-4 sm:px-6 min-h-[44px]"
+                >
                   Se connecter
                 </Button>
               </Link>
