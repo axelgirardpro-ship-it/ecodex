@@ -41,7 +41,7 @@ const Index = () => {
           <div className="flex items-center justify-between h-16">
         {/* Logo */}
         <div className="flex-shrink-0">
-          <img src="/assets/415a981c-a454-47dc-a601-b214f6e857d0.png" alt="DataCarb" className="h-16" />
+          <img src="/assets/logo-ecodex-navbar.png" alt="Ecodex" className="h-16" />
         </div>
         
         {/* Boutons de navigation */}
@@ -91,7 +91,7 @@ const Index = () => {
             
             {/* Colonne droite : Image */}
             <div className="order-1 lg:order-2">
-              <img src="/assets/header-homepage-v2-2025.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" />
+              <img src="/assets/header-homepage.png" alt="Interface de recherche de facteurs d'émission" className="w-full h-auto rounded-lg" />
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ const Index = () => {
       </div>
               </div>
               <div>
-                <img src="/assets/onglet-donnees-v4-2025.png" alt="Interface base de données" className="w-full h-auto" />
+                <img src="/assets/onglet-donnees.png" alt="Interface base de données" className="w-full h-auto" />
               </div>
             </TabsContent>
             <TabsContent value="recherche" className="grid lg:grid-cols-2 gap-12 items-start">
@@ -247,7 +247,7 @@ const Index = () => {
     </div>
               </div>
               <div>
-                <img src="/assets/onglet-recherche-v3-2025.png" alt="Interface de recherche" className="w-full h-auto" />
+                <img src="/assets/onglet-recherche.png" alt="Interface de recherche" className="w-full h-auto" />
               </div>
             </TabsContent>
             <TabsContent value="personnalisation" className="grid lg:grid-cols-2 gap-12 items-start">
@@ -272,7 +272,7 @@ const Index = () => {
     </div>
               </div>
                             <div>
-                <img src="/assets/onglet-personnalisation-v2-2025.png" alt="Interface de personnalisation" className="w-full h-auto" />
+                <img src="/assets/onglet-personnalisation.png" alt="Interface de personnalisation" className="w-full h-auto" />
               </div>
             </TabsContent>
 
@@ -506,7 +506,7 @@ const Index = () => {
       <footer className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center text-center space-y-8">
-            <img src="/assets/logo-datacarb-white-horizontal.png" alt="DataCarb" className="h-12" />
+            <img src="/assets/logo-ecodex-footer.png" alt="Ecodex" className="h-12" />
             <p className="text-white max-w-md">
               Le moteur de recherche de facteurs d'émission le plus puissant du marché.
             </p>
@@ -521,7 +521,7 @@ const Index = () => {
             
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 w-full pt-8 border-t border-white/20">
               <div className="text-white text-sm">
-                © 2025 DataCarb. Tous droits réservés.
+                © 2025 Ecodex. Tous droits réservés.
               </div>
               <div className="flex space-x-6 text-sm text-white">
                 <Link to="/privacy" className="hover:text-white transition-colors">

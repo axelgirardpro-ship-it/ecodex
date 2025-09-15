@@ -287,8 +287,8 @@ WHERE created_at > NOW() - INTERVAL '1 day';
 
 ### Contacts d'urgence
 
-- **Équipe sécurité** : security@datacarb.fr
-- **Équipe technique** : tech@datacarb.fr
+- **Équipe sécurité** : security@ecodex.fr
+- **Équipe technique** : tech@ecodex.fr
 - **Supabase Support** : Pour les problèmes d'infrastructure
 
 ---

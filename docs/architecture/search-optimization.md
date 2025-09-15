@@ -253,5 +253,5 @@ SELECT * FROM public.v_unified_search_stats;
 
 **Version** : 1.0  
 **Dernière mise à jour** : Janvier 2025  
-**Auteur** : Équipe technique DataCarb
+**Auteur** : Équipe technique Ecodex
 

@@ -327,4 +327,4 @@ En cas de suspicion de violation de sécurité :
 
 **Classification** : Confidentiel  
 **Version** : 1.0  
-**Responsable sécurité** : Équipe DevSecOps DataCarb
+**Responsable sécurité** : Équipe DevSecOps Ecodex

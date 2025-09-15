@@ -412,4 +412,4 @@ Lors d'une demande de support, incluez :
 
 **Version** : 1.0  
 **Dernière mise à jour** : Janvier 2025  
-**Support 24/7** : Équipe technique DataCarb
+**Support 24/7** : Équipe technique Ecodex
