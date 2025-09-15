@@ -562,4 +562,4 @@ describe('Search Integration', () => {
 **Version** : 1.0  
 **Framework** : React 18+ avec TypeScript  
 **Dépendances** : React InstantSearch, Supabase  
-**Support** : Équipe Frontend DataCarb
+**Support** : Équipe Frontend Ecodex

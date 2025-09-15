@@ -66,7 +66,7 @@ const Settings = () => {
             Paramètres
           </h1>
           <p className="text-muted-foreground">
-            Personnalisez votre expérience DataCarb
+            Personnalisez votre expérience Ecodex
           </p>
           </div>
           

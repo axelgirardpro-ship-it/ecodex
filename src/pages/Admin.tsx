@@ -70,7 +70,7 @@ const Admin = () => {
             Console d'administration
           </h1>
           <p className="text-muted-foreground">
-            Gestion avancée de la plateforme DataCarb
+            Gestion avancée de la plateforme Ecodex
           </p>
           <div className="mt-4">
             <Badge variant="default" className="mr-2 bg-gradient-to-r from-purple-600 to-blue-600">

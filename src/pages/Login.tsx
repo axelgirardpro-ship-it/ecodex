@@ -111,11 +111,11 @@ const LoginForm = () => {
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 mx-auto mb-4">
-              <img src="/assets/8c10071b-a5e9-495c-ac9b-f3cf48b467a1.png" alt="DataCarb" className="w-full h-full object-contain" />
+              <img src="/assets/logo-ecodex-auth.png" alt="Ecodex" className="w-full h-full object-contain" />
             </div>
             <CardTitle className="text-2xl">Se connecter</CardTitle>
             <CardDescription>
-              Connectez-vous à votre compte DataCarb
+              Connectez-vous à votre compte Ecodex
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -237,4 +237,4 @@ WHERE created_at >= NOW() - INTERVAL '1 hour';
 **Version** : 1.0  
 **Statut** : ✅ Déployé en production  
 **Dernière mise à jour** : Janvier 2025  
-**Équipe** : DataCarb Technical Team
+**Équipe** : Ecodex Technical Team
