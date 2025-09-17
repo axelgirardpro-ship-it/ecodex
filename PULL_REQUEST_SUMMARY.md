@@ -1,45 +1,39 @@
-# Fix: Recherche bloquée sur la première lettre et filtres inopérants (cache/dédup Algolia)
+# Search: suppression du tri et des filtrages client; ranking 100% Algolia
 
-## 🎯 Problème résolu
-- La saisie dans la searchbox se figeait après le premier caractère (ex: « banane » déclenchait une recherche sur « b » uniquement)
-- Les filtres Algolia (facettes, numériques…) ne relançaient plus la recherche
+## 🎯 Objectif
+Aligner la page Search sur un modèle simple et robuste où l’ordre des résultats est entièrement géré par Algolia (ranking), sans tri ni filtrage post‑requête côté client.
 
-## 🔧 Solution implémentée
-- Correction des clés de cache et de déduplication afin d’inclure les paramètres contenus dans `request.params` (InstantSearch) quand les champs top‑level sont absents.
-  - Avant: les clés n’utilisaient que `request.query/filters/facetFilters` top‑level ⇒ toutes les requêtes se dédupliquaient/cachaient sur la 1ère saisie.
-  - Après: fallback systématique sur `request.params.query/filters/facetFilters/hitsPerPage/page` ⇒ la recherche suit bien la saisie complète et tout changement de filtre invalide la clé.
+## 🔧 Changements principaux
+- Suppression du tri côté Search (UI et logique):
+  - Retrait du sélecteur « Trier par » et de toute propagation `sort:*` / `relevancyStrictness`.
+  - Conservation du tri côté page Favoris uniquement.
+- Suppression du contrôle « Résultats par page ».
+- Suppression du filtrage local par plage FE (plus de `.filter(...)` sur les hits) – toute filtration se fait via Algolia.
+- Rétablissement minimal de `ruleContexts` à `origin:*` pour piloter l’origine (public/private) uniquement.
 
 ## 📁 Fichiers modifiés
+- `src/components/search/algolia/SearchResults.tsx`
+  - Retrait du tri UI et des imports associés
+  - Suppression du filtrage local FE (retrait de `useRange` et du `.filter`)
+  - Le rendu s’appuie directement sur `originalHits`
+- `src/components/search/algolia/AlgoliaSearchDashboard.tsx`
+  - `Configure`: `hitsPerPage={36}` + `ruleContexts={[\`origin:${origin}\`]}`
+- `CHANGELOG.md`
+  - Entrée du 2025-09-17: documente la suppression du tri/filtrages client côté Search
 
-### Frontend (React/TypeScript)
-- `src/lib/algolia/cacheManager.ts`
-  - Nouvelle génération de clé avec fallback sur `params.*`
-- `src/lib/algolia/requestDeduplicator.ts`
-  - Nouvelle clé de dédup + clé de batch basées sur `params.query` si présent
+## ✅ Résultat attendu
+- Le ranking et les filtres sont calculés côté Algolia sur l’ensemble des résultats, avant pagination. La page Search ne re-trie ni ne re-filtre les hits.
 
-### Backend (Supabase Edge Functions)
-- Aucune modification nécessaire; le proxy conserve la propagation des paramètres.
-
-## ✅ Résultats
-- La searchbox ne reste plus bloquée sur la 1ère lettre
-- Les filtres re-déclenchent correctement les requêtes Algolia
-
-## 🧪 Tests effectués
-- Taper « banane »: la requête suit bien la saisie (b → ba → ban …)
-- Activation de filtres (Source, Date…): résultats mis à jour instantanément
-
-## 🔧 Notes d’implémentation
-- Aucun paramétrage additionnel requis.
-
-## 🎉 Résultat
-- Expérience de recherche fluide et fiable; moins de faux positifs de dédup, cache plus précis.
+## 🧪 Tests manuels recommandés
+1. Rechercher « acier » puis parcourir plusieurs pages: vérifier que l’ordre reste cohérent sans ré‑ordonnancement local.
+2. Appliquer des facettes (Source, Date, Secteur…): vérifier que les résultats changent côté Algolia et pas via un post‑traitement.
+3. Vérifier que la page Favoris conserve son tri local (FE/date) sans impacter la page Search.
 
 ## 🏷️ Type de changement
-- [x] Bug fix (cache/dédup)
-- [x] Amélioration de l'expérience utilisateur (search/filtres)
+- [x] Simplification fonctionnelle
+- [x] Robustesse / conformité avec Algolia
 
 ## 📋 Checklist
-- [x] Le code suit les standards du projet
-- [x] Auto-review effectué
-- [x] Tests manuels effectués avec succès
-- [x] Pas de régression sur les fonctionnalités existantes
+- [x] Aucun tri ni filtrage client sur la page Search
+- [x] Lints OK, build OK
+- [x] Docs mises à jour (CHANGELOG)
