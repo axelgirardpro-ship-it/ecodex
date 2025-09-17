@@ -1,9 +1,9 @@
 import React from 'react';
-import { useHits, useHitsPerPage, usePagination, useSearchBox, useRange, Highlight } from 'react-instantsearch';
+import { useHits, usePagination, useSearchBox, Highlight } from 'react-instantsearch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+ 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Heart, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Lock, Copy } from 'lucide-react';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -18,6 +18,7 @@ import { useQuotaActions } from '@/hooks/useQuotaActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
+ 
 
 interface AlgoliaHit {
   objectID: string;
@@ -40,73 +41,9 @@ interface AlgoliaHit {
   _highlightResult?: any;
 }
 
-const HitsPerPageComponent: React.FC = () => {
-  const { items, refine } = useHitsPerPage({
-    items: [
-      { label: '9 par page', value: 9 },
-      { label: '18 par page', value: 18 },
-      { label: '36 par page', value: 36, default: true },
-      { label: '72 par page', value: 72 },
-    ],
-  });
+// Suppression du sélecteur "Résultats par page"
 
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-indigo-950 font-montserrat">Résultats par page:</span>
-      <Select value={String(items.find(item => item.isRefined)?.value || 9)} onValueChange={(value) => refine(Number(value))}>
-        <SelectTrigger className="w-auto">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={String(item.value)}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
-
-interface SortByComponentProps {
-  onSortChange: (sortKey: string) => void;
-  currentSort: string;
-}
-
-const SortByComponent: React.FC<SortByComponentProps> = ({ onSortChange, currentSort }) => {
-  const sortOptions = [
-    { label: 'Pertinence', value: 'relevance' },
-    { label: 'FE croissant', value: 'fe_asc' },
-    { label: 'FE décroissant', value: 'fe_desc' },
-    { label: 'Plus récent', value: 'date_desc' },
-    { label: 'Plus ancien', value: 'date_asc' },
-    { label: 'Nom A-Z', value: 'nom_asc' },
-    { label: 'Nom Z-A', value: 'nom_desc' },
-    { label: 'Source A-Z', value: 'source_asc' },
-  ];
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-indigo-950 font-montserrat">Trier par:</span>
-      <Select 
-        value={currentSort} 
-        onValueChange={onSortChange}
-      >
-        <SelectTrigger className="w-auto min-w-[140px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {sortOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+ 
 
 const PaginationComponent: React.FC = () => {
   const { currentRefinement, nbPages, refine, isFirstPage, isLastPage } = usePagination();
@@ -246,7 +183,7 @@ export const SearchResults: React.FC = () => {
   const { hits: originalHits } = useHits<AlgoliaHit>();
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
-  const [currentSort, setCurrentSort] = React.useState<string>('relevance');
+  
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { hasAccess, shouldBlurPremiumContent, canUseFavorites } = useEmissionFactorAccess();
   const { canExport } = usePermissions();
@@ -256,83 +193,12 @@ export const SearchResults: React.FC = () => {
   const { getSourceLogo } = useSourceLogos();
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
 
-  // Function to sort hits based on current sort option
   const currentLang: 'fr' | 'en' = 'fr';
-  const sortHits = React.useCallback((hits: AlgoliaHit[], sortKey: string): AlgoliaHit[] => {
-    if (sortKey === 'relevance') return hits; // Keep Algolia's relevance order
-    
-    return [...hits].sort((a, b) => {
-      switch (sortKey) {
-        case 'fe_asc':
-          return (a.FE || 0) - (b.FE || 0);
-        case 'fe_desc':
-          return (b.FE || 0) - (a.FE || 0);
-        case 'date_desc':
-          return (b.Date || 0) - (a.Date || 0);
-        case 'date_asc':
-          return (a.Date || 0) - (b.Date || 0);
-        case 'nom_asc': {
-          const an = (currentLang==='fr' ? (a.Nom_fr||'') : (a.Nom_en||''));
-          const bn = (currentLang==='fr' ? (b.Nom_fr||'') : (b.Nom_en||''));
-          return an.localeCompare(bn, currentLang, { numeric: true, sensitivity: 'base' });
-        }
-        case 'nom_desc': {
-          const an = (currentLang==='fr' ? (a.Nom_fr||'') : (a.Nom_en||''));
-          const bn = (currentLang==='fr' ? (b.Nom_fr||'') : (b.Nom_en||''));
-          return bn.localeCompare(an, currentLang, { numeric: true, sensitivity: 'base' });
-        }
-        case 'source_asc':
-          return (a.Source || '').localeCompare(b.Source || '', 'fr', { numeric: true, sensitivity: 'base' });
-        default:
-          return 0;
-      }
-    });
-  }, []);
 
-  // FE range from widget to filter client-side
-  const { start: feStart } = useRange({ attribute: 'FE', precision: 2 });
+  // Aucun tri/filtrage client: on se base uniquement sur l'ordre/les filtres Algolia
+  const hits = originalHits;
 
-  const filteredHits = React.useMemo(() => {
-    // Parse potential special Number objects coming from InstantSearch state
-    const parseValue = (value: any): number | undefined => {
-      if (typeof value === 'object' && value?._type === 'Number') {
-        const s = String(value.value);
-        if (s === '-Infinity' || s === 'Infinity' || s === 'NaN') return undefined;
-        const n = parseFloat(value.value);
-        return Number.isFinite(n) ? n : undefined;
-      }
-      if (typeof value === 'number') {
-        return Number.isFinite(value) ? value : undefined;
-      }
-      return undefined;
-    };
-
-    let min: number | undefined;
-    let max: number | undefined;
-    if (feStart && Array.isArray(feStart)) {
-      const minV = parseValue(feStart[0]);
-      const maxV = parseValue(feStart[1]);
-      if (typeof minV === 'number') min = minV;
-      if (typeof maxV === 'number') max = maxV;
-    }
-
-    if (min === undefined && max === undefined) return originalHits;
-
-    return originalHits.filter((hit) => {
-      const fe = typeof hit.FE === 'number' ? hit.FE : Number(hit.FE);
-      if (!Number.isFinite(fe)) return false;
-      if (min !== undefined && fe < min) return false;
-      if (max !== undefined && fe > max) return false;
-      return true;
-    });
-  }, [originalHits, feStart]);
-
-  // Sort only (déduplication gérée au merge)
-  const hits = React.useMemo(() => sortHits(filteredHits, currentSort), [filteredHits, currentSort, sortHits]);
-
-  const handleSortChange = (sortKey: string) => {
-    setCurrentSort(sortKey);
-  };
+  
 
   const toggleRowExpansion = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -512,6 +378,7 @@ export const SearchResults: React.FC = () => {
   };
   return (
     <div className="space-y-6">
+      
       <StateResults />
       
       {hits.length > 0 && (
@@ -558,15 +425,12 @@ export const SearchResults: React.FC = () => {
             )}
           </div>
 
-          {/* Header avec contrôles de tri et pagination */}
+          {/* Header avec pagination */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="text-sm text-indigo-950 font-montserrat">
                 {hits.length} résultat{hits.length > 1 ? 's' : ''} affiché{hits.length > 1 ? 's' : ''}
               </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <SortByComponent onSortChange={handleSortChange} currentSort={currentSort} />
-              <HitsPerPageComponent />
-            </div>
+            
           </div>
 
           {/* Results */}
@@ -651,12 +515,7 @@ export const SearchResults: React.FC = () => {
                                 <span className="text-sm font-semibold text-foreground">Unité</span>
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                                   <p className="text-sm font-light">
-                                    {(() => {
-                                      const attr = (hit as any).Unite_fr !== undefined
-                                        ? 'Unite_fr'
-                                        : ((hit as any).Unite_en !== undefined ? 'Unite_en' : "Unité donnée d'activité");
-                                      return <Highlight hit={hit as any} attribute={attr as any} />;
-                                    })()}
+                                    {(hit as any).Unite_fr || (hit as any).Unite_en || ''}
                                   </p>
                                 </PremiumBlur>
                             </div>

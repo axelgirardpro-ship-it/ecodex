@@ -1,4 +1,5 @@
 - 2025-09-17: Ajout auto des favoris délégué à finalize_user_import; suppression de la logique legacy dans import-csv-user; message d'import réussi simplifié; suppression des doublons de message et du taux de compression.
+- 2025-09-17: Recherche – suppression du tri et des filtrages côté client sur la page Search; l’ordre est désormais entièrement piloté par Algolia (ranking). UI « résultats par page » et tri supprimés, plage FE client supprimée. Rétablissement de `ruleContexts` pour l’origine uniquement.
 ## 2025-09-10
 
 - Import utilisateur stabilisé

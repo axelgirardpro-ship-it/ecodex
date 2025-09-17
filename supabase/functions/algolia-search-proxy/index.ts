@@ -346,10 +346,13 @@ Deno.serve(async (req) => {
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
       if (facetFilters) { if (Array.isArray(facetFilters)) combinedFacetFilters = [...combinedFacetFilters, ...facetFilters]; else combinedFacetFilters.push(facetFilters) }
 
+      // Le tri côté client est supprimé. On utilise toujours l'index par défaut côté Algolia.
+      const targetIndexName = ALGOLIA_INDEX_ALL
+
       const paramsObjRaw: Record<string, any> = { query: query || '', filters: combinedFilters, facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined, ...otherParams }
       const { _search_context: _ctxIgnored, origin: _originIgnored, workspace_id: _wsParamIgnored, ...paramsObj } = paramsObjRaw
-      const cacheKey = JSON.stringify({ requestWorkspaceId, searchType: effectiveType, params: paramsObj })
-      return { cacheKey, body: { indexName: ALGOLIA_INDEX_ALL, params: encodeParams(paramsObj) }, index: idx }
+      const cacheKey = JSON.stringify({ requestWorkspaceId, searchType: effectiveType, indexName: targetIndexName, params: paramsObj })
+      return { cacheKey, body: { indexName: targetIndexName, params: encodeParams(paramsObj) }, index: idx }
     })
 
     // Partitionner cache hits / misses

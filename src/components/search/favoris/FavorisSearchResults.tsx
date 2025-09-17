@@ -352,12 +352,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                             <span className="text-sm font-semibold text-foreground">Unité</span>
                             <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                               <p className="text-sm font-light">
-                                {(() => {
-                                  const attr = (hit as any).Unite_fr !== undefined
-                                    ? 'Unite_fr'
-                                    : ((hit as any).Unite_en !== undefined ? 'Unite_en' : "Unité donnée d'activité");
-                                  return <Highlight hit={hit as any} attribute={attr as any} />;
-                                })()}
+                                {(hit as any).Unite_fr || (hit as any).Unite_en || ''}
                               </p>
                             </PremiumBlur>
                           </div>
