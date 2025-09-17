@@ -29,3 +29,16 @@
   - Auto-assign des sources restreint à `is_global = true` et `access_level = 'standard'`.
 
 
+## 2025-09-17
+
+- Edge Functions
+  - `import-csv-user` v15: correction BOOT_ERROR en supprimant un doublon de fonction et en chargeant `xlsx` dynamiquement via `await import(...)` (évite un échec de démarrage si le module n'est pas résolu au boot).
+  - `chunked-upload`: délégation inchangée, mais renverra désormais l'erreur applicative de l'Edge import si présente.
+
+- Supabase SQL (pg_net / Vault)
+  - `run_algolia_data_task_override`: corrige l'utilisation de `pg_net.http_post` en lisant `body` (au lieu de `content`) et journalise la réponse `http` + `body` en `audit_logs`. Conserve fallback des credentials via Vault (`ALGOLIA_APP_ID`/`ALGOLIA_ADMIN_KEY`).
+
+- Import utilisateur (robustesse)
+  - Respect strict du champ `Source` tel que fourni dans le CSV (suppression du trigger de forçage et projection mise à jour antérieurement).
+  - Favoris automatiques: retries jusqu'à disponibilité des `object_id` dans `user_batch_algolia` via RPC `add_import_overlays_to_favorites`.
+
