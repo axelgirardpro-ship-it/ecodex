@@ -346,25 +346,8 @@ Deno.serve(async (req) => {
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
       if (facetFilters) { if (Array.isArray(facetFilters)) combinedFacetFilters = [...combinedFacetFilters, ...facetFilters]; else combinedFacetFilters.push(facetFilters) }
 
-      // Résoudre le tri depuis ruleContexts -> sélection d'un index (réplica) pour exhaustive sorting
-      const rc: string[] = Array.isArray(otherParams?.ruleContexts) ? otherParams.ruleContexts : []
-      let sortKey: string | null = null
-      for (const tag of rc) { if (typeof tag === 'string' && tag.startsWith('sort:')) { sortKey = tag.slice(5); break } }
-      // Mapping des réplicas attendus (à créer côté Algolia)
-      // ef_all (par défaut)
-      // ef_all__fe_asc, ef_all__fe_desc, ef_all__date_desc, ef_all__date_asc, ef_all__nom_asc, ef_all__nom_desc, ef_all__source_asc
-      const resolveIndexForSort = (key: string | null | undefined): string => {
-        switch (key) {
-          case 'fe_asc': return `${ALGOLIA_INDEX_ALL}__fe_asc`
-          case 'fe_desc': return `${ALGOLIA_INDEX_ALL}__fe_desc`
-          case 'date_desc': return `${ALGOLIA_INDEX_ALL}__date_desc`
-          case 'date_asc': return `${ALGOLIA_INDEX_ALL}__date_asc`
-          default: return ALGOLIA_INDEX_ALL
-        }
-      }
-      const targetIndexName = resolveIndexForSort(sortKey)
-      // DEBUG: vérifier le routage de tri
-      try { console.log('ALGOLIA_SORT_ROUTING', { sortKey, targetIndexName, ruleContexts: rc }); } catch {}
+      // Le tri côté client est supprimé. On utilise toujours l'index par défaut côté Algolia.
+      const targetIndexName = ALGOLIA_INDEX_ALL
 
       const paramsObjRaw: Record<string, any> = { query: query || '', filters: combinedFilters, facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined, ...otherParams }
       const { _search_context: _ctxIgnored, origin: _originIgnored, workspace_id: _wsParamIgnored, ...paramsObj } = paramsObjRaw
