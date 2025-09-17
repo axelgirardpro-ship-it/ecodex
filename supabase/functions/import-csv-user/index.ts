@@ -4,7 +4,6 @@
 // refresh projection par source, sync Algolia incrémentale (updateObject)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 // Import du parser CSV robuste
 import { RobustCsvParser } from './csv-parser.ts'
 
@@ -18,18 +17,6 @@ const corsHeaders = {
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-}
-
-function formatError(err: any): string {
-  try {
-    if (!err) return 'unknown_error'
-    if (typeof err === 'string') return err
-    const message = (err as any).message || (err as any).error_description || (err as any).msg || (err as any).code || 'error'
-    const details = (err as any).details || (err as any).hint || (err as any).explanation || ''
-    return details ? `${message} | ${details}` : String(message)
-  } catch {
-    return String(err)
-  }
 }
 
 function formatError(err: any): string {
@@ -88,6 +75,8 @@ async function readXlsxContent(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Cannot fetch XLSX from storage');
   const arrayBuffer = await res.arrayBuffer();
+  // Chargement dynamique pour éviter un échec de boot si le module n'est pas disponible
+  const XLSX = await import('https://esm.sh/xlsx@0.18.5');
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
