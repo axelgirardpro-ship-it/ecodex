@@ -1,3 +1,18 @@
+## 2025-09-17 — Ajout auto des favoris post-finalize
+
+Contexte: l'ajout automatique des favoris lors des imports utilisateurs pouvait échouer sous latence (course avec la matérialisation des `object_id`).
+
+Changements:
+- La responsabilité d'ajouter les favoris est déplacée dans `public.finalize_user_import(...)` côté SQL.
+- La fonction attend jusqu'à ~15s la présence d'`object_id` dans `public.user_batch_algolia`, puis appelle `public.add_import_overlays_to_favorites` (idempotent) et journalise le résultat.
+- Suppression de tout ajout aux favoris côté `supabase/functions/import-csv-user` (legacy supprimé).
+
+Impact:
+- Élimine les courses de timing et fiabilise l'expérience utilisateur.
+- Aucun changement d'API côté front; l'UI rafraîchit simplement les favoris après import.
+
+Déploiement:
+- Migration SQL: mise à jour de `finalize_user_import`. Idempotente.
 # Guide de migration - Optimisation de la recherche
 
 ## Vue d'ensemble de la migration

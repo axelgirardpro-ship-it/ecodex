@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { Upload, Download, FileText, Check, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,12 +23,11 @@ const Import = () => {
   const [importStatus, setImportStatus] = useState<"idle" | "uploading" | "processing" | "success" | "error">("idle");
   const [importResults, setImportResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [indexingStatus, setIndexingStatus] = useState<"idle" | "indexing" | "success" | "error">("idle");
-  const [compressionInfo, setCompressionInfo] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { canImportData } = usePermissions();
-  const { addToFavorites: addItemToFavorites } = useFavorites();
+  const { refreshFavorites } = useFavorites();
 
   const downloadTemplate = () => {
     const headers = [
@@ -71,7 +69,6 @@ const Import = () => {
         setFile(selectedFile);
         setImportStatus("idle");
         setImportResults(null);
-        setCompressionInfo("");
       } else {
         toast({
           title: "Format invalide",
@@ -230,21 +227,14 @@ const Import = () => {
     setUploadProgress(0);
 
     try {
-      // Étape 1: Compression automatique du fichier
+      // Étape 1: Compression automatique du fichier (silencieuse)
       let fileToUpload = file;
-      let compressionMsg = "";
       
       if (!file.name.toLowerCase().endsWith('.gz')) {
         console.log('🗜️ Compression automatique du fichier...');
-        const { blob, compressionRatio } = await compressFileToGzip(file);
+        const { blob } = await compressFileToGzip(file);
         fileToUpload = new File([blob], `${file.name}.gz`, { type: 'application/gzip' });
-        compressionMsg = `Compression: ${compressionRatio}`;
-        setCompressionInfo(compressionMsg);
-        
-        toast({
-          title: "Compression automatique",
-          description: `Fichier compressé (${compressionRatio} de réduction)`,
-        });
+        // Compression silencieuse (pas de toast)
       }
       
       setUploadProgress(15);
@@ -332,17 +322,12 @@ const Import = () => {
       if (invErr) throw invErr;
       setIndexingStatus("success");
 
-      // Ajouter automatiquement aux favoris si demandé
-      if (addToFavorites && resp?.inserted && resp.inserted > 0) {
+      // Ajouter automatiquement aux favoris si demandé (rafraîchir sans condition)
+      if (addToFavorites) {
         try {
-          // Pour l'instant, on affiche juste un message car nous n'avons pas accès aux données détaillées
-          // des facteurs importés depuis la réponse de l'Edge Function
-          toast({
-            title: "Import avec favoris",
-            description: `${resp.inserted} facteurs importés. L'ajout aux favoris sera disponible prochainement.`,
-          });
+          await refreshFavorites(true);
         } catch (error) {
-          console.warn('Erreur ajout favoris global:', error);
+          console.warn('Erreur rafraîchissement favoris:', error);
         }
       }
 
@@ -351,8 +336,8 @@ const Import = () => {
       setImportResults({ success: 0, errors: [] });
 
       toast({
-        title: "Import réussi",
-        description: `Job créé: ${resp?.job_id || 'n/a'} — création des chunks et traitement en arrière-plan. ${compressionMsg}`,
+        title: "Import réussi ✅",
+        description: `Vos facteurs d'émissions apparaitront d'ici quelques minutes dans l'application !`,
       });
 
       // Reset form après succès
@@ -362,7 +347,6 @@ const Import = () => {
         setAddToFavorites(false);
         setImportStatus("idle");
         setUploadProgress(0);
-        setCompressionInfo("");
         // Reset file input
         const fileInput = document.getElementById("file-upload") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
@@ -498,7 +482,6 @@ const Import = () => {
                           <div className="font-medium">{file.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {(file.size / 1024 / 1024).toFixed(2)} MB
-                            {compressionInfo && ` • ${compressionInfo}`}
                           </div>
                         </div>
                       </div>
@@ -523,28 +506,9 @@ const Import = () => {
                   </div>
                 </div>
 
-                {/* Message générique (remplace la barre de progression) */}
-                {isUploading && (
+                {/* Message unique d'information */}
+                {(isUploading || importStatus !== "idle" || indexingStatus !== "idle") && (
                   <div className="p-3 rounded-lg border bg-muted/30 text-sm text-muted-foreground">
-                    Merci, votre jeu de données sera disponible dans quelques minutes.
-                  </div>
-                )}
-
-                {/* Message générique (remplace le bloc résultats/erreurs) */}
-                {importStatus !== "idle" && (
-                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
-                      <span className="text-blue-700">
-                        Merci, votre jeu de données sera disponible dans quelques minutes.
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Message unique, pas de suivi de progression Algolia */}
-                {indexingStatus !== "idle" && (
-                  <div className="mt-3 p-3 rounded-lg border bg-muted/30 text-sm text-muted-foreground">
                     Merci, votre jeu de données sera disponible dans quelques minutes.
                   </div>
                 )}

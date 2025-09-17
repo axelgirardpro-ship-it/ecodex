@@ -1,3 +1,4 @@
+- 2025-09-17: Ajout auto des favoris délégué à finalize_user_import; suppression de la logique legacy dans import-csv-user; message d'import réussi simplifié; suppression des doublons de message et du taux de compression.
 ## 2025-09-10
 
 - Import utilisateur stabilisé

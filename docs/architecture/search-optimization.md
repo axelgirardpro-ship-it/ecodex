@@ -1,3 +1,12 @@
+### Ajout automatique des favoris (post-import)
+
+Le flux d'import utilisateur délègue désormais l'ajout aux favoris à la fonction SQL `finalize_user_import`. Cette fonction:
+- termine l'upsert des overlays,
+- attend la matérialisation des `object_id` dans `user_batch_algolia`,
+- appelle `add_import_overlays_to_favorites(user_id, workspace_id, dataset_name)` (idempotent),
+- logge le résultat dans `audit_logs`.
+
+Avantage: pas de dépendance au timing dans l'Edge Function et moins d'échecs sous charge.
 # Architecture de recherche optimisée
 
 ## Vue d'ensemble
