@@ -137,8 +137,8 @@ export class UnifiedAlgoliaClient {
     }
     
     const {
-      enableCache = true,
-      enableDeduplication = true,
+      enableCache = false,
+      enableDeduplication = false,
       enableBatching = true,
       forceRefresh = false,
       timeout = 5000,
@@ -289,7 +289,7 @@ export class UnifiedAlgoliaClient {
       
       // Traitement simple : une requête = un appel à l'Edge Function
       for (const request of requests) {
-        if (enableCache && !forceRefresh) {
+    if (enableCache && !forceRefresh) {
           const cached = algoliaCache.get(request);
           if (cached) { 
             results.push(cached.data); 

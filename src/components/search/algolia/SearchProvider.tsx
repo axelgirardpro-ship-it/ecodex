@@ -159,8 +159,8 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           }
 
           const result = await unifiedClient.search(enrichedRequests, {
-            enableCache: true,
-            enableDeduplication: true,
+            enableCache: false,
+            enableDeduplication: false,
             enableBatching: true,
             teaserAllowed: teaserAllowedRef.current
           });

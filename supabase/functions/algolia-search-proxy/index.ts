@@ -17,8 +17,9 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-// Cache TTL (ms) pour les requêtes identiques (version stable)
-const CACHE_TTL_MS = Number(Deno.env.get('EDGE_CACHE_TTL_MS') ?? '3000');
+// Cache désactivé pour garantir un ranking toujours à jour
+const CACHE_TTL_MS = 0;
+const CACHE_ENABLED = false;
 type CacheEntry = { ts: number; data: any };
 const cacheStore = new Map<string, CacheEntry>();
 
@@ -102,6 +103,7 @@ function encodeParams(params: Record<string, any>): string {
 }
 
 function getCache(key: string): any | null {
+  if (!CACHE_ENABLED) return null;
   const it = cacheStore.get(key);
   if (!it) return null;
   if (Date.now() - it.ts > CACHE_TTL_MS) {
@@ -112,6 +114,7 @@ function getCache(key: string): any | null {
 }
 
 function setCache(key: string, data: any): void {
+  if (!CACHE_ENABLED) return;
   cacheStore.set(key, { ts: Date.now(), data });
 }
 

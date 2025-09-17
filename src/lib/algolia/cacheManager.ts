@@ -108,53 +108,14 @@ export class AlgoliaCacheManager {
     }
   }
 
-  get(request: any): CacheEntry | null {
-    const key = this.generateCacheKey(request);
-    const entry = this.cache.get(key);
-    
-    this.metrics.totalRequests++;
-    this.requestTimestamps.push(Date.now());
-    
-    if (!entry) {
-      this.updateMetrics();
-      return null;
-    }
-    
-    const now = Date.now();
-    
-    // Vérifier expiration
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
-      this.updateMetrics();
-      return null;
-    }
-    
-    // Mettre à jour les stats d'accès
-    entry.accessCount++;
-    entry.lastAccess = now;
-    this.metrics.savedRequests++;
-    
-    this.updateMetrics();
-    return entry;
+  get(_request: any): CacheEntry | null {
+    // Cache désactivé pour garantir le ranking Algolia à jour
+    return null;
   }
 
-  set(request: any, data: any, origin: Origin = 'all'): void {
-    const key = this.generateCacheKey(request);
-    const ttl = this.calculateAdaptiveTTL(request);
-    const now = Date.now();
-    
-    const entry: CacheEntry = {
-      key,
-      data,
-      timestamp: now,
-      origin,
-      ttl,
-      accessCount: 1,
-      lastAccess: now
-    };
-    
-    this.cache.set(key, entry);
-    this.evictOldEntries();
+  set(_request: any, _data: any, _origin: Origin = 'public'): void {
+    // Cache désactivé
+    return;
   }
 
   invalidateBySource(source: string) {
@@ -170,7 +131,7 @@ export class AlgoliaCacheManager {
 
   invalidateByOrigin(origin: Origin) {
     for (const [key, entry] of this.cache.entries()) {
-      if (entry.origin === origin || entry.origin === 'all') {
+      if (entry.origin === origin) {
         this.cache.delete(key);
       }
     }

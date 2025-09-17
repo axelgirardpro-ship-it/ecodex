@@ -41,45 +41,11 @@ export class RequestDeduplicator {
   }
 
   async deduplicateRequest<T>(
-    request: any, 
+    _request: any, 
     executeRequest: () => Promise<T>
   ): Promise<T> {
-    this.cleanupExpiredRequests();
-    
-    const key = this.generateRequestKey(request);
-    const existing = this.pendingRequests.get(key);
-
-    if (existing) {
-      // Incrémenter le compteur de requêtes dupliquées
-      existing.requestCount++;
-      
-      // Ajouter cette requête à la queue pour stats
-      if (!this.requestQueue.has(key)) {
-        this.requestQueue.set(key, []);
-      }
-      this.requestQueue.get(key)!.push(request);
-      
-      // Retourner la promesse existante
-      return existing.promise;
-    }
-
-    // Créer une nouvelle requête
-    const promise = executeRequest();
-    const timestamp = Date.now();
-    
-    this.pendingRequests.set(key, {
-      promise,
-      timestamp,
-      requestCount: 1
-    });
-
-    // Nettoyer quand la requête se termine
-    promise.finally(() => {
-      this.pendingRequests.delete(key);
-      this.requestQueue.delete(key);
-    });
-
-    return promise;
+    // Déduplication désactivée pour garantir un ordre de ranking Algolia sans interférence
+    return executeRequest();
   }
 
   // Analyser les patterns de duplication
