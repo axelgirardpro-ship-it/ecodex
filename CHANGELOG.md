@@ -1,5 +1,8 @@
-- 2025-09-17: Ajout auto des favoris délégué à finalize_user_import; suppression de la logique legacy dans import-csv-user; message d'import réussi simplifié; suppression des doublons de message et du taux de compression.
-- 2025-09-17: Recherche – suppression du tri et des filtrages côté client sur la page Search; l’ordre est désormais entièrement piloté par Algolia (ranking). UI « résultats par page » et tri supprimés, plage FE client supprimée. Rétablissement de `ruleContexts` pour l’origine uniquement.
+## 2025-09-19
+
+- Supabase SQL
+  - Migration de garde-fou: suppression de l’overload `public.is_supra_admin()` sans argument et conservation de la version à 1 argument avec `DEFAULT auth.uid()` pour éviter l’ambiguïté lors des restore/upgrade Postgres (erreur "function public.is_supra_admin() is not unique"). Aucun impact sur les policies: les appels `is_supra_admin()` restent supportés via le paramètre par défaut.
+
 ## 2025-09-10
 
 - Import utilisateur stabilisé
@@ -32,6 +35,10 @@
 
 
 ## 2025-09-17
+
+- Divers
+  - Ajout auto des favoris délégué à finalize_user_import; suppression de la logique legacy dans import-csv-user; message d'import réussi simplifié; suppression des doublons de message et du taux de compression.
+  - Recherche – suppression du tri et des filtrages côté client sur la page Search; l’ordre est désormais entièrement piloté par Algolia (ranking). UI « résultats par page » et tri supprimés, plage FE client supprimée. Rétablissement de `ruleContexts` pour l’origine uniquement.
 
 - Edge Functions
   - `import-csv-user` v15: correction BOOT_ERROR en supprimant un doublon de fonction et en chargeant `xlsx` dynamiquement via `await import(...)` (évite un échec de démarrage si le module n'est pas résolu au boot).
