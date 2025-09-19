@@ -1,3 +1,8 @@
+## 2025-09-19
+
+- Supabase SQL
+  - Migration de garde-fou: suppression de l’overload `public.is_supra_admin()` sans argument et conservation de la version à 1 argument avec `DEFAULT auth.uid()` pour éviter l’ambiguïté lors des restore/upgrade Postgres (erreur "function public.is_supra_admin() is not unique"). Aucun impact sur les policies: les appels `is_supra_admin()` restent supportés via le paramètre par défaut.
+
 ## 2025-09-10
 
 - Import utilisateur stabilisé
