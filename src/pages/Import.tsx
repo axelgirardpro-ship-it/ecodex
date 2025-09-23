@@ -31,10 +31,9 @@ const Import = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      'ID','Nom','Nom_en','Description','Description_en','FE',"Unité donnée d'activité",'Unite_en','Source','Secteur','Secteur_en','Sous-secteur','Sous-secteur_en','Localisation','Localisation_en','Date','Incertitude','Périmètre','Périmètre_en','Contributeur','Commentaires','Commentaires_en'
+      'Nom','Nom_en','Description','Description_en','FE',"Unité donnée d'activité",'Unite_en','Source','Secteur','Secteur_en','Sous-secteur','Sous-secteur_en','Localisation','Localisation_en','Date','Incertitude','Périmètre','Périmètre_en','Contributeur','Commentaires','Commentaires_en'
     ];
     const row = [
-      '',
       'Transport routier de marchandises','Freight transportation',
       '', '',
       '0.123','kgCO2e/t.km','kgCO2e/t.km',

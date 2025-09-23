@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
     // 2.b) Attente courte pour s'assurer que le batch est visible par Algolia
     const startWait = Date.now()
     while (Date.now() - startWait < 3000) { // max 3s
-      const { data: c1 } = await supabase.from('user_batch_algolia').select('record_id', { count: 'exact', head: true })
+      const { data: c1 } = await supabase.from('user_batch_algolia').select('object_id', { count: 'exact', head: true })
       if ((c1 as any)?.length !== undefined) break // compat head
       const { count } = await supabase.from('user_batch_algolia').select('*', { count: 'exact', head: true })
       if ((count || 0) > 0) break

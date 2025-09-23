@@ -325,7 +325,6 @@ export type Database = {
           object_id: string
           Périmètre_en: string | null
           Périmètre_fr: string | null
-          record_id: string
           scope: string
           Secteur_en: string | null
           Secteur_fr: string | null
@@ -354,7 +353,6 @@ export type Database = {
           object_id: string
           Périmètre_en?: string | null
           Périmètre_fr?: string | null
-          record_id: string
           scope: string
           Secteur_en?: string | null
           Secteur_fr?: string | null
@@ -383,7 +381,6 @@ export type Database = {
           object_id?: string
           Périmètre_en?: string | null
           Périmètre_fr?: string | null
-          record_id?: string
           scope?: string
           Secteur_en?: string | null
           Secteur_fr?: string | null

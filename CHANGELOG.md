@@ -5,6 +5,15 @@
 
 - Front-end Recherche
   - `src/lib/algolia/cacheManager.ts`: élargissement du type pour accepter la sentinelle `'all'` sur `CacheEntry.origin` et paramètre `origin` de `set(...)` afin de corriger les erreurs ESLint sans changer le comportement à l'exécution (clé de cache normalisée inchangée).
+- Supabase SQL – Stabilisation des IDs FE & projection Algolia
+  - Backfill `public.emission_factors.id` (213 788 lignes) avec `gen_random_uuid()` puis conversion stricte en `uuid`, défaut `gen_random_uuid()` et rétablissement de la clé primaire. Conversion simultanée de `workspace_id` au format `uuid` pour éliminer les cast implicites lors des rebuilds.
+  - Suppression de `record_id` dans `public.emission_factors_all_search` (drop + rebuild complet + drop/recreate view `emission_factors_algolia`). Les fonctions `rebuild_emission_factors_all_search` et `refresh_ef_all_for_source` n’utilisent plus que `object_id` et re-castent `workspace_id`/`assigned_workspace_ids` au format attendu ; `set_config` est fixé en début de fonction.
+  - Rebuild complet exécuté après migration : `object_id` == `emission_factors.id` pour 213 788 entrées (0 mismatch) ; la projection contient désormais 213 905 lignes (admin + overlays) avec `object_id` non nul.
+  - Tâche Algolia full reindex **non déclenchée** (à lancer ultérieurement – voir section « Étapes post-déploiement »). Garder en tête que les favoris restent cohérents grâce au mapping `object_id`.
+
+- Supabase SQL – Imports utilisateurs
+  - `user_batch_algolia` : suppression de `record_id` (clé primaire Algolia = `object_id`), fonction `prepare_user_batch_projection` mise à jour en conséquence.
+  - `user_factor_overlays` : suppression de la colonne CSV `"ID"`; `batch_upsert_user_factor_overlays` ignore désormais ce champ.
 
 ## 2025-09-19
 

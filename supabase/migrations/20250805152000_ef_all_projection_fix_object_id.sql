@@ -10,13 +10,12 @@ begin
   truncate table public.emission_factors_all_search;
 
   insert into public.emission_factors_all_search (
-    object_id, record_id, scope, workspace_id, access_level, assigned_workspace_ids, languages,
+    object_id, scope, workspace_id, access_level, assigned_workspace_ids, languages,
     "Nom_fr","Description_fr","Commentaires_fr","Secteur_fr","Sous-secteur_fr","Périmètre_fr","Localisation_fr","Unite_fr",
     "FE","Date","Incertitude","Source"
   )
   select
     ef.id as object_id,
-    ef.id as record_id,
     case when ef.workspace_id is null then 'public' else 'private' end as scope,
     ef.workspace_id,
     fs.access_level,
@@ -63,7 +62,6 @@ begin
   )
   select
     ef.id as object_id,
-    ef.id as record_id,
     case when ef.workspace_id is null then 'public' else 'private' end as scope,
     ef.workspace_id,
     fs.access_level,

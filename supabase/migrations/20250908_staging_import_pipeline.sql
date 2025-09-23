@@ -7,7 +7,6 @@
 
 -- 1) STAGING FIXE (colonnes texte strictement basées sur le CSV fourni)
 create table if not exists public.staging_emission_factors (
-  "ID" text,
   "Nom" text,
   "Nom_en" text,
   "Description" text,
@@ -71,18 +70,18 @@ begin
   -- Préparation
   drop table if exists temp_prepared;
   create temporary table temp_prepared as
-  select
-    public.calculate_factor_key(
-      p_nom          => coalesce(nullif(btrim("Nom"), ''), nullif(btrim("Nom_en"), '')),
-      p_unite        => coalesce(nullif(btrim("Unité donnée d'activité"), ''), nullif(btrim("Unite_en"), '')),
-      p_source       => nullif(btrim("Source"), ''),
-      p_perimetre    => coalesce(nullif(btrim("Périmètre"), ''), nullif(btrim("Périmètre_en"), '')),
-      p_localisation => coalesce(nullif(btrim("Localisation"), ''), nullif(btrim("Localisation_en"), '')),
-      p_workspace_id => null,
-      p_language     => null,
-      p_fe           => public.safe_to_numeric(nullif(btrim("FE"), '')),
-      p_date         => public.safe_to_int(nullif(btrim("Date"), ''))
-    ) as factor_key,
+    select
+      public.calculate_factor_key(
+        p_nom          => coalesce(nullif(btrim("Nom"), ''), nullif(btrim("Nom_en"), '')),
+        p_unite        => coalesce(nullif(btrim("Unité donnée d'activité"), ''), nullif(btrim("Unite_en"), '')),
+        p_source       => nullif(btrim("Source"), ''),
+        p_perimetre    => coalesce(nullif(btrim("Périmètre"), ''), nullif(btrim("Périmètre_en"), '')),
+        p_localisation => coalesce(nullif(btrim("Localisation"), ''), nullif(btrim("Localisation_en"), '')),
+        p_workspace_id => null,
+        p_language     => null,
+        p_fe           => public.safe_to_numeric(nullif(btrim("FE"), '')),
+        p_date         => public.safe_to_int(nullif(btrim("Date"), ''))
+      ) as factor_key,
     coalesce(nullif(btrim("Nom"), ''), nullif(btrim("Nom_en"), '')) as "Nom",
     nullif(btrim("Nom_en"), '') as "Nom_en",
     coalesce(nullif(btrim("Description"), ''), nullif(btrim("Description_en"), '')) as "Description",
