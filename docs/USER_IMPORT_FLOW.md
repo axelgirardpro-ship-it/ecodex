@@ -15,7 +15,7 @@
 - Edge appelle la RPC; si une erreur survient, le flux s'arrête avec 500.
 
 ### Staging
-- Table `staging_user_imports` (text columns 1:1 avec le CSV).
+- Table `staging_user_imports` (colonnes texte 1:1 avec le CSV, **sans** colonne `ID`).
 - Trigger `trg_staging_force_source` force `"Source" = dataset_name` sur INSERT/UPDATE.
 
 ### Projection batch
