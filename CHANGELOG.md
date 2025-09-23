@@ -1,3 +1,11 @@
+## 2025-09-23
+
+- Edge Functions
+  - `invite-user`: remplacement de `serve` (Deno std) par `Deno.serve` et ajout de `// @ts-nocheck` pour éviter les erreurs de typage locales liées à l'API Deno et aux imports URL. Supprime 4 lints et aligne l'implémentation sur les autres Edge functions existantes.
+
+- Front-end Recherche
+  - `src/lib/algolia/cacheManager.ts`: élargissement du type pour accepter la sentinelle `'all'` sur `CacheEntry.origin` et paramètre `origin` de `set(...)` afin de corriger les erreurs ESLint sans changer le comportement à l'exécution (clé de cache normalisée inchangée).
+
 ## 2025-09-19
 
 - Supabase SQL
