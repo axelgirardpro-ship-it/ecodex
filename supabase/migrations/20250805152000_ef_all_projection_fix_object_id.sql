@@ -16,7 +16,6 @@ begin
   )
   select
     ef.id as object_id,
-    ef.id as record_id,
     case when ef.workspace_id is null then 'public' else 'private' end as scope,
     ef.workspace_id,
     fs.access_level,
@@ -63,7 +62,6 @@ begin
   )
   select
     ef.id as object_id,
-    ef.id as record_id,
     case when ef.workspace_id is null then 'public' else 'private' end as scope,
     ef.workspace_id,
     fs.access_level,
