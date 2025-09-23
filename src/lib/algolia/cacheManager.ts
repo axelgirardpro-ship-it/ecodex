@@ -5,7 +5,7 @@ export interface CacheEntry {
   key: string;
   data: any;
   timestamp: number;
-  origin: Origin;
+  origin: Origin | 'all';
   ttl: number;
   accessCount: number;
   lastAccess: number;
@@ -138,7 +138,7 @@ export class AlgoliaCacheManager {
     return entry;
   }
 
-  set(request: any, data: any, origin: Origin = 'all'): void {
+  set(request: any, data: any, origin: Origin | 'all' = 'all'): void {
     const key = this.generateCacheKey(request);
     const ttl = this.calculateAdaptiveTTL(request);
     const now = Date.now();
