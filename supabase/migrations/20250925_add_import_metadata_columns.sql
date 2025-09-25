@@ -56,7 +56,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  PERFORM set_config('statement_timeout', '0', true);
+BEGIN
 
   TRUNCATE TABLE public.emission_factors_all_search;
 
@@ -306,7 +306,6 @@ DECLARE
   v_sources text[] := '{}';
   s text;
 BEGIN
-  PERFORM set_config('statement_timeout','0', true);
 
   DROP TABLE IF EXISTS temp_prepared;
   CREATE TEMPORARY TABLE temp_prepared AS
