@@ -21,7 +21,7 @@ import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
   onItemSelect: (itemId: string) => void;
-  onSelectAll: (selected: boolean) => void;
+  onSelectAll: (ids: string[], selected: boolean) => void;
   onExport?: (items: EmissionFactor[]) => void;
   onCopyToClipboard?: (items: EmissionFactor[]) => void;
   onRemoveSelectedFromFavorites?: (itemIds: string[]) => void;
@@ -101,8 +101,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
   const allSelected = hits.length > 0 && hits.every(hit => selectedItems.has(hit.objectID));
   
-  const handleSelectAllChange = (checked: boolean) => {
-    onSelectAll(checked);
+  const handleSelectAllChange = (checked: boolean | "indeterminate") => {
+    const shouldSelect = checked === true;
+    const hitIds = hits.map(hit => hit.objectID);
+    onSelectAll(hitIds, shouldSelect);
   };
 
   const toggleRowExpansion = (id: string) => {
@@ -163,6 +165,11 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     incertitude: hit.Incertitude,
     perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
     contributeur: (hit as any).Contributeur || '',
+    contributeur_en: (hit as any).Contributeur_en || '',
+    methodologie: (hit as any).Méthodologie || '',
+    methodologie_en: (hit as any).Méthodologie_en || '',
+    typeDonnees: (hit as any)['Type_de_données'] || '',
+    typeDonnees_en: (hit as any)['Type_de_données_en'] || '',
     commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
   });
 
@@ -234,26 +241,27 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
       </div>
 
       {/* Selection Controls */}
-      <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="flex items-center space-x-2">
+      <div className="flex w-full flex-col items-start gap-4 md:flex-row md:items-center md:justify-between p-4 bg-muted/50 rounded-lg">
+        <div className="flex flex-wrap items-center gap-3">
           <Checkbox
             id="select-all"
             checked={allSelected}
             onCheckedChange={handleSelectAllChange}
           />
           <label htmlFor="select-all" className="text-sm cursor-pointer">
-            Tout sélectionner ({hits.length})
+            {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'} ({hits.length})
           </label>
         </div>
         
         {selectedItems.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopyToClipboard}
+              className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
             >
-              <Copy className="w-4 h-4 mr-2" />
+              <Copy className="w-4 h-4" />
               Copier ({selectedItems.size})
             </Button>
             
@@ -262,8 +270,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleExport}
+                className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4" />
                 Exporter ({selectedItems.size})
               </Button>
             </RoleGuard>
@@ -272,8 +281,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               variant="destructive"
               size="sm"
               onClick={handleRemoveSelected}
+              className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Retirer ({selectedItems.size})
             </Button>
           </div>
@@ -440,9 +450,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
                             </div>
                           )}
-                          {hit.Contributeur && (
+                          {((hit as any).Contributeur || (hit as any).Contributeur_en) && (
                             <div>
-                              <span className="text-sm font-semibold text-foreground">Contributeur</span>
+                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Contributeur' : 'Contributor'}</span>
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown 
                                   remarkPlugins={[remarkGfm]}
@@ -457,9 +467,21 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                     )
                                   }}
                                 >
-                                  {hit.Contributeur}
+                                  {(currentLang === 'fr' ? (hit as any).Contributeur : (hit as any).Contributeur_en) as string}
                                 </ReactMarkdown>
                               </div>
+                            </div>
+                          )}
+                          {((hit as any).Méthodologie || (hit as any).Méthodologie_en) && (
+                            <div>
+                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}</span>
+                              <p className="text-xs font-light mt-1">{currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en}</p>
+                            </div>
+                          )}
+                          {((hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en']) && (
+                            <div>
+                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Type de données' : 'Data Type'}</span>
+                              <p className="text-xs font-light mt-1">{currentLang === 'fr' ? (hit as any)['Type_de_données'] : (hit as any)['Type_de_données_en']}</p>
                             </div>
                           )}
                           {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (

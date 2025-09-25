@@ -22,13 +22,14 @@
 - `prepare_user_batch_projection(p_workspace_id, p_dataset_name)`
   - `TRUNCATE user_batch_algolia` puis `INSERT` depuis `staging_user_imports`.
   - `Source` forcée à `p_dataset_name`.
+  - Projection enrichie avec `Contributeur(_en)`, `Méthodologie(_en)`, `Type_de_données(_en)`.
 
 ### Algolia
 - Appel direct à l'API Data Ingestion (region `eu`) avec la Task ID fixe.
 - Credentials lus depuis les variables d'environnement Edge (`ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`).
 
 ### Overlays
-- Fonction `batch_upsert_user_factor_overlays`: INSERT-only (historique non écrasé) dans `user_factor_overlays`.
+- Fonction `batch_upsert_user_factor_overlays`: INSERT-only (historique non écrasé) dans `user_factor_overlays` avec les nouvelles colonnes.
 
 ## UI
 - `src/pages/Import.tsx` n'affiche "Erreurs d'import" que si `importStatus === 'error'`.

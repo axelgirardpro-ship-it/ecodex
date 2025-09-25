@@ -27,6 +27,11 @@ interface AlgoliaHit {
   FE?: number;
   Incertitude?: string;
   Contributeur?: string;
+  Contributeur_en?: string;
+  Méthodologie?: string;
+  Méthodologie_en?: string;
+  'Type_de_données'?: string;
+  'Type_de_données_en'?: string;
   scope?: 'public'|'private';
   workspace_id?: string | null;
   languages?: string[];
@@ -327,7 +332,12 @@ export const SearchResults: React.FC = () => {
     date: hit.Date,
     incertitude: hit.Incertitude,
     perimetre: currentLang==='fr' ? (hit['Périmètre_fr']||'') : (hit['Périmètre_en']||''),
-    contributeur: hit.Contributeur || '',
+    contributeur: currentLang==='fr' ? (hit.Contributeur || '') : (hit.Contributeur_en || ''),
+    contributeur_en: hit.Contributeur_en || '',
+    methodologie: currentLang==='fr' ? (hit.Méthodologie || '') : (hit.Méthodologie_en || ''),
+    methodologie_en: hit.Méthodologie_en || '',
+    typeDonnees: currentLang==='fr' ? (hit['Type_de_données'] || '') : (hit['Type_de_données_en'] || ''),
+    typeDonnees_en: hit['Type_de_données_en'] || '',
     commentaires: currentLang==='fr' ? (hit.Commentaires_fr||'') : (hit.Commentaires_en||'')
   });
 
@@ -384,8 +394,8 @@ export const SearchResults: React.FC = () => {
       {hits.length > 0 && (
         <>
           {/* Header avec sélection et export */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 p-4 bg-white rounded-lg border border-border">
-            <div className="flex items-center gap-4">
+          <div className="flex w-full flex-col items-start gap-4 md:flex-row md:items-center md:justify-between mb-6 p-4 bg-white rounded-lg border border-border">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedItems.size === hits.length && hits.length > 0}
@@ -397,27 +407,37 @@ export const SearchResults: React.FC = () => {
                 </span>
               </div>
               {selectedItems.size > 0 && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="px-3 py-1 text-xs font-semibold">
                   {selectedItems.size} sélectionné{selectedItems.size > 1 ? 's' : ''}
                 </Badge>
               )}
             </div>
             {selectedItems.size > 0 && (
-              <div className="flex gap-2">
-                <Button onClick={handleCopyToClipboard} variant="outline" className="flex items-center gap-2 font-montserrat">
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+                <Button
+                  onClick={handleCopyToClipboard}
+                  variant="outline"
+                  size="sm"
+                  className="flex w-full items-center justify-center gap-2 font-montserrat text-sm sm:w-auto"
+                >
                   <Copy className="h-4 w-4" />
                   Copier ({selectedItems.size})
                 </Button>
                 <Button
                   onClick={handleAddSelectedToFavorites}
-                  className="flex items-center gap-2 font-montserrat"
+                  size="sm"
+                  className="flex w-full items-center justify-center gap-2 font-montserrat text-sm sm:w-auto"
                   disabled={!canUseFavorites()}
                   title={!canUseFavorites() ? "Fonctionnalité disponible uniquement avec le plan Premium" : ""}
                 >
                   <Heart className="h-4 w-4" />
                   Ajouter aux favoris ({selectedItems.size})
                 </Button>
-                <Button onClick={handleExport} className="flex items-center gap-2 bg-slate-950 hover:bg-slate-800 text-white font-montserrat">
+                <Button
+                  onClick={handleExport}
+                  size="sm"
+                  className="flex w-full items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 text-white font-montserrat text-sm sm:w-auto"
+                >
                   <Download className="h-4 w-4" />
                   Exporter ({selectedItems.size})
                 </Button>
@@ -597,9 +617,9 @@ export const SearchResults: React.FC = () => {
                                 <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
                               </div>
                             )}
-                            {hit.Contributeur && (
+                            {((hit.Contributeur || hit.Contributeur_en)) && (
                               <div>
-                                <span className="text-sm font-semibold text-indigo-950">Contributeur</span>
+                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Contributeur' : 'Contributor'}</span>
                                 <div className="text-xs mt-1 text-break-words">
                                   <ReactMarkdown 
                                     remarkPlugins={[remarkGfm]}
@@ -614,9 +634,21 @@ export const SearchResults: React.FC = () => {
                                       )
                                     }}
                                   >
-                                    {hit.Contributeur}
+                                    {(currentLang === 'fr' ? hit.Contributeur : hit.Contributeur_en) as string}
                                   </ReactMarkdown>
                                 </div>
+                              </div>
+                            )}
+                            {((hit.Méthodologie || hit.Méthodologie_en)) && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}</span>
+                                <p className="text-xs font-light mt-1">{currentLang === 'fr' ? hit.Méthodologie : hit.Méthodologie_en}</p>
+                              </div>
+                            )}
+                            {((hit['Type_de_données'] || hit['Type_de_données_en'])) && (
+                              <div>
+                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Type de données' : 'Data Type'}</span>
+                                <p className="text-xs font-light mt-1">{currentLang === 'fr' ? hit['Type_de_données'] : hit['Type_de_données_en']}</p>
                               </div>
                             )}
                             {(hit.Commentaires_fr || hit.Commentaires_en) && (

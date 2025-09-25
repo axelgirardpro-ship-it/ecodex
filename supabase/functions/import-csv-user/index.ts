@@ -251,6 +251,11 @@ Deno.serve(async (req) => {
           Périmètre: row['Périmètre'] || null,
           Périmètre_en: row['Périmètre_en'] || null,
           Contributeur: row['Contributeur'] || null,
+          Contributeur_en: row['Contributeur_en'] || null,
+          Méthodologie: row['Méthodologie'] || null,
+          Méthodologie_en: row['Méthodologie_en'] || null,
+          Type_de_données: row['Type_de_données'] || null,
+          Type_de_données_en: row['Type_de_données_en'] || null,
           Commentaires: row['Commentaires'] || null,
           Commentaires_en: row['Commentaires_en'] || null,
         })
