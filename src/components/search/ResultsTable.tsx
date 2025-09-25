@@ -72,6 +72,11 @@ export const ResultsTable = ({
         "Incertitude", 
         "Périmètre", 
         "Contributeur", 
+        "Contributeur_en",
+        "Méthodologie",
+        "Méthodologie_en",
+        "Type_de_données",
+        "Type_de_données_en",
         "Commentaires"
       ];
       const tsvContent = [
@@ -89,6 +94,11 @@ export const ResultsTable = ({
           f.incertitude || '',
           f.perimetre || '',
           f.contributeur || '',
+          f.contributeur_en || '',
+          f.methodologie || '',
+          f.methodologie_en || '',
+          f.typeDonnees || '',
+          f.typeDonnees_en || '',
           f.commentaires || ''
         ].join("\t"))
       ].join("\n");

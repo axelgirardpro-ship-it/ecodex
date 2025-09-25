@@ -55,6 +55,11 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
       incertitude: data["Incertitude"] || data.incertitude || '',
       perimetre: data["Périmètre"] || data.perimetre || '',
       contributeur: data["Contributeur"] || data.contributeur || '',
+      contributeur_en: data["Contributeur_en"] || data.contributeur_en || '',
+      methodologie: data["Méthodologie"] || data.methodologie || '',
+      methodologie_en: data["Méthodologie_en"] || data.methodologie_en || '',
+      typeDonnees: data["Type_de_données"] || data.typeDonnees || '',
+      typeDonnees_en: data["Type_de_données_en"] || data.typeDonnees_en || '',
       commentaires: data["Commentaires"] || data.commentaires || '',
       isFavorite: true
     };

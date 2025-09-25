@@ -33,7 +33,7 @@ const Import = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      'nom','nom_en','description','description_en','fe','unite','unite_en','source','secteur','secteur_en','categorie','categorie_en','localisation','localisation_en','date','incertitude','perimetre','perimetre_en','contributeur','commentaires','commentaires_en'
+      'nom','nom_en','description','description_en','fe','unite','unite_en','source','secteur','secteur_en','categorie','categorie_en','localisation','localisation_en','date','incertitude','perimetre','perimetre_en','contributeur','contributeur_en','methodologie','methodologie_en','type_de_donnees','type_de_donnees_en','commentaires','commentaires_en'
     ];
     const row = [
       'Transport routier de marchandises','Freight transportation',
@@ -45,6 +45,9 @@ const Import = () => {
       'France','France',
       '2025','',
       'Well-to-Wheel','Well-to-Wheel',
+      'ADEME','ADEME',
+      'Bas carbone','Low carbon',
+      'Facteur d\'émission','Emission factor',
       '',''
     ];
     const csvTemplate = [headers.join(','), row.join(',')].join('\n');

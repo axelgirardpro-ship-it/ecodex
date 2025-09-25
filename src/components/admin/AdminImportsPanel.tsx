@@ -52,7 +52,7 @@ export const AdminImportsPanel: React.FC = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      'ID','Nom','Nom_en','Description','Description_en','FE','Unité donnée d\'activité','Unite_en','Source','Secteur','Secteur_en','Sous-secteur','Sous-secteur_en','Localisation','Localisation_en','Date','Incertitude','Périmètre','Périmètre_en','Contributeur','Commentaires','Commentaires_en'
+      'ID','Nom','Nom_en','Description','Description_en','FE','Unité donnée d\'activité','Unite_en','Source','Secteur','Secteur_en','Sous-secteur','Sous-secteur_en','Localisation','Localisation_en','Date','Incertitude','Périmètre','Périmètre_en','Contributeur','Contributeur_en','Méthodologie','Méthodologie_en','Type_de_données','Type_de_données_en','Commentaires','Commentaires_en'
     ];
     const example = [
       '',
@@ -65,6 +65,9 @@ export const AdminImportsPanel: React.FC = () => {
       'France','France',
       '2025','',
       'Well-to-Wheel','Well-to-Wheel',
+      'ADEME','ADEME',
+      'Bas carbone','Low carbon',
+      'Facteur d\'émission','Emission factor',
       '',''
     ];
     const csv = [headers.join(','), example.join(',')].join('\n');
