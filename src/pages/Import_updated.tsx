@@ -47,6 +47,7 @@ const Import = () => {
       'Well-to-Wheel','Well-to-Wheel',
       'ADEME','ADEME',
       'Bas carbone','Low carbon',
+      'Facteur d\'émission','Emission factor',
       '',''
     ];
     const csvTemplate = [headers.join(','), row.join(',')].join('\n');

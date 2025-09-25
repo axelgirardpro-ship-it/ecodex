@@ -67,6 +67,7 @@ export const AdminImportsPanel: React.FC = () => {
       'Well-to-Wheel','Well-to-Wheel',
       'ADEME','ADEME',
       'Bas carbone','Low carbon',
+      'Facteur d\'émission','Emission factor',
       '',''
     ];
     const csv = [headers.join(','), example.join(',')].join('\n');
