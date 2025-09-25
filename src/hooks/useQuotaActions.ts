@@ -28,7 +28,9 @@ export const useQuotaActions = () => {
     date: (hit.Date as number) || 0,
     incertitude: hit.Incertitude as string,
     perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
-    contributeur: (hit as any).Contributeur || '',
+    contributeur: (hit as any).Contributeur || (hit as any).Contributeur_en || '',
+    methodologie: (hit as any).Méthodologie || (hit as any).Méthodologie_en || '',
+    typeDonnees: (hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en'] || '',
     commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
   });
 
@@ -89,6 +91,11 @@ export const useQuotaActions = () => {
         'Périmètre',
         'Périmètre_en',
         'Contributeur',
+        'Contributeur_en',
+        'Méthodologie',
+        'Méthodologie_en',
+        'Type_de_données',
+        'Type_de_données_en',
         'Commentaires',
         'Commentaires_en'
       ];
@@ -97,26 +104,31 @@ export const useQuotaActions = () => {
         csvHeaders,
         ...normalizedItems.map(item => [
           item.nom || '',
-          '', // Nom_en non conservé dans EmissionFactor (UI FR d'abord)
+          '',
           item.description || '',
-          '', // Description_en
+          '',
           item.fe?.toString() || '',
           item.uniteActivite || '',
-          '', // Unite_en
+          '',
           item.source || '',
           item.secteur || '',
-          '', // Secteur_en
+          '',
           item.sousSecteur || '',
-          '', // Sous-secteur_en
+          '',
           item.localisation || '',
-          '', // Localisation_en
+          '',
           item.date?.toString() || '',
           item.incertitude || '',
           item.perimetre || '',
-          '', // Périmètre_en
+          '',
           item.contributeur || '',
+          item.contributeur_en || '',
+          item.methodologie || '',
+          item.methodologie_en || '',
+          item.typeDonnees || '',
+          item.typeDonnees_en || '',
           item.commentaires || '',
-          '' // Commentaires_en
+          ''
         ])
       ];
 
@@ -172,13 +184,13 @@ export const useQuotaActions = () => {
       const headers = [
         'Nom', 'Nom_en', 'Description', 'Description_en', 'FE', 'Unité donnée d\'activité', 'Unite_en', 'Source',
         'Secteur', 'Secteur_en', 'Sous-secteur', 'Sous-secteur_en', 'Localisation', 'Localisation_en', 'Date', 'Incertitude',
-        'Périmètre', 'Périmètre_en', 'Contributeur', 'Commentaires', 'Commentaires_en'
+        'Périmètre', 'Périmètre_en', 'Contributeur', 'Contributeur_en', 'Méthodologie', 'Méthodologie_en', 'Type_de_données', 'Type_de_données_en', 'Commentaires', 'Commentaires_en'
       ];
 
       const rows = normalizedItems.map(item => [
         item.nom || '', '', item.description || '', '', item.fe?.toString() || '', item.uniteActivite || '', '', item.source || '',
         item.secteur || '', '', item.sousSecteur || '', '', item.localisation || '', '', item.date?.toString() || '', item.incertitude || '',
-        item.perimetre || '', '', item.contributeur || '', item.commentaires || '', ''
+        item.perimetre || '', '', item.contributeur || '', item.contributeur_en || '', item.methodologie || '', item.methodologie_en || '', item.typeDonnees || '', item.typeDonnees_en || '', item.commentaires || '', ''
       ]);
 
       const allData = [headers, ...rows];

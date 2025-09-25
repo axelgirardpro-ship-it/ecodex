@@ -20,6 +20,11 @@ export interface AlgoliaHit {
   Description?: string;
   Commentaires?: string;
   Contributeur?: string;
+  Contributeur_en?: string;
+  Méthodologie?: string;
+  Méthodologie_en?: string;
+  'Type_de_données'?: string;
+  'Type_de_données_en'?: string;
   // Facets/meta
   languages?: string[];
   workspace_id?: string;

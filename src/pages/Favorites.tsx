@@ -41,11 +41,15 @@ const FavoritesAlgoliaContent: React.FC = () => {
     });
   };
 
-  const handleSelectAll = (selected: boolean) => {
+  const handleSelectAll = (ids: string[], selected: boolean) => {
     if (selected) {
-      setSelectedItems(new Set(favoriteIds));
+      setSelectedItems(new Set(ids));
     } else {
-      setSelectedItems(new Set());
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        ids.forEach(id => newSet.delete(id));
+        return newSet;
+      });
     }
   };
 

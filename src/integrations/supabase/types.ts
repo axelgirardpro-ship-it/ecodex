@@ -188,6 +188,11 @@ export type Database = {
           Commentaires: string | null
           Commentaires_en: string | null
           Contributeur: string | null
+          Contributeur_en: string | null
+          Méthodologie: string | null
+          Méthodologie_en: string | null
+          Type_de_données: string | null
+          Type_de_données_en: string | null
           created_at: string | null
           dataset_id: string | null
           Date: number | null
@@ -223,6 +228,11 @@ export type Database = {
           Commentaires?: string | null
           Commentaires_en?: string | null
           Contributeur?: string | null
+          Contributeur_en?: string | null
+          Méthodologie?: string | null
+          Méthodologie_en?: string | null
+          Type_de_données?: string | null
+          Type_de_données_en?: string | null
           created_at?: string | null
           dataset_id?: string | null
           Date?: number | null
@@ -258,6 +268,11 @@ export type Database = {
           Commentaires?: string | null
           Commentaires_en?: string | null
           Contributeur?: string | null
+          Contributeur_en?: string | null
+          Méthodologie?: string | null
+          Méthodologie_en?: string | null
+          Type_de_données?: string | null
+          Type_de_données_en?: string | null
           created_at?: string | null
           dataset_id?: string | null
           Date?: number | null
