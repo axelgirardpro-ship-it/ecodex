@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useHits, usePagination, Highlight } from 'react-instantsearch';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Heart, Download, Copy, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { EmissionFactor } from '@/types/emission-factor';
-import { useFavorites } from '@/contexts/FavoritesContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { RoleGuard } from '@/components/ui/RoleGuard';
-import { toast } from 'sonner';
+import { Copy, Download, Heart, Trash2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { PremiumBlur } from '@/components/ui/PremiumBlur';
+import { RoleGuard } from '@/components/ui/RoleGuard';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import type { AlgoliaHit } from '@/types/algolia';
-import { PremiumBlur } from '@/components/ui/PremiumBlur';
-import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
+import { EmissionFactor } from '@/types/emission-factor';
+import { toast } from 'sonner';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -25,8 +24,6 @@ interface FavorisSearchResultsProps {
   onExport?: (items: EmissionFactor[]) => void;
   onCopyToClipboard?: (items: EmissionFactor[]) => void;
   onRemoveSelectedFromFavorites?: (itemIds: string[]) => void;
-  onToggleFavorite?: (itemId: string) => void;
-  favoriteIds: string[];
 }
 
 export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
@@ -36,127 +33,93 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   onExport,
   onCopyToClipboard,
   onRemoveSelectedFromFavorites,
-  onToggleFavorite,
-  favoriteIds,
 }) => {
   const { hits: originalHits } = useHits<AlgoliaHit>();
-  const [currentSort, setCurrentSort] = useState<string>('relevance');
+  const { currentRefinement: currentPage, nbPages, refine: paginationRefine } = usePagination();
+  const { removeFromFavorites } = useFavorites();
+  const { getSourceLogo } = useSourceLogos();
+  const { shouldBlurPremiumContent } = useEmissionFactorAccess();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  // Function to sort hits based on current sort option
-  const sortHits = React.useCallback((hits: AlgoliaHit[], sortKey: string): AlgoliaHit[] => {
-    if (sortKey === 'relevance') return hits; // Keep Algolia's relevance order
-    
-    return [...hits].sort((a, b) => {
-      switch (sortKey) {
-        case 'fe_asc':
-          return (a.FE || 0) - (b.FE || 0);
-        case 'fe_desc':
-          return (b.FE || 0) - (a.FE || 0);
-        case 'date_desc':
-          return (b.Date || 0) - (a.Date || 0);
-        case 'date_asc':
-          return (a.Date || 0) - (b.Date || 0);
-        case 'nom_asc': {
-          const an = ((a as any).Nom_fr || (a as any).Nom_en || (a as any).Nom || '') as string;
-          const bn = ((b as any).Nom_fr || (b as any).Nom_en || (b as any).Nom || '') as string;
-          return an.localeCompare(bn, 'fr', { numeric: true, sensitivity: 'base' });
-        }
-        case 'nom_desc': {
-          const an = ((a as any).Nom_fr || (a as any).Nom_en || (a as any).Nom || '') as string;
-          const bn = ((b as any).Nom_fr || (b as any).Nom_en || (b as any).Nom || '') as string;
-          return bn.localeCompare(an, 'fr', { numeric: true, sensitivity: 'base' });
-        }
-        case 'source_asc':
-          return (a.Source || '').localeCompare(b.Source || '', 'fr', { numeric: true, sensitivity: 'base' });
-        default:
-          return 0;
+  const currentLang: 'fr' | 'en' = 'fr';
+  const hits = originalHits;
+
+  const allSelected = hits.length > 0 && hits.every(hit => selectedItems.has(hit.objectID));
+
+  const handleSelectAllChange = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      const shouldSelect = checked === true;
+      const hitIds = hits.map(hit => hit.objectID);
+      onSelectAll(hitIds, shouldSelect);
+    },
+    [hits, onSelectAll]
+  );
+
+  const toggleRowExpansion = useCallback((id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
+      return next;
     });
   }, []);
 
-  // Sort only (déduplication gérée au merge)
-  const hits = React.useMemo(() => sortHits(originalHits, currentSort), [originalHits, currentSort, sortHits]);
-
-  const handleSortChange = (sortKey: string) => {
-    setCurrentSort(sortKey);
-  };
-
-  const sortOptions = [
-    { label: 'Pertinence', value: 'relevance' },
-    { label: 'FE croissant', value: 'fe_asc' },
-    { label: 'FE décroissant', value: 'fe_desc' },
-    { label: 'Plus récent', value: 'date_desc' },
-    { label: 'Plus ancien', value: 'date_asc' },
-    { label: 'Nom A-Z', value: 'nom_asc' },
-    { label: 'Nom Z-A', value: 'nom_desc' },
-    { label: 'Source A-Z', value: 'source_asc' },
-  ];
-  
-  const { currentRefinement: currentPage, nbPages, refine: paginationRefine } = usePagination();
-  const { removeFromFavorites, isFavorite } = useFavorites();
-  const { canExport } = usePermissions();
-  const { getSourceLogo } = useSourceLogos();
-  const { shouldBlurPremiumContent } = useEmissionFactorAccess();
-
-  const allSelected = hits.length > 0 && hits.every(hit => selectedItems.has(hit.objectID));
-  
-  const handleSelectAllChange = (checked: boolean | "indeterminate") => {
-    const shouldSelect = checked === true;
-    const hitIds = hits.map(hit => hit.objectID);
-    onSelectAll(hitIds, shouldSelect);
-  };
-
-  const toggleRowExpansion = (id: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedRows(newExpanded);
-  };
-
-  const getHighlightedText = (hit: AlgoliaHit, base: string) => {
+  const getHighlightedText = useCallback((hit: AlgoliaHit, base: string) => {
     const candidates: string[] = (() => {
       switch (base) {
-        case 'Nom': return ['Nom_fr','Nom_en','Nom'];
-        case 'Description': return ['Description_fr','Description_en','Description'];
-        case 'Commentaires': return ['Commentaires_fr','Commentaires_en','Commentaires'];
-        case 'Secteur': return ['Secteur_fr','Secteur_en','Secteur'];
-        case 'Sous-secteur': return ['Sous-secteur_fr','Sous-secteur_en','Sous-secteur'];
-        case 'Périmètre': return ['Périmètre_fr','Périmètre_en','Périmètre'];
-        case 'Localisation': return ['Localisation_fr','Localisation_en','Localisation'];
-        case 'Unite': return ['Unite_fr','Unite_en','Unité donnée d\'activité'];
-        case 'Source': return ['Source'];
-        default: return [base];
+        case 'Nom':
+          return ['Nom_fr', 'Nom_en', 'Nom'];
+        case 'Description':
+          return ['Description_fr', 'Description_en', 'Description'];
+        case 'Commentaires':
+          return ['Commentaires_fr', 'Commentaires_en', 'Commentaires'];
+        case 'Secteur':
+          return ['Secteur_fr', 'Secteur_en', 'Secteur'];
+        case 'Sous-secteur':
+          return ['Sous-secteur_fr', 'Sous-secteur_en', 'Sous-secteur'];
+        case 'Périmètre':
+          return ['Périmètre_fr', 'Périmètre_en', 'Périmètre'];
+        case 'Localisation':
+          return ['Localisation_fr', 'Localisation_en', 'Localisation'];
+        case 'Unite':
+          return ['Unite_fr', 'Unite_en', "Unité donnée d'activité"];
+        case 'Source':
+          return ['Source'];
+        default:
+          return [base];
       }
     })();
-    const hl = (hit as any)._highlightResult || {};
-    for (const a of candidates) {
-      const h = hl[a];
-      if (h?.value) return { __html: h.value };
-      const v = (hit as any)[a];
-      if (v) return { __html: v };
-    }
-    return { __html: '' };
-  };
 
-  const handleToggleFavorite = async (hit: AlgoliaHit) => {
+    const highlight = (hit as any)._highlightResult || {};
+    for (const attribute of candidates) {
+      const highlighted = highlight[attribute];
+      if (highlighted?.value) return highlighted.value as string;
+      const raw = (hit as any)[attribute];
+      if (raw) return raw as string;
+    }
+
+    return '';
+  }, []);
+
+  const handleRemoveFavorite = useCallback(async (hit: AlgoliaHit) => {
     try {
       await removeFromFavorites(hit.objectID);
       toast.success('Retiré des favoris');
     } catch (error) {
       toast.error('Erreur lors de la suppression du favori');
+      console.error('remove favorite error', error);
     }
-  };
+  }, [removeFromFavorites]);
 
-  const mapHitToEmissionFactor = (hit: AlgoliaHit): EmissionFactor => ({
+  const mapHitToEmissionFactor = useCallback((hit: AlgoliaHit): EmissionFactor => ({
     id: hit.objectID,
     nom: (hit as any).Nom_fr || (hit as any).Nom_en || (hit as any).Nom || '',
     description: (hit as any).Description_fr || (hit as any).Description_en || (hit as any).Description || '',
     fe: hit.FE,
-    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)["Unité donnée d'activité"] || '',
+    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)['Unité donnée d\'activité'] || '',
     source: hit.Source,
     secteur: (hit as any).Secteur_fr || (hit as any).Secteur_en || (hit as any).Secteur || '',
     sousSecteur: (hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur'] || '',
@@ -171,35 +134,47 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     typeDonnees: (hit as any)['Type_de_données'] || '',
     typeDonnees_en: (hit as any)['Type_de_données_en'] || '',
     commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
-  });
+  }), []);
 
-  const handleExport = () => {
-    if (onExport) {
-      const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
-      const mappedHits = selectedHits.map(mapHitToEmissionFactor);
-      onExport(mappedHits);
+  const handleExport = useCallback(() => {
+    const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
+    const mappedHits = selectedHits.map(mapHitToEmissionFactor);
+
+    if (mappedHits.length === 0) {
+      toast.error('Aucun favori sélectionné');
+      return;
     }
-  };
 
-  const handleCopyToClipboard = () => {
-    if (onCopyToClipboard) {
-      const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
-      const mappedHits = selectedHits.map(mapHitToEmissionFactor);
-      onCopyToClipboard(mappedHits);
+    onExport?.(mappedHits);
+  }, [hits, mapHitToEmissionFactor, onExport, selectedItems]);
+
+  const handleCopyToClipboard = useCallback(() => {
+    const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
+    const mappedHits = selectedHits.map(mapHitToEmissionFactor);
+
+    if (mappedHits.length === 0) {
+      toast.error('Aucun favori sélectionné');
+      return;
     }
-  };
 
-  const handleRemoveSelected = () => {
-    if (onRemoveSelectedFromFavorites) {
-      const selectedIds = Array.from(selectedItems);
-      // Forcer le rafraîchissement d'InstantSearch après la suppression
-      onRemoveSelectedFromFavorites(selectedIds);
+    onCopyToClipboard?.(mappedHits);
+  }, [hits, mapHitToEmissionFactor, onCopyToClipboard, selectedItems]);
+
+  const handleRemoveSelected = useCallback(() => {
+    if (!onRemoveSelectedFromFavorites) return;
+
+    const selectedIds = Array.from(selectedItems);
+    if (selectedIds.length === 0) {
+      toast.error('Aucun favori sélectionné');
+      return;
     }
-  };
 
-  const isPrivateHit = (hit: AlgoliaHit) => {
+    onRemoveSelectedFromFavorites(selectedIds);
+  }, [onRemoveSelectedFromFavorites, selectedItems]);
+
+  const isPrivateHit = useCallback((hit: AlgoliaHit) => {
     return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
-  };
+  }, []);
 
   if (hits.length === 0) {
     return (
@@ -213,34 +188,12 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="text-sm text-foreground">
           {hits.length} favori{hits.length > 1 ? 's' : ''} affiché{hits.length > 1 ? 's' : ''}
         </div>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-foreground">Trier par:</span>
-            <Select 
-              value={currentSort} 
-              onValueChange={handleSortChange}
-            >
-              <SelectTrigger className="w-auto min-w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
 
-      {/* Selection Controls */}
       <div className="flex w-full flex-col items-start gap-4 md:flex-row md:items-center md:justify-between p-4 bg-muted/50 rounded-lg">
         <div className="flex flex-wrap items-center gap-3">
           <Checkbox
@@ -252,7 +205,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
             {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'} ({hits.length})
           </label>
         </div>
-        
+
         {selectedItems.size > 0 && (
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button
@@ -264,7 +217,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               <Copy className="w-4 h-4" />
               Copier ({selectedItems.size})
             </Button>
-            
+
             <RoleGuard requirePermission="canExport">
               <Button
                 variant="outline"
@@ -276,7 +229,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                 Exporter ({selectedItems.size})
               </Button>
             </RoleGuard>
-            
+
             <Button
               variant="destructive"
               size="sm"
@@ -290,11 +243,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         )}
       </div>
 
-      {/* Results */}
       <div className="space-y-4">
         {hits.map((hit) => {
           const isExpanded = expandedRows.has(hit.objectID);
-          const isFav = isFavorite(hit.objectID);
           const shouldBlur = shouldBlurPremiumContent(hit.Source);
 
           return (
@@ -313,10 +264,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                         <div className="flex flex-col items-start gap-1">
                           <h3 className="text-lg font-semibold text-primary leading-tight">
                             {(() => {
-                              const attr = (hit as any).Nom_fr !== undefined
+                              const attribute = (hit as any).Nom_fr !== undefined
                                 ? 'Nom_fr'
                                 : ((hit as any).Nom_en !== undefined ? 'Nom_en' : 'Nom');
-                              return <Highlight hit={hit as any} attribute={attr as any} />;
+                              return <Highlight hit={hit as any} attribute={attribute as any} />;
                             })()}
                           </h3>
                           {isPrivateHit(hit) && (
@@ -331,7 +282,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleFavorite(hit);
+                              handleRemoveFavorite(hit);
                             }}
                             className="text-red-500 hover:text-red-600"
                           >
@@ -355,7 +306,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           <span className="text-sm font-semibold text-foreground">Facteur d'émission</span>
                           <PremiumBlur isBlurred={shouldBlur}>
                             <p className="text-2xl font-bold text-primary">
-                              {hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq
+                              {hit.FE ? (typeof hit.FE === 'number' ? hit.FE : Number(hit.FE)).toLocaleString('fr-FR', { maximumFractionDigits: 4 }) : ''} kgCO₂eq
                             </p>
                           </PremiumBlur>
                           <div className="mt-2">
@@ -371,20 +322,24 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           {((hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']) && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Périmètre</span>
-                              <p className="text-sm font-light">{(hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']}</p>
+                              <p className="text-sm font-light">
+                                {(hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']}
+                              </p>
                             </div>
                           )}
                           <div>
                             <span className="text-sm font-semibold text-foreground">Source</span>
                             <div className="flex items-center gap-2">
                               {getSourceLogo(hit.Source) && (
-                                <img 
+                                <img
                                   src={getSourceLogo(hit.Source)!}
                                   alt={`Logo ${hit.Source}`}
                                   className="w-6 h-6 object-contain flex-shrink-0"
                                 />
                               )}
-                              <p className="text-sm font-light"><Highlight hit={hit as any} attribute={'Source' as any} /></p>
+                              <p className="text-sm font-light">
+                                {hit.Source}
+                              </p>
                             </div>
                           </div>
                           {(hit as any).dataset_name && (
@@ -415,17 +370,25 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                             <div>
                               <span className="text-sm font-semibold text-foreground">Description</span>
                               <div className="text-xs mt-1 text-break-words">
-                                <ReactMarkdown 
+                                <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
-                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                        {...props}
+                                      >
                                         {children}
                                       </a>
                                     ),
                                     p: ({ children, ...props }) => (
-                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                    )
+                                      <p className="text-xs font-light leading-relaxed" {...props}>
+                                        {children}
+                                      </p>
+                                    ),
                                   }}
                                 >
                                   {((hit as any).Description_fr || (hit as any).Description_en) as string}
@@ -437,10 +400,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                             <span className="text-sm font-semibold text-foreground">Secteur</span>
                             <p className="text-xs font-light mt-1">
                               {(() => {
-                                const attr = (hit as any).Secteur_fr !== undefined
+                                const attribute = (hit as any).Secteur_fr !== undefined
                                   ? 'Secteur_fr'
                                   : ((hit as any).Secteur_en !== undefined ? 'Secteur_en' : 'Secteur');
-                                return <Highlight hit={hit as any} attribute={attr as any} />;
+                                return <Highlight hit={hit as any} attribute={attribute as any} />;
                               })()}
                             </p>
                           </div>
@@ -452,19 +415,29 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           )}
                           {((hit as any).Contributeur || (hit as any).Contributeur_en) && (
                             <div>
-                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Contributeur' : 'Contributor'}</span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {currentLang === 'fr' ? 'Contributeur' : 'Contributor'}
+                              </span>
                               <div className="text-xs mt-1 text-break-words">
-                                <ReactMarkdown 
+                                <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
-                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                        {...props}
+                                      >
                                         {children}
                                       </a>
                                     ),
                                     p: ({ children, ...props }) => (
-                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                    )
+                                      <p className="text-xs font-light leading-relaxed" {...props}>
+                                        {children}
+                                      </p>
+                                    ),
                                   }}
                                 >
                                   {(currentLang === 'fr' ? (hit as any).Contributeur : (hit as any).Contributeur_en) as string}
@@ -474,31 +447,47 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           )}
                           {((hit as any).Méthodologie || (hit as any).Méthodologie_en) && (
                             <div>
-                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}</span>
-                              <p className="text-xs font-light mt-1">{currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en}</p>
+                              <span className="text-sm font-semibold text-foreground">
+                                {currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}
+                              </span>
+                              <p className="text-xs font-light mt-1">
+                                {currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en}
+                              </p>
                             </div>
                           )}
                           {((hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en']) && (
                             <div>
-                              <span className="text-sm font-semibold text-foreground">{currentLang === 'fr' ? 'Type de données' : 'Data Type'}</span>
-                              <p className="text-xs font-light mt-1">{currentLang === 'fr' ? (hit as any)['Type_de_données'] : (hit as any)['Type_de_données_en']}</p>
+                              <span className="text-sm font-semibold text-foreground">
+                                {currentLang === 'fr' ? 'Type de données' : 'Data Type'}
+                              </span>
+                              <p className="text-xs font-light mt-1">
+                                {currentLang === 'fr' ? (hit as any)['Type_de_données'] : (hit as any)['Type_de_données_en']}
+                              </p>
                             </div>
                           )}
                           {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Commentaires</span>
                               <div className="text-xs mt-1 text-break-words">
-                                <ReactMarkdown 
+                                <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
-                                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                        {...props}
+                                      >
                                         {children}
                                       </a>
                                     ),
                                     p: ({ children, ...props }) => (
-                                      <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                    )
+                                      <p className="text-xs font-light leading-relaxed" {...props}>
+                                        {children}
+                                      </p>
+                                    ),
                                   }}
                                 >
                                   {((hit as any).Commentaires_fr || (hit as any).Commentaires_en) as string}
@@ -517,7 +506,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         })}
       </div>
 
-      {/* Pagination */}
       {nbPages > 1 && (() => {
         const maxVisible = 5;
         let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
@@ -529,7 +517,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         for (let p = start; p <= end; p++) pages.push(p);
 
         return (
-          <div className="flex items-center justify-center gap-2 mt-6">
+            <div className="flex items-center justify-center gap-2 mt-6">
             <Button
               variant="outline"
               size="sm"
@@ -544,7 +532,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               {start > 0 && (
                 <Button
                   key="first-page"
-                  variant={0 === currentPage ? "default" : "outline"}
+                  variant={0 === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => paginationRefine(0)}
                   className="w-10"
@@ -557,7 +545,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               {pages.map((p) => (
                 <Button
                   key={`page-${p}`}
-                  variant={p === currentPage ? "default" : "outline"}
+                  variant={p === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => paginationRefine(p)}
                   className="w-10"
@@ -570,7 +558,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               {end < nbPages - 1 && (
                 <Button
                   key="last-page"
-                  variant={nbPages - 1 === currentPage ? "default" : "outline"}
+                  variant={nbPages - 1 === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => paginationRefine(nbPages - 1)}
                   className="w-10"
