@@ -29,8 +29,11 @@ export const useQuotaActions = () => {
     incertitude: hit.Incertitude as string,
     perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
     contributeur: (hit as any).Contributeur || (hit as any).Contributeur_en || '',
+    contributeur_en: (hit as any).Contributeur_en || '',
     methodologie: (hit as any).Méthodologie || (hit as any).Méthodologie_en || '',
+    methodologie_en: (hit as any).Méthodologie_en || '',
     typeDonnees: (hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en'] || '',
+    typeDonnees_en: (hit as any)['Type_de_données_en'] || '',
     commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
   });
 
