@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
 import { Button } from "@/components/ui/button";
 import { EmissionFactor } from "@/types/emission-factor";
@@ -9,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useQuotaActions } from "@/hooks/useQuotaActions";
+import { useSafeLanguage } from "@/hooks/useSafeLanguage";
+import { buildLocalizedPath } from "@/lib/i18n/routing";
 
 // Import des composants Algolia
 import { OriginProvider, SearchProvider } from "@/components/search/algolia/SearchProvider";
@@ -23,6 +26,8 @@ const FavoritesAlgoliaContent: React.FC = () => {
   const { canExport } = usePermissions();
   const { toast } = useToast();
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
+  const { t } = useTranslation('pages', { keyPrefix: 'favorites' });
+  const language = useSafeLanguage();
 
   // Extract favorite IDs for Algolia filtering
   const favoriteIds = useMemo(() => {
@@ -62,14 +67,14 @@ const FavoritesAlgoliaContent: React.FC = () => {
         return newSet;
       });
       toast({
-        title: "Favori supprimé",
-        description: "L'élément a été retiré de vos favoris",
+        title: t('toasts.removed.title'),
+        description: t('toasts.removed.description'),
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors de la suppression du favori",
+        title: t('toasts.removeError.title'),
+        description: t('toasts.removeError.description'),
       });
     }
   };
@@ -86,14 +91,16 @@ const FavoritesAlgoliaContent: React.FC = () => {
       }
       setSelectedItems(new Set());
       toast({
-        title: "Favoris mis à jour",
-        description: `${toRemove.length} élément${toRemove.length > 1 ? 's' : ''} retiré${toRemove.length > 1 ? 's' : ''} des favoris.`,
+        title: t('toasts.bulkRemoved.title'),
+        description: toRemove.length === 1
+          ? t('toasts.bulkRemoved.description', { count: toRemove.length })
+          : t('toasts.bulkRemoved.description_plural', { count: toRemove.length }),
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors de la suppression des favoris sélectionnés",
+        title: t('toasts.bulkError.title'),
+        description: t('toasts.bulkError.description'),
       });
     }
   };
@@ -119,9 +126,9 @@ const FavoritesAlgoliaContent: React.FC = () => {
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <div className="space-y-2">
-                <p className="text-muted-foreground font-medium">Chargement de vos favoris...</p>
+                <p className="text-muted-foreground font-medium">{t('loading.title')}</p>
                 <p className="text-sm text-muted-foreground/75">
-                  Récupération des données depuis la base...
+                  {t('loading.subtitle')}
                 </p>
               </div>
             </div>
@@ -141,10 +148,10 @@ const FavoritesAlgoliaContent: React.FC = () => {
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl font-bold text-foreground mb-4 flex items-center justify-center">
               <Heart className="w-10 h-10 mr-3 text-red-500" />
-              Mes Favoris
+              {t('header.title')}
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Recherchez et gérez vos facteurs d'émission favoris avec les filtres avancés
+              {t('header.subtitle')}
             </p>
             
             {/* Search Box - Seulement si on a des favoris */}
@@ -159,15 +166,15 @@ const FavoritesAlgoliaContent: React.FC = () => {
               <div className="flex justify-center items-center gap-8 mt-8 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{favorites.length}</span>
-                  <span>favoris au total</span>
+                  <span>{t('stats.favorites')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{availableSources.length}</span>
-                  <span>sources</span>
+                  <span>{t('stats.sources')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{availableLocations.length}</span>
-                  <span>localisations</span>
+                  <span>{t('stats.locations')}</span>
                 </div>
               </div>
             )}
@@ -180,14 +187,14 @@ const FavoritesAlgoliaContent: React.FC = () => {
           <div className="text-center py-16">
             <Heart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">
-              Aucun favori pour le moment
+              {t('empty.title')}
             </h3>
             <p className="text-muted-foreground mb-6">
-              Ajoutez des facteurs d'émissions à vos favoris depuis la page de recherche
+              {t('empty.description')}
             </p>
             <Button asChild>
-              <Link to="/search">
-                Commencer une recherche
+              <Link to={buildLocalizedPath('/search', language)}>
+                {t('empty.cta')}
               </Link>
             </Button>
           </div>
@@ -210,7 +217,9 @@ const FavoritesAlgoliaContent: React.FC = () => {
                   disabled={selectedItems.size === 0}
                 >
                   <HeartOff className="w-4 h-4 mr-2" />
-                  Retirer des favoris ({selectedItems.size})
+                  {selectedItems.size === 0
+                    ? t('actions.remove')
+                    : t('actions.removeCount', { count: selectedItems.size })}
                 </Button>
                 <RoleGuard requirePermission="canExport">
                   <Button 
@@ -220,7 +229,9 @@ const FavoritesAlgoliaContent: React.FC = () => {
                     }}
                     disabled={selectedItems.size === 0}
                   >
-                    Exporter la sélection ({selectedItems.size})
+                    {selectedItems.size === 0
+                      ? t('actions.export')
+                      : t('actions.exportCount', { count: selectedItems.size })}
                   </Button>
                 </RoleGuard>
                 <Button
@@ -231,7 +242,9 @@ const FavoritesAlgoliaContent: React.FC = () => {
                   }}
                   disabled={selectedItems.size === 0}
                 >
-                  Copier la sélection ({selectedItems.size})
+                  {selectedItems.size === 0
+                    ? t('actions.copy')
+                    : t('actions.copyCount', { count: selectedItems.size })}
                 </Button>
               </div>
               
@@ -245,8 +258,6 @@ const FavoritesAlgoliaContent: React.FC = () => {
                   await Promise.all(itemIds.map(id => removeFromFavorites(id)));
                   setSelectedItems(new Set());
                 }}
-                onToggleFavorite={handleToggleFavorite}
-                favoriteIds={favoriteIds}
               />
             </section>
           </div>
@@ -257,13 +268,6 @@ const FavoritesAlgoliaContent: React.FC = () => {
 };
 
 const Favorites = () => {
-  const { favorites } = useFavorites();
-  
-  // Extract favorite IDs for Algolia filtering
-  const favoriteIds = useMemo(() => {
-    return favorites.map(f => f.id);
-  }, [favorites]);
-
   return (
     <OriginProvider>
       <SearchProvider>

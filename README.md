@@ -97,3 +97,21 @@ npm run gen:types:local
 - Frontend: `SearchProvider` + `UnifiedAlgoliaClient` via `proxySearchClient` (un seul client, pas de multi-index côté UI).
 - Legacy supprimé: `AlgoliaFallback`, `FavorisSearchProvider`, paramètre `searchType`, constantes `FALLBACK_*`.
 - Règle stricte requêtes: minimum 3 caractères côté UI et côté serveur, sauf si des facettes/filters sont présents pour initialiser les filtres.
+
+## Internationalisation FR/EN
+
+- Les routes disposent désormais d’un préfixe `/en` optionnel (ex : `/search` ↔ `/en/search`).
+- Le `LanguageProvider` synchronise la langue via localStorage + cookie et déclenche un **hard refresh** sur `search`/`favoris` pour relancer InstantSearch.
+- `buildLocalizedPath()` et `useSafeLanguage()` sont les primitives à utiliser pour générer des URLs ou récupérer la langue active.
+- L’ensemble des pages et composants transverses s’appuie sur i18next (namespaces : `common`, `navbar`, `home`, `pages`, `search`, `quota`).
+- Les champs Algolia sont requêtés dynamiquement (`Nom_fr`/`Nom_en`, `Secteur_fr`/`Secteur_en`, etc.) afin d’éviter tout doublon dans l’index et garantir des exports/copies localisés.
+
+```tsx
+import { buildLocalizedPath } from '@/lib/i18n/routing';
+import { useSafeLanguage } from '@/hooks/useSafeLanguage';
+
+const { language } = useSafeLanguage();
+<Link to={buildLocalizedPath('/search', language)}>Search</Link>
+```
+
+Pour plus de détails (routing, mapping Algolia, nettoyage Supabase), voir `docs/architecture/search-i18n.md` et `docs/migration/2025-09-29_language_cleanup.md`.

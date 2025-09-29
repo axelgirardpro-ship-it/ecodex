@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ interface PasswordResetProps {
 }
 
 export const PasswordReset = ({ onBack }: PasswordResetProps) => {
+  const { t } = useTranslation("pages", { keyPrefix: "passwordReset" });
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -24,8 +26,8 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
     if (!email.trim()) {
       toast({
         variant: "destructive",
-        title: "Email requis",
-        description: "Veuillez saisir votre adresse email",
+        title: t("toasts.emailRequired.title"),
+        description: t("toasts.emailRequired.description"),
       });
       return;
     }
@@ -41,16 +43,16 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
 
       setSent(true);
       toast({
-        title: "Email envoyé !",
-        description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe",
+        title: t("toasts.emailSent.title"),
+        description: t("toasts.emailSent.description"),
       });
 
     } catch (error: any) {
       console.error('Error sending reset email:', error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: error.message || "Impossible d'envoyer l'email de réinitialisation",
+        title: t("toasts.error.title"),
+        description: error.message || t("toasts.error.description"),
       });
     } finally {
       setLoading(false);
@@ -64,21 +66,24 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
             <Mail className="h-6 w-6 text-green-600" />
           </div>
-          <CardTitle>Email envoyé</CardTitle>
+          <CardTitle>{t("sent.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Mail className="h-4 w-4" />
             <AlertDescription>
-              Un email de réinitialisation a été envoyé à <strong>{email}</strong>. 
-              Cliquez sur le lien dans l'email pour créer un nouveau mot de passe.
+              <Trans
+                i18nKey="pages:passwordReset.sent.description"
+                components={{ strong: <strong /> }}
+                values={{ email }}
+              />
             </AlertDescription>
           </Alert>
           
           <div className="space-y-2">
             <Button variant="outline" onClick={onBack} className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour à la connexion
+              {t("sent.back")}
             </Button>
             <Button 
               variant="ghost" 
@@ -88,7 +93,7 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
               }}
               className="w-full text-sm"
             >
-              Renvoyer l'email
+              {t("sent.resend")}
             </Button>
           </div>
         </CardContent>
@@ -99,19 +104,19 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle>Mot de passe oublié ?</CardTitle>
+        <CardTitle>{t("form.title")}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Saisissez votre email pour recevoir un lien de réinitialisation
+          {t("form.subtitle")}
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("form.email")}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="votre@email.com"
+              placeholder={t("form.placeholder") ?? "email@example.com"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -126,7 +131,7 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
               disabled={loading || !email.trim()}
             >
               <Mail className="h-4 w-4 mr-2" />
-              {loading ? "Envoi..." : "Envoyer le lien"}
+              {loading ? t("form.sending") : t("form.submit")}
             </Button>
             
             <Button 
@@ -137,7 +142,7 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
               disabled={loading}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour à la connexion
+              {t("form.back")}
             </Button>
           </div>
         </form>

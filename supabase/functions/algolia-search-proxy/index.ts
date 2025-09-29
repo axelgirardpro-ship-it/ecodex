@@ -28,7 +28,7 @@ const cacheStore = new Map<string, CacheEntry>();
  * Attributs visibles dans le teaser (utilisateurs sans assignation premium)
  */
 const TEASER_ATTRIBUTES = [
-  'objectID', 'scope', 'languages', 'access_level', 'Source', 'Date',
+  'objectID', 'scope', 'access_level', 'Source', 'Date',
   'Nom_fr', 'Secteur_fr', 'Sous-secteur_fr', 'Localisation_fr', 'Périmètre_fr',
   'Nom_en', 'Secteur_en', 'Sous-secteur_en', 'Localisation_en', 'Périmètre_en',
   'Description_fr', 'Description_en', 'Commentaires_fr', 'Commentaires_en',
@@ -90,7 +90,13 @@ function encodeParams(params: Record<string, any>): string {
   const flat: Record<string, string> = {};
   for (const [k, v] of Object.entries(params || {})) {
     if (v === undefined || v === null) continue;
-    if (Array.isArray(v) || typeof v === 'object') {
+    if (Array.isArray(v)) {
+      if (k === 'facetFilters') {
+        flat[k] = JSON.stringify(v);
+      } else {
+        flat[k] = v.join(',');
+      }
+    } else if (typeof v === 'object') {
       flat[k] = JSON.stringify(v);
     } else {
       flat[k] = String(v);

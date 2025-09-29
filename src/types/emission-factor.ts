@@ -4,20 +4,21 @@ export interface EmissionFactor {
   description?: string;
   fe: number;
   uniteActivite: string;
+  perimetre?: string;
   source: string;
-  secteur: string;
-  sousSecteur?: string;
   localisation: string;
   date: number;
+  secteur: string;
+  sousSecteur?: string;
+  commentaires?: string;
   incertitude?: string;
-  perimetre?: string;
   contributeur?: string;
   contributeur_en?: string;
   methodologie?: string;
   methodologie_en?: string;
   typeDonnees?: string;
   typeDonnees_en?: string;
-  commentaires?: string;
+  description_en?: string;
   isFavorite?: boolean;
   workspace_id?: string;
 }

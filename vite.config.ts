@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@i18n": path.resolve(__dirname, "./src/lib/i18n"),
+      "@locales": path.resolve(__dirname, "./src/locales"),
     },
   },
 }));

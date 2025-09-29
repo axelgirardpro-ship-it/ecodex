@@ -5,10 +5,42 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
-import { RotateCcw, Filter, X, Lock } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useOrigin, useOptionalOrigin } from '@/components/search/algolia/SearchProvider';
+import { RotateCcw } from 'lucide-react';
+import { useOrigin } from '@/components/search/algolia/SearchProvider';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/providers/LanguageProvider';
+
+interface LocalizedFilterConfig {
+  attribute: string;
+  label: string;
+  searchable?: boolean;
+  limit?: number;
+}
+
+const FILTERS_FR: LocalizedFilterConfig[] = [
+  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
+  { attribute: 'dataset_name', label: 'Dataset importé', searchable: true, limit: 500 },
+  { attribute: 'Unite_fr', label: 'Unité', searchable: true, limit: 500 },
+  { attribute: 'Date', label: 'Date', limit: 20 },
+  { attribute: 'Secteur_fr', label: 'Secteur', searchable: true, limit: 500 },
+  { attribute: 'Sous-secteur_fr', label: 'Sous-secteur', searchable: true, limit: 500 },
+  { attribute: 'Localisation_fr', label: 'Localisation', searchable: true, limit: 500 },
+  { attribute: 'Périmètre_fr', label: 'Périmètre', searchable: true, limit: 500 },
+  { attribute: 'Type_de_données', label: 'Type_de_données', searchable: true, limit: 500 },
+];
+
+const FILTERS_EN: LocalizedFilterConfig[] = [
+  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
+  { attribute: 'dataset_name', label: 'Imported Dataset', searchable: true, limit: 500 },
+  { attribute: 'Unite_en', label: 'Unit', searchable: true, limit: 500 },
+  { attribute: 'Date', label: 'Date', limit: 20 },
+  { attribute: 'Secteur_en', label: 'Sector', searchable: true, limit: 500 },
+  { attribute: 'Sous-secteur_en', label: 'Sub-Sector', searchable: true, limit: 500 },
+  { attribute: 'Localisation_en', label: 'Location', searchable: true, limit: 500 },
+  { attribute: 'Périmètre_en', label: 'Perimeter', searchable: true, limit: 500 },
+  { attribute: 'Type_de_données_en', label: 'Data Type', searchable: true, limit: 500 },
+];
 
 /**
  * Composant pour initialiser les filtres avec une recherche vide
@@ -97,7 +129,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
       {searchable && (
         <Input
           type="text"
-          placeholder={`Rechercher ${title.toLowerCase()}...`}
+          placeholder={title}
           value={searchQuery}
           onChange={handleSearch}
           className="text-xs"
@@ -106,7 +138,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
 
       <div className="max-h-48 overflow-y-auto space-y-1">
         {items.length === 0 ? (
-          <div className="text-xs text-gray-400">Aucune option disponible</div>
+          <div className="text-xs text-gray-400">-</div>
         ) : (
           items.map(item => (
             <div key={item.value} className="flex items-center space-x-2">
@@ -140,8 +172,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
  */
 const OriginFilter: React.FC = () => {
   const { origin, setOrigin } = useOrigin();
-  const { planType } = usePermissions();
-  const isPremium = planType === 'premium';
+  const { t } = useTranslation();
 
   const debug = (action: string) => {
     if (import.meta.env.DEV) {
@@ -165,7 +196,7 @@ const OriginFilter: React.FC = () => {
         onClick={() => handleOriginChange('public')}
         className="justify-start w-56 px-4 text-sm whitespace-nowrap overflow-hidden text-ellipsis"
       >
-        Base commune
+        {t('search:filters.origin_public')}
       </Button>
       <Button
         size="sm"
@@ -174,7 +205,7 @@ const OriginFilter: React.FC = () => {
         title={undefined}
         className="justify-start w-56 px-4 text-sm whitespace-nowrap overflow-hidden text-ellipsis"
       >
-        Base personnelle
+        {t('search:filters.origin_private')}
       </Button>
     </div>
   );
@@ -182,13 +213,17 @@ const OriginFilter: React.FC = () => {
 
 export const SearchFilters: React.FC = () => {
   const { refine: clearRefinements } = useClearRefinements();
+  const { language } = useLanguage();
+  const { t } = useTranslation();
+
+  const filters = language === 'en' ? FILTERS_EN : FILTERS_FR;
 
   return (
     <Card className="w-full">
       <FiltersInitializer />
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Filtres</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('search:filters.title')}</CardTitle>
           <Button
             variant="ghost"
             size="sm"
@@ -196,83 +231,25 @@ export const SearchFilters: React.FC = () => {
             className="text-xs"
           >
             <RotateCcw className="h-3 w-3 mr-1" />
-            Réinitialiser
+            {t('search:filters.reset')}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-
-        {/* ORIGINE - Logique métier critique à conserver */}
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-primary">Origine</div>
+          <div className="text-sm font-semibold text-primary">{t('search:filters.origin')}</div>
           <OriginFilter />
         </div>
 
-        {/* LANGUE - Filtre Algolia standard */}
-        <RefinementList
-          attribute="languages"
-          title="Langue"
-          limit={10}
-        />
-
-        {/* FILTRES STANDARDS - Selon recommandations Algolia */}
-        <RefinementList
-          attribute="Source"
-          title="Source"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="dataset_name"
-          title="Dataset importé"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="Unite_fr"
-          title="Unité"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="Date"
-          title="Date"
-          limit={20}
-        />
-
-        <RefinementList
-          attribute="Secteur_fr"
-          title="Secteur"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="Sous-secteur_fr"
-          title="Sous-secteur"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="Localisation_fr"
-          title="Localisation"
-          searchable
-          limit={500}
-        />
-
-        <RefinementList
-          attribute="Périmètre_fr"
-          title="Périmètre"
-          searchable
-          limit={500}
-        />
-
-        {/* Unité déplacée plus haut */}
-
+        {filters.map(({ attribute, label, searchable, limit }) => (
+          <RefinementList
+            key={attribute}
+            attribute={attribute}
+            title={label}
+            searchable={searchable}
+            limit={limit}
+          />
+        ))}
       </CardContent>
     </Card>
   );

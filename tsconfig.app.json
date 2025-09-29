@@ -23,7 +23,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@i18n/*": ["./src/lib/i18n/*"],
+      "@locales/*": ["./src/locales/*"]
     }
   },
   "include": ["src", "src/types"]

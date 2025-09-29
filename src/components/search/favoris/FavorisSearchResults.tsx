@@ -15,7 +15,9 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import type { AlgoliaHit } from '@/types/algolia';
 import { EmissionFactor } from '@/types/emission-factor';
-import { toast } from 'sonner';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -40,8 +42,24 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const { getSourceLogo } = useSourceLogos();
   const { shouldBlurPremiumContent } = useEmissionFactorAccess();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const { t } = useTranslation('search');
+  const { t: tResults } = useTranslation('search', { keyPrefix: 'results' });
+  const { t: tFavoris } = useTranslation('search', { keyPrefix: 'favoris' });
+  const tooltipMap = React.useMemo(() => ({
+    blurredNotAddable: tResults('blurred_content_not_addable_to_favorites'),
+    blurredNotSelectable: tResults('locked_content_not_selectable')
+  }), [tResults]);
+  const getTooltip = (key: keyof typeof tooltipMap) => tooltipMap[key];
+  const { toast } = useToast();
 
-  const currentLang: 'fr' | 'en' = 'fr';
+  let language: 'fr' | 'en' = 'fr';
+  try {
+    const { language: currentLanguage } = useLanguage();
+    language = currentLanguage;
+  } catch (error) {
+    console.warn('LanguageProvider not available, defaulting to French');
+  }
+  const currentLang: 'fr' | 'en' = language;
   const hits = originalHits;
 
   const allSelected = hits.length > 0 && hits.every(hit => selectedItems.has(hit.objectID));
@@ -68,109 +86,133 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   }, []);
 
   const getHighlightedText = useCallback((hit: AlgoliaHit, base: string) => {
-    const candidates: string[] = (() => {
-      switch (base) {
-        case 'Nom':
-          return ['Nom_fr', 'Nom_en', 'Nom'];
-        case 'Description':
-          return ['Description_fr', 'Description_en', 'Description'];
-        case 'Commentaires':
-          return ['Commentaires_fr', 'Commentaires_en', 'Commentaires'];
-        case 'Secteur':
-          return ['Secteur_fr', 'Secteur_en', 'Secteur'];
-        case 'Sous-secteur':
-          return ['Sous-secteur_fr', 'Sous-secteur_en', 'Sous-secteur'];
-        case 'Périmètre':
-          return ['Périmètre_fr', 'Périmètre_en', 'Périmètre'];
-        case 'Localisation':
-          return ['Localisation_fr', 'Localisation_en', 'Localisation'];
-        case 'Unite':
-          return ['Unite_fr', 'Unite_en', "Unité donnée d'activité"];
-        case 'Source':
-          return ['Source'];
-        default:
-          return [base];
-      }
-    })();
+    const langSpecific = currentLang === 'fr'
+      ? {
+          Nom: ['Nom_fr', 'Nom'],
+          Description: ['Description_fr', 'Description'],
+          Commentaires: ['Commentaires_fr', 'Commentaires'],
+          Secteur: ['Secteur_fr', 'Secteur'],
+          'Sous-secteur': ['Sous-secteur_fr', 'Sous-secteur'],
+          Périmètre: ['Périmètre_fr', 'Périmètre'],
+          Localisation: ['Localisation_fr', 'Localisation'],
+          Unite: ['Unite_fr', "Unité donnée d'activité"],
+          Source: ['Source'],
+        }
+      : {
+          Nom: ['Nom_en', 'Nom'],
+          Description: ['Description_en', 'Description'],
+          Commentaires: ['Commentaires_en', 'Commentaires'],
+          Secteur: ['Secteur_en', 'Secteur'],
+          'Sous-secteur': ['Sous-secteur_en', 'Sous-secteur'],
+          Périmètre: ['Périmètre_en', 'Périmètre'],
+          Localisation: ['Localisation_en', 'Localisation'],
+          Unite: ['Unite_en', "Unité donnée d'activité"],
+          Source: ['Source'],
+        };
 
+    const candidates = langSpecific[base as keyof typeof langSpecific] || [base];
     const highlight = (hit as any)._highlightResult || {};
     for (const attribute of candidates) {
       const highlighted = highlight[attribute];
-      if (highlighted?.value) return highlighted.value as string;
+      if (highlighted?.value) {
+        return highlighted.value as string;
+      }
       const raw = (hit as any)[attribute];
-      if (raw) return raw as string;
+      if (raw) return String(raw);
     }
-
     return '';
-  }, []);
+  }, [currentLang]);
 
   const handleRemoveFavorite = useCallback(async (hit: AlgoliaHit) => {
     try {
       await removeFromFavorites(hit.objectID);
-      toast.success('Retiré des favoris');
+      toast({ title: tResults('favorites_removed') });
     } catch (error) {
-      toast.error('Erreur lors de la suppression du favori');
+      toast({ title: tResults('error_removing_favorite'), variant: 'destructive' });
       console.error('remove favorite error', error);
     }
-  }, [removeFromFavorites]);
+  }, [removeFromFavorites, tResults, toast]);
+
+  const getLocalizedValue = useCallback((hit: AlgoliaHit, frKey: string, enKey: string, fallback: string[] = []) => {
+    const resolve = (key?: string) => (key ? (hit as any)[key] : undefined);
+    const primaryKey = currentLang === 'fr' ? frKey : enKey;
+    const primary = resolve(primaryKey);
+    if (primary !== undefined && primary !== null && String(primary).trim() !== '') return String(primary);
+
+    const secondary = currentLang === 'fr' ? resolve(enKey) : resolve(frKey);
+    if (secondary !== undefined && secondary !== null && String(secondary).trim() !== '') return String(secondary);
+
+    for (const f of fallback) {
+      const raw = resolve(f);
+      if (raw !== undefined && raw !== null && String(raw).trim() !== '') return String(raw);
+    }
+    return '';
+  }, [currentLang]);
+
+  const formatFE = (value?: number | string) => {
+    if (value === undefined || value === null) return '';
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) return '';
+    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 4 });
+  };
 
   const mapHitToEmissionFactor = useCallback((hit: AlgoliaHit): EmissionFactor => ({
     id: hit.objectID,
-    nom: (hit as any).Nom_fr || (hit as any).Nom_en || (hit as any).Nom || '',
-    description: (hit as any).Description_fr || (hit as any).Description_en || (hit as any).Description || '',
-    fe: hit.FE,
-    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)['Unité donnée d\'activité'] || '',
+    nom: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']),
+    description: getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']),
+    fe: hit.FE ?? 0,
+    uniteActivite: getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"]),
+    perimetre: getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre']),
     source: hit.Source,
-    secteur: (hit as any).Secteur_fr || (hit as any).Secteur_en || (hit as any).Secteur || '',
-    sousSecteur: (hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur'] || '',
-    localisation: (hit as any).Localisation_fr || (hit as any).Localisation_en || (hit as any).Localisation || '',
-    date: hit.Date,
-    incertitude: hit.Incertitude,
-    perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
-    contributeur: (hit as any).Contributeur || '',
-    contributeur_en: (hit as any).Contributeur_en || '',
-    methodologie: (hit as any).Méthodologie || '',
-    methodologie_en: (hit as any).Méthodologie_en || '',
-    typeDonnees: (hit as any)['Type_de_données'] || '',
-    typeDonnees_en: (hit as any)['Type_de_données_en'] || '',
-    commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
-  }), []);
+    localisation: getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation']),
+    date: Number(hit.Date ?? 0),
+    secteur: getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur']),
+    sousSecteur: getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur']),
+    commentaires: getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']),
+    incertitude: hit.Incertitude ?? '',
+    contributeur: getLocalizedValue(hit, 'Contributeur', 'Contributeur_en'),
+    contributeur_en: getLocalizedValue(hit, 'Contributeur_en', 'Contributeur_en'),
+    methodologie: getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en'),
+    methodologie_en: getLocalizedValue(hit, 'Méthodologie_en', 'Méthodologie_en'),
+    typeDonnees: getLocalizedValue(hit, 'Type_de_données', 'Type_de_données_en'),
+    typeDonnees_en: getLocalizedValue(hit, 'Type_de_données_en', 'Type_de_données_en'),
+  }), [getLocalizedValue]);
 
   const handleExport = useCallback(() => {
     const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
     const mappedHits = selectedHits.map(mapHitToEmissionFactor);
 
     if (mappedHits.length === 0) {
-      toast.error('Aucun favori sélectionné');
+      toast({ title: tResults('no_selection'), description: tResults('select_at_least_one'), variant: 'destructive' });
       return;
     }
 
     onExport?.(mappedHits);
-  }, [hits, mapHitToEmissionFactor, onExport, selectedItems]);
+  }, [hits, mapHitToEmissionFactor, onExport, selectedItems, tResults, toast]);
 
   const handleCopyToClipboard = useCallback(() => {
     const selectedHits = hits.filter(hit => selectedItems.has(hit.objectID));
     const mappedHits = selectedHits.map(mapHitToEmissionFactor);
 
     if (mappedHits.length === 0) {
-      toast.error('Aucun favori sélectionné');
+      toast({ title: tResults('no_selection'), description: tResults('select_at_least_one'), variant: 'destructive' });
       return;
     }
 
     onCopyToClipboard?.(mappedHits);
-  }, [hits, mapHitToEmissionFactor, onCopyToClipboard, selectedItems]);
+  }, [hits, mapHitToEmissionFactor, onCopyToClipboard, selectedItems, tResults, toast]);
 
   const handleRemoveSelected = useCallback(() => {
     if (!onRemoveSelectedFromFavorites) return;
 
     const selectedIds = Array.from(selectedItems);
     if (selectedIds.length === 0) {
-      toast.error('Aucun favori sélectionné');
+      toast({ title: tResults('no_selection'), description: tResults('select_at_least_one'), variant: 'destructive' });
       return;
     }
 
     onRemoveSelectedFromFavorites(selectedIds);
-  }, [onRemoveSelectedFromFavorites, selectedItems]);
+  }, [onRemoveSelectedFromFavorites, selectedItems, tResults, toast]);
 
   const isPrivateHit = useCallback((hit: AlgoliaHit) => {
     return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
@@ -180,7 +222,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     return (
       <div className="text-center py-12">
         <div className="text-muted-foreground">
-          Aucun favori ne correspond à votre recherche.
+          {t('search:favoris.empty.no_match')}
         </div>
       </div>
     );
@@ -190,7 +232,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="text-sm text-foreground">
-          {hits.length} favori{hits.length > 1 ? 's' : ''} affiché{hits.length > 1 ? 's' : ''}
+        {hits.length === 1 
+          ? tFavoris('stats.favoritesDisplayed', { formattedCount: hits.length })
+          : tFavoris('stats.favoritesDisplayed_plural', { formattedCount: hits.length })}
         </div>
       </div>
 
@@ -202,7 +246,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
             onCheckedChange={handleSelectAllChange}
           />
           <label htmlFor="select-all" className="text-sm cursor-pointer">
-            {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'} ({hits.length})
+            {allSelected ? tResults('deselect_all') : tResults('select_all')} ({hits.length})
           </label>
         </div>
 
@@ -215,7 +259,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
             >
               <Copy className="w-4 h-4" />
-              Copier ({selectedItems.size})
+              {tResults('copy')} ({selectedItems.size})
             </Button>
 
             <RoleGuard requirePermission="canExport">
@@ -226,7 +270,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                 className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
               >
                 <Download className="w-4 h-4" />
-                Exporter ({selectedItems.size})
+                {tResults('export')} ({selectedItems.size})
               </Button>
             </RoleGuard>
 
@@ -235,9 +279,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               size="sm"
               onClick={handleRemoveSelected}
               className="flex w-full items-center justify-center gap-2 text-sm sm:w-auto"
+              title={tResults('remove')}
             >
               <Trash2 className="w-4 h-4" />
-              Retirer ({selectedItems.size})
+              {tResults('remove')} ({selectedItems.size})
             </Button>
           </div>
         )}
@@ -258,21 +303,18 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       onCheckedChange={() => onItemSelect(hit.objectID)}
                       onClick={(e) => e.stopPropagation()}
                       className="mt-1 cursor-pointer"
+                      title={shouldBlur ? getTooltip('blurredNotSelectable') : ''}
                     />
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex flex-col items-start gap-1">
-                          <h3 className="text-lg font-semibold text-primary leading-tight">
-                            {(() => {
-                              const attribute = (hit as any).Nom_fr !== undefined
-                                ? 'Nom_fr'
-                                : ((hit as any).Nom_en !== undefined ? 'Nom_en' : 'Nom');
-                              return <Highlight hit={hit as any} attribute={attribute as any} />;
-                            })()}
-                          </h3>
+                          <div
+                            className="text-lg font-semibold text-primary leading-tight"
+                            dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Nom') }}
+                          />
                           {isPrivateHit(hit) && (
                             <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
-                              FE importé
+                              {tResults('imported_ef')}
                             </Badge>
                           )}
                         </div>
@@ -303,32 +345,32 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                         <div>
-                          <span className="text-sm font-semibold text-foreground">Facteur d'émission</span>
+                          <span className="text-sm font-semibold text-foreground">{tResults('emission_factor')}</span>
                           <PremiumBlur isBlurred={shouldBlur}>
                             <p className="text-2xl font-bold text-primary">
                               {hit.FE ? (typeof hit.FE === 'number' ? hit.FE : Number(hit.FE)).toLocaleString('fr-FR', { maximumFractionDigits: 4 }) : ''} kgCO₂eq
                             </p>
                           </PremiumBlur>
                           <div className="mt-2">
-                            <span className="text-sm font-semibold text-foreground">Unité</span>
+                            <span className="text-sm font-semibold text-foreground">{tResults('unit')}</span>
                             <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                               <p className="text-sm font-light">
-                                {(hit as any).Unite_fr || (hit as any).Unite_en || ''}
+                                {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
                               </p>
                             </PremiumBlur>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-3">
-                          {((hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']) && (
-                            <div>
-                              <span className="text-sm font-semibold text-foreground">Périmètre</span>
-                              <p className="text-sm font-light">
-                                {(hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre']}
-                              </p>
-                            </div>
-                          )}
+                        {getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre']) && (
                           <div>
-                            <span className="text-sm font-semibold text-foreground">Source</span>
+                            <span className="text-sm font-semibold text-foreground">{tResults('perimeter')}</span>
+                            <p className="text-sm font-light">
+                              {getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre'])}
+                            </p>
+                          </div>
+                        )}
+                          <div>
+                            <span className="text-sm font-semibold text-foreground">{tResults('source')}</span>
                             <div className="flex items-center gap-2">
                               {getSourceLogo(hit.Source) && (
                                 <img
@@ -344,7 +386,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           </div>
                           {(hit as any).dataset_name && (
                             <div>
-                              <span className="text-sm font-semibold text-foreground">Dataset importé</span>
+                              <span className="text-sm font-semibold text-foreground">{tResults('imported_dataset')}</span>
                               <p className="text-sm font-light">{(hit as any).dataset_name}</p>
                             </div>
                           )}
@@ -352,15 +394,15 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        {((hit as any)['Localisation_fr'] || (hit as any)['Localisation_en'] || (hit as any)['Localisation']) && (
-                          <Badge variant="secondary">{(hit as any)['Localisation_fr'] || (hit as any)['Localisation_en'] || (hit as any)['Localisation']}</Badge>
+                        {getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation']) && (
+                          <Badge variant="secondary">{getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation'])}</Badge>
                         )}
                         {hit.Date && <Badge variant="outline">{hit.Date}</Badge>}
-                        {((hit as any)['Secteur_fr'] || (hit as any)['Secteur_en'] || (hit as any)['Secteur']) && (
-                          <Badge variant="outline">{(hit as any)['Secteur_fr'] || (hit as any)['Secteur_en'] || (hit as any)['Secteur']}</Badge>
+                        {getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur']) && (
+                          <Badge variant="outline">{getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur'])}</Badge>
                         )}
-                        {((hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur']) && (
-                          <Badge variant="outline">{(hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur']}</Badge>
+                        {getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur']) && (
+                          <Badge variant="outline">{getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur'])}</Badge>
                         )}
                       </div>
 
@@ -398,14 +440,12 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           ) : null}
                           <div>
                             <span className="text-sm font-semibold text-foreground">Secteur</span>
-                            <p className="text-xs font-light mt-1">
-                              {(() => {
-                                const attribute = (hit as any).Secteur_fr !== undefined
-                                  ? 'Secteur_fr'
-                                  : ((hit as any).Secteur_en !== undefined ? 'Secteur_en' : 'Secteur');
-                                return <Highlight hit={hit as any} attribute={attribute as any} />;
-                              })()}
-                            </p>
+                            <div className="text-xs font-light mt-1 text-muted-foreground">
+                              <Highlight
+                                hit={hit as any}
+                                attribute={(currentLang === 'fr' ? 'Secteur_fr' : 'Secteur_en') as any}
+                              />
+                            </div>
                           </div>
                           {hit.Incertitude && (
                             <div>

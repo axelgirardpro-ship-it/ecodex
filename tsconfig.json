@@ -5,9 +5,11 @@
     { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"],
+      "@i18n/*": ["src/lib/i18n/*"],
+      "@locales/*": ["src/locales/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

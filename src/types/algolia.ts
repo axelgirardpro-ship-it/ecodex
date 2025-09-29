@@ -26,7 +26,6 @@ export interface AlgoliaHit {
   'Type_de_données'?: string;
   'Type_de_données_en'?: string;
   // Facets/meta
-  languages?: string[];
   workspace_id?: string;
   import_type?: string;
   dataset_name?: string;

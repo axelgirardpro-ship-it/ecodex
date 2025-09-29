@@ -1,0 +1,91 @@
+{
+  "filters": {
+    "title": "Filters",
+    "reset": "Reset",
+    "origin": "Origin",
+    "origin_public": "Shared base",
+    "origin_private": "Private base"
+  },
+  "favoris": {
+    "searchPlaceholder": "Search your {{count}} favorites...",
+    "title": "My Favorites",
+    "subtitle": "Search and manage your favorite emission factors",
+    "stats": {
+      "totalFavorites": "favorites in total",
+      "sources": "sources",
+      "locations": "locations", 
+      "relevantFavorites": "{{sorted}} relevant results out of {{total}} favorites",
+      "noFavorites": "0 favorite found",
+      "oneFavoriteFound": "{{formattedCount}} favorite found",
+      "multipleFavoritesFound": "{{formattedCount}} favorites found",
+      "favoritesDisplayed": "{{formattedCount}} favorite displayed",
+      "favoritesDisplayed_plural": "{{formattedCount}} favorites displayed"
+    },
+    "empty": {
+      "title": "You don't have any favorites yet.",
+      "description": "Search for emission factors and add them to your favorites by clicking ❤️",
+      "no_match": "No favorites match your search."
+    }
+  },
+  "search_box": {
+    "placeholder": "Search emission factors...",
+    "min_chars_warning": "Minimum 3 characters to start the search.",
+    "button": "Search"
+  },
+  "results": {
+    "no_results_short_query_title": "Start your search",
+    "no_results_short_query_description": "Start your search by typing at least 3 characters",
+    "no_results_empty_query_title": "Start your search",
+    "no_results_empty_query_description": "Use the search bar or filters to explore our database",
+    "no_results_found_title": "No results found",
+    "no_results_found_description": "We found no emission factors for \"{{query}}\"",
+    "suggestions_title": "Suggestions:",
+    "suggestion_1": "Check your spelling",
+    "suggestion_2": "Try more general terms",
+    "suggestion_3": "Use fewer filters",
+    "displayed_results": "{{count}} result(s) displayed",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "selected_items": "{{count}} selected",
+    "copy": "Copy",
+    "add_to_favorites": "Add to Favorites",
+    "export": "Export",
+    "locked_content_not_selectable": "Locked content: not selectable",
+    "feature_premium_favorites": "Feature available only with Premium plan",
+    "blurred_content_not_addable_to_favorites": "Blurred content: not addable to favorites",
+    "locked_content_not_addable_to_favorites": "Locked content: not addable to favorites",
+    "no_selection": "No selection",
+    "select_at_least_one": "Please select at least one emission factor.",
+    "locked_content_not_copyable": "Locked content: not copyable.",
+    "locked_content_not_exportable": "Locked content: not exportable.",
+    "already_in_favorites": "All selected items are already in your favorites.",
+    "favorites_updated": "Favorites updated",
+    "favorites_added": "{{count}} item(s) added to favorites",
+    "favorites_removed": "Removed from favorites",
+    "imported_ef": "Imported EF",
+    "emission_factor": "Emission Factor",
+    "unit": "Unit",
+    "perimeter": "Perimeter",
+    "source": "Source",
+    "imported_dataset": "Imported Dataset",
+    "location": "Location",
+    "date": "Date",
+    "sector": "Sector",
+    "sub_sector": "Sub-Sector",
+    "description": "Description",
+    "uncertainty": "Uncertainty",
+    "contributor": "Contributor",
+    "methodology": "Methodology",
+    "data_type": "Data Type",
+    "commentary": "Commentary",
+    "show_details": "Show details",
+    "hide_details": "Hide details"
+  },
+  "stats": {
+    "relevantResults": "{{sorted}} relevant results out of {{total}}",
+    "noResults": "0 result found",
+    "oneResultFound": "{{formattedCount}} result found",
+    "multipleResultsFound": "{{formattedCount}} results found", 
+    "timeMs": "in {{time}} ms"
+  }
+}

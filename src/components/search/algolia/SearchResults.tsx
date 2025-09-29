@@ -7,18 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Heart, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Lock, Copy } from 'lucide-react';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { usePermissions } from '@/hooks/usePermissions';
 import { PremiumBlur } from '@/components/ui/PremiumBlur';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuotaContext } from './SearchProvider';
 import { useQuotaActions } from '@/hooks/useQuotaActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
- 
+import { useSafeLanguage } from '@/hooks/useSafeLanguage';
+import { useTranslation } from 'react-i18next';
 
 interface AlgoliaHit {
   objectID: string;
@@ -58,7 +55,7 @@ const PaginationComponent: React.FC = () => {
   const pages = [];
   const maxVisiblePages = 5;
   let startPage = Math.max(0, currentRefinement - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(nbPages - 1, startPage + maxVisiblePages - 1);
+  const endPage = Math.min(nbPages - 1, startPage + maxVisiblePages - 1);
 
   if (endPage - startPage < maxVisiblePages - 1) {
     startPage = Math.max(0, endPage - maxVisiblePages + 1);
@@ -136,14 +133,16 @@ const StateResults: React.FC = () => {
   const { query } = useSearchBox();
   const { hits } = useHits<AlgoliaHit>();
   const trimmed = (query || '').trim();
+  const language = useSafeLanguage();
+  const { t } = useTranslation('search', { keyPrefix: 'results' });
 
   if (hits.length === 0 && trimmed.length > 0 && trimmed.length < 3) {
     return (
       <div className="text-center py-12">
         <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Commencez votre recherche</h3>
+        <h3 className="text-lg font-medium mb-2">{t('no_results_short_query_title')}</h3>
         <p className="text-muted-foreground">
-          Commencez votre recherche en tapant au moins 3 caractères
+          {t('no_results_short_query_description')}
         </p>
       </div>
     );
@@ -153,9 +152,9 @@ const StateResults: React.FC = () => {
     return (
       <div className="text-center py-12">
         <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Commencez votre recherche</h3>
+        <h3 className="text-lg font-medium mb-2">{t('no_results_empty_query_title')}</h3>
         <p className="text-muted-foreground">
-          Utilisez la barre de recherche ou les filtres pour explorer notre base de données
+          {t('no_results_empty_query_description')}
         </p>
       </div>
     );
@@ -165,16 +164,16 @@ const StateResults: React.FC = () => {
     return (
       <div className="text-center py-12">
         <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Aucun résultat trouvé</h3>
+        <h3 className="text-lg font-medium mb-2">{t('no_results_found_title')}</h3>
         <p className="text-muted-foreground mb-4">
-          Nous n'avons trouvé aucun facteur d'émission pour "{query}"
+          {t('no_results_found_description', { query })}
         </p>
         <div className="text-sm text-muted-foreground">
-          <p>Suggestions :</p>
+          <p>{t('suggestions_title')}</p>
           <ul className="mt-2 space-y-1">
-            <li>• Vérifiez l'orthographe de votre recherche</li>
-            <li>• Essayez des termes plus généraux</li>
-            <li>• Utilisez moins de filtres</li>
+            <li>• {t('suggestion_1')}</li>
+            <li>• {t('suggestion_2')}</li>
+            <li>• {t('suggestion_3')}</li>
           </ul>
         </div>
       </div>
@@ -186,24 +185,90 @@ const StateResults: React.FC = () => {
 
 export const SearchResults: React.FC = () => {
   const { hits: originalHits } = useHits<AlgoliaHit>();
+  const language = useSafeLanguage();
+  const { t } = useTranslation('search', { keyPrefix: 'results' });
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
   
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { hasAccess, shouldBlurPremiumContent, canUseFavorites } = useEmissionFactorAccess();
-  const { canExport } = usePermissions();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { quotaData, canExport: canExportQuota, incrementExport } = useQuotaContext();
   const { getSourceLogo } = useSourceLogos();
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
 
-  const currentLang: 'fr' | 'en' = 'fr';
+  const currentLang: 'fr' | 'en' = language;
+
+  const getLocalizedValue = (hit: AlgoliaHit, frKey: string, enKey: string, fallbackKeys: string[] = []) => {
+    const resolve = (key?: string) => (key ? (hit as any)[key] : undefined);
+    const primaryKey = currentLang === 'fr' ? frKey : enKey;
+    const primary = resolve(primaryKey);
+    if (primary !== undefined && primary !== null && String(primary).trim() !== '') return String(primary);
+
+    const secondary = currentLang === 'fr' ? resolve(enKey) : resolve(frKey);
+    if (secondary !== undefined && secondary !== null && String(secondary).trim() !== '') return String(secondary);
+
+    for (const key of fallbackKeys) {
+      const val = resolve(key);
+      if (val !== undefined && val !== null && String(val).trim() !== '') return String(val);
+    }
+    return '';
+  };
+
+  const formatFE = (value?: number | string) => {
+    if (value === undefined || value === null) return '';
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) return '';
+    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 4 });
+  };
+
+  const renderTextField = (label: string, value?: string | number) => {
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+    return (
+      <div>
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <p className="mt-1 text-xs font-light text-muted-foreground">{text}</p>
+      </div>
+    );
+  };
+
+  const renderMarkdownField = (label: string, value?: string) => {
+    if (!value || !value.trim()) return null;
+    return (
+      <div>
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <div className="mt-1 text-xs font-light text-muted-foreground">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: ({ href, children, ...props }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                  {...props}
+                >
+                  {children}
+                </a>
+              ),
+              p: ({ children, ...props }) => (
+                <p className="text-xs font-light leading-relaxed" {...props}>
+                  {children}
+                </p>
+              )
+            }}
+          >
+            {value}
+          </ReactMarkdown>
+        </div>
+      </div>
+    );
+  };
 
   // Aucun tri/filtrage client: on se base uniquement sur l'ordre/les filtres Algolia
   const hits = originalHits;
-
-  
 
   const toggleRowExpansion = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -216,30 +281,46 @@ export const SearchResults: React.FC = () => {
   };
 
   const getHighlightedText = (hit: AlgoliaHit, base: string) => {
-    const candidates: string[] = (() => {
-      switch (base) {
-        case 'Nom': return ['Nom_fr','Nom_en','Nom'];
-        case 'Description': return ['Description_fr','Description_en','Description'];
-        case 'Commentaires': return ['Commentaires_fr','Commentaires_en','Commentaires'];
-        case 'Secteur': return ['Secteur_fr','Secteur_en','Secteur'];
-        case 'Sous-secteur': return ['Sous-secteur_fr','Sous-secteur_en','Sous-secteur'];
-        case 'Périmètre': return ['Périmètre_fr','Périmètre_en','Périmètre'];
-        case 'Localisation': return ['Localisation_fr','Localisation_en','Localisation'];
-        case 'Unite': return ['Unite_fr','Unite_en','Unité donnée d\'activité'];
-        case 'Source': return ['Source'];
-        default: return [base];
-      }
-    })();
+    const langSpecific = currentLang === 'fr'
+      ? {
+          Nom: ['Nom_fr', 'Nom'],
+          Description: ['Description_fr', 'Description'],
+          Commentaires: ['Commentaires_fr', 'Commentaires'],
+          Secteur: ['Secteur_fr', 'Secteur'],
+          'Sous-secteur': ['Sous-secteur_fr', 'Sous-secteur'],
+          Périmètre: ['Périmètre_fr', 'Périmètre'],
+          Localisation: ['Localisation_fr', 'Localisation'],
+          Unite: ['Unite_fr', "Unité donnée d'activité"],
+          Source: ['Source'],
+          Incertitude: ['Incertitude'],
+          Contributeur: ['Contributeur'],
+          Méthodologie: ['Méthodologie'],
+          'Type de données': ['Type_de_données'],
+        }
+      : {
+          Nom: ['Nom_en', 'Nom', 'Nom_fr'],
+          Description: ['Description_en', 'Description', 'Description_fr'],
+          Commentaires: ['Commentaires_en', 'Commentaires', 'Commentaires_fr'],
+          Secteur: ['Secteur_en', 'Secteur', 'Secteur_fr'],
+          'Sous-secteur': ['Sous-secteur_en', 'Sous-secteur', 'Sous-secteur_fr'],
+          Périmètre: ['Périmètre_en', 'Périmètre', 'Périmètre_fr'],
+          Localisation: ['Localisation_en', 'Localisation', 'Localisation_fr'],
+          Unite: ['Unite_en', "Unité donnée d'activité", 'Unite_fr'],
+          Source: ['Source'],
+          Incertitude: ['Incertitude'],
+          Contributeur: ['Contributeur_en', 'Contributeur'],
+          Méthodologie: ['Méthodologie_en', 'Méthodologie'],
+          'Type de données': ['Type_de_données_en', 'Type_de_données'],
+        };
+
+    const candidates = langSpecific[base as keyof typeof langSpecific] || [base];
     const hl = (hit as any)._highlightResult || {};
     for (const a of candidates) {
       const h = hl[a];
       if (h?.value) {
-        // Algolia retourne déjà du HTML sécurisé avec <em>. S'assurer qu'il n'est pas double-échappé
         const text = String(h.value)
-          .replace(/&lt;em&gt;/g, '<em>')
-          .replace(/&lt;\/em&gt;/g, '</em>')
-          .replace(/&amp;lt;em&amp;gt;/g, '<em>')
-          .replace(/&amp;lt;\/em&amp;gt;/g, '</em>');
+          .replace(/&lt;em&gt;|&amp;lt;em&amp;gt;/g, '<em>')
+          .replace(/&lt;\/em&gt;|&amp;lt;\/em&amp;gt;/g, '</em>');
         return { __html: text };
       }
       const v = (hit as any)[a];
@@ -263,6 +344,14 @@ export const SearchResults: React.FC = () => {
     setSelectedItems(newSelected);
   };
 
+  const tooltipMap = React.useMemo(() => ({
+    premiumOnly: t('feature_premium_favorites'),
+    blurredNotAddable: t('blurred_content_not_addable_to_favorites'),
+    blurredNotSelectable: t('locked_content_not_selectable')
+  }), [t]);
+
+  const getTooltip = (key: keyof typeof tooltipMap): string => tooltipMap[key];
+
   const handleSelectAll = () => {
     const nonBlurredIds = hits.filter(h => !isHitBlurred(h)).map(h => h.objectID);
     if (selectedItems.size === nonBlurredIds.length && nonBlurredIds.length > 0) {
@@ -270,7 +359,7 @@ export const SearchResults: React.FC = () => {
     } else {
       setSelectedItems(new Set(nonBlurredIds));
       if (nonBlurredIds.length === 0) {
-        toast({ title: "Sélection vide", description: "Les éléments floutés ne sont pas sélectionnables." });
+        toast({ title: t('no_selection'), description: t('locked_content_not_selectable') });
       }
     }
   };
@@ -278,8 +367,8 @@ export const SearchResults: React.FC = () => {
   const handleCopyToClipboard = async () => {
     if (selectedItems.size === 0) {
       toast({
-        title: "Aucune sélection",
-        description: "Veuillez sélectionner au moins un facteur d'émission.",
+        title: t('no_selection'),
+        description: t('select_at_least_one'),
         variant: "destructive",
       });
       return;
@@ -288,7 +377,7 @@ export const SearchResults: React.FC = () => {
     const selectedResults = hits.filter(hit => selectedItems.has(hit.objectID));
     const allowed = selectedResults.filter(h => !isHitBlurred(h));
     if (allowed.length === 0) {
-      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être copiés." });
+      toast({ title: t('locked_content_not_selectable'), description: t('locked_content_not_copyable') });
       return;
     }
     const success = await quotaHandleCopyToClipboard(allowed);
@@ -300,8 +389,8 @@ export const SearchResults: React.FC = () => {
   const handleExport = async () => {
     if (selectedItems.size === 0) {
       toast({
-        title: "Aucune sélection",
-        description: "Veuillez sélectionner au moins un facteur d'émission.",
+        title: t('no_selection'),
+        description: t('select_at_least_one'),
         variant: "destructive",
       });
       return;
@@ -310,7 +399,7 @@ export const SearchResults: React.FC = () => {
     const selectedResults = hits.filter(hit => selectedItems.has(hit.objectID));
     const allowed = selectedResults.filter(h => !isHitBlurred(h));
     if (allowed.length === 0) {
-      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être exportés." });
+      toast({ title: t('locked_content_not_selectable'), description: t('locked_content_not_exportable') });
       return;
     }
     const success = await quotaHandleExport(allowed, 'facteurs_emissions_recherche');
@@ -321,30 +410,27 @@ export const SearchResults: React.FC = () => {
 
   const mapHitToEmissionFactor = (hit: AlgoliaHit) => ({
     id: hit.objectID,
-    nom: currentLang==='fr' ? (hit.Nom_fr||'') : (hit.Nom_en||''),
-    description: currentLang==='fr' ? (hit.Description_fr||'') : (hit.Description_en||''),
+    nom: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']),
+    description: getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']),
     fe: hit.FE,
-    uniteActivite: currentLang==='fr' ? (hit.Unite_fr||'') : (hit.Unite_en||''),
+    uniteActivite: getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"]),
     source: hit.Source,
-    secteur: currentLang==='fr' ? (hit.Secteur_fr||'') : (hit.Secteur_en||''),
-    sousSecteur: currentLang==='fr' ? (hit['Sous-secteur_fr']||'') : (hit['Sous-secteur_en']||''),
-    localisation: currentLang==='fr' ? (hit.Localisation_fr||'') : (hit.Localisation_en||''),
+    secteur: getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur']),
+    sousSecteur: getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur']),
+    localisation: getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation']),
     date: hit.Date,
     incertitude: hit.Incertitude,
-    perimetre: currentLang==='fr' ? (hit['Périmètre_fr']||'') : (hit['Périmètre_en']||''),
-    contributeur: currentLang==='fr' ? (hit.Contributeur || '') : (hit.Contributeur_en || ''),
-    contributeur_en: hit.Contributeur_en || '',
-    methodologie: currentLang==='fr' ? (hit.Méthodologie || '') : (hit.Méthodologie_en || ''),
-    methodologie_en: hit.Méthodologie_en || '',
-    typeDonnees: currentLang==='fr' ? (hit['Type_de_données'] || '') : (hit['Type_de_données_en'] || ''),
-    typeDonnees_en: hit['Type_de_données_en'] || '',
-    commentaires: currentLang==='fr' ? (hit.Commentaires_fr||'') : (hit.Commentaires_en||'')
+    perimetre: getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre']),
+    contributeur: getLocalizedValue(hit, 'Contributeur', 'Contributeur_en'),
+    methodologie: getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en'),
+    typeDonnees: getLocalizedValue(hit, 'Type_de_données', 'Type_de_données_en'),
+    commentaires: getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires'])
   });
 
   const handleFavoriteToggle = async (hit: AlgoliaHit) => {
     const emissionFactor = mapHitToEmissionFactor(hit);
     if (isHitBlurred(hit)) {
-      toast({ title: "Contenu verrouillé", description: "Vous ne pouvez pas ajouter aux favoris un facteur flouté." });
+      toast({ title: t('locked_content_not_addable_to_favorites'), description: t('blurred_content_not_addable_to_favorites') });
       return;
     }
     if (isFavorite(hit.objectID)) {
@@ -357,8 +443,8 @@ export const SearchResults: React.FC = () => {
   const handleAddSelectedToFavorites = async () => {
     if (!canUseFavorites()) {
       toast({
-        title: "Fonctionnalité Premium",
-        description: "L'ajout aux favoris est disponible avec le plan Premium.",
+        title: t('feature_premium_favorites'),
+        description: t('feature_premium_favorites'),
       });
       return;
     }
@@ -369,26 +455,25 @@ export const SearchResults: React.FC = () => {
 
     if (toAdd.length === 0) {
       toast({
-        title: "Déjà en favoris",
-        description: "Tous les éléments sélectionnés sont déjà dans vos favoris.",
+        title: t('already_in_favorites'),
+        description: t('already_in_favorites'),
       });
       return;
     }
 
     if (allowed.length === 0) {
-      toast({ title: "Contenu verrouillé", description: "Les éléments floutés ne peuvent pas être ajoutés aux favoris." });
+      toast({ title: t('locked_content_not_addable_to_favorites'), description: t('blurred_content_not_addable_to_favorites') });
       return;
     }
     await Promise.all(allowed.map((h) => addToFavorites(mapHitToEmissionFactor(h))));
 
     toast({
-      title: "Favoris mis à jour",
-      description: `${allowed.length} élément${allowed.length > 1 ? 's' : ''} ajouté${allowed.length > 1 ? 's' : ''} aux favoris`,
+      title: t('favorites_updated'),
+      description: t('favorites_added', { count: allowed.length }),
     });
   };
   return (
     <div className="space-y-6">
-      
       <StateResults />
       
       {hits.length > 0 && (
@@ -403,12 +488,12 @@ export const SearchResults: React.FC = () => {
                   className="border-indigo-950 data-[state=checked]:bg-indigo-950 data-[state=checked]:border-indigo-950"
                 />
                 <span className="text-sm font-medium font-montserrat text-indigo-950">
-                  {selectedItems.size === hits.length && hits.length > 0 ? 'Tout désélectionner' : 'Tout sélectionner'}
+                  {selectedItems.size === hits.length && hits.length > 0 ? t('deselect_all') : t('select_all')}
                 </span>
               </div>
               {selectedItems.size > 0 && (
                 <Badge variant="secondary" className="px-3 py-1 text-xs font-semibold">
-                  {selectedItems.size} sélectionné{selectedItems.size > 1 ? 's' : ''}
+                  {t('selected_items', { count: selectedItems.size })}
                 </Badge>
               )}
             </div>
@@ -421,17 +506,17 @@ export const SearchResults: React.FC = () => {
                   className="flex w-full items-center justify-center gap-2 font-montserrat text-sm sm:w-auto"
                 >
                   <Copy className="h-4 w-4" />
-                  Copier ({selectedItems.size})
+                  {t('copy')} ({selectedItems.size})
                 </Button>
                 <Button
                   onClick={handleAddSelectedToFavorites}
                   size="sm"
                   className="flex w-full items-center justify-center gap-2 font-montserrat text-sm sm:w-auto"
                   disabled={!canUseFavorites()}
-                  title={!canUseFavorites() ? "Fonctionnalité disponible uniquement avec le plan Premium" : ""}
+                  title={!canUseFavorites() ? getTooltip('premiumOnly') : ''}
                 >
                   <Heart className="h-4 w-4" />
-                  Ajouter aux favoris ({selectedItems.size})
+                  {t('add_to_favorites')} ({selectedItems.size})
                 </Button>
                 <Button
                   onClick={handleExport}
@@ -439,7 +524,7 @@ export const SearchResults: React.FC = () => {
                   className="flex w-full items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 text-white font-montserrat text-sm sm:w-auto"
                 >
                   <Download className="h-4 w-4" />
-                  Exporter ({selectedItems.size})
+                  {t('export')} ({selectedItems.size})
                 </Button>
               </div>
             )}
@@ -448,7 +533,7 @@ export const SearchResults: React.FC = () => {
           {/* Header avec pagination */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="text-sm text-indigo-950 font-montserrat">
-                {hits.length} résultat{hits.length > 1 ? 's' : ''} affiché{hits.length > 1 ? 's' : ''}
+                {t('displayed_results', { count: hits.length })}
               </div>
             
           </div>
@@ -458,7 +543,6 @@ export const SearchResults: React.FC = () => {
             {hits.map((hit) => {
               const isExpanded = expandedRows.has(hit.objectID);
               const isFav = isFavorite(hit.objectID);
-              const canView = hasAccess(hit.Source);
               const shouldBlur = isHitBlurred(hit);
               const isPrivateHit = Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
 
@@ -472,25 +556,19 @@ export const SearchResults: React.FC = () => {
                            onCheckedChange={() => handleItemSelect(hit.objectID)}
                            onClick={(e) => e.stopPropagation()}
                            disabled={shouldBlur}
-                           title={shouldBlur ? "Contenu verrouillé: non sélectionnable" : ""}
+                          title={shouldBlur ? getTooltip('blurredNotSelectable') : ''}
                            className="mt-1 cursor-pointer border-indigo-950 data-[state=checked]:bg-indigo-950 data-[state=checked]:border-indigo-950"
                          />
                         <div className="flex-1">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex flex-col items-start gap-1">
-                            <h3 className="text-lg font-semibold text-primary leading-tight font-montserrat">
-                              {(() => {
-                                const attr = (hit as any).Nom_fr !== undefined
-                                  ? 'Nom_fr'
-                                  : ((hit as any).Nom_en !== undefined ? 'Nom_en' : 'Nom');
-                                return (
-                                  <Highlight hit={hit as any} attribute={attr as any} />
-                                );
-                              })()}
-                            </h3>
+                            <h3
+                              className="text-lg font-semibold text-primary leading-tight font-montserrat"
+                              dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Nom')}
+                            />
                             {isPrivateHit && (
                               <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
-                                FE importé
+                                {t('imported_ef')}
                               </Badge>
                             )}
                           </div>
@@ -500,11 +578,31 @@ export const SearchResults: React.FC = () => {
                                size="sm"
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 (canUseFavorites() && !shouldBlur) ? handleFavoriteToggle(hit) : undefined;
+                                  toggleRowExpansion(hit.objectID);
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <span className="text-sm font-medium mr-2">
+                                  {isExpanded ? t('hide_details') : t('show_details')}
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (canUseFavorites() && !shouldBlur) handleFavoriteToggle(hit);
                                }}
                                disabled={!canUseFavorites() || shouldBlur}
                                className={`${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                               title={!canUseFavorites() ? "Fonctionnalité disponible uniquement avec le plan Premium" : (shouldBlur ? "Contenu flouté: non ajoutable aux favoris" : "")}
+                                title={!canUseFavorites()
+                                  ? getTooltip('premiumOnly')
+                                  : (shouldBlur ? getTooltip('blurredNotAddable') : '')}
                              >
                                {!canUseFavorites() ? (
                                  <Lock className="h-4 w-4" />
@@ -512,43 +610,34 @@ export const SearchResults: React.FC = () => {
                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
                                )}
                              </Button>
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 toggleRowExpansion(hit.objectID);
-                               }}
-                             >
-                               {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                             </Button>
                            </div>
                         </div>
-
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                           <div>
-                            <span className="text-sm font-semibold text-foreground">Facteur d'émission</span>
+                              <span className="text-sm font-semibold text-foreground">{t('emission_factor')}</span>
                             <PremiumBlur isBlurred={shouldBlur} showBadge>
-                              <p className="text-2xl font-bold text-primary font-montserrat">{hit.FE ? (typeof hit.FE === 'number' ? parseFloat(hit.FE.toFixed(4)) : parseFloat(parseFloat(String(hit.FE)).toFixed(4))).toLocaleString('fr-FR') : ''} kgCO₂eq</p>
+                                <p className="text-2xl font-bold text-primary font-montserrat">{formatFE(hit.FE)} kgCO₂eq</p>
                             </PremiumBlur>
                             <div className="mt-2">
-                                <span className="text-sm font-semibold text-foreground">Unité</span>
+                                <span className="text-sm font-semibold text-foreground">{t('unit')}</span>
                                 <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
                                   <p className="text-sm font-light">
-                                    {(hit as any).Unite_fr || (hit as any).Unite_en || ''}
+                                    {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
                                   </p>
                                 </PremiumBlur>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 gap-3">
-                              {(hit['Périmètre_fr'] || hit['Périmètre_en']) && (
+                              {getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre']) && (
                                 <div>
-                                  <span className="text-sm font-semibold text-foreground">Périmètre</span>
-                                  <p className="text-sm font-light">{(hit['Périmètre_fr']||hit['Périmètre_en'])}</p>
+                                  <span className="text-sm font-semibold text-foreground">{t('perimeter')}</span>
+                                  <p className="text-sm font-light">
+                                    {getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre'])}
+                                  </p>
                                 </div>
                               )}
                               <div>
-                                <span className="text-sm font-semibold text-foreground">Source</span>
+                                <span className="text-sm font-semibold text-foreground">{t('source')}</span>
                                 <div className="flex items-center gap-3">
                                   {getSourceLogo(hit.Source) && (
                                     <img 
@@ -557,12 +646,15 @@ export const SearchResults: React.FC = () => {
                                       className="w-[44px] h-[44px] md:w-[50px] md:h-[50px] object-contain flex-shrink-0"
                                     />
                                   )}
-                                  <p className="text-sm font-medium text-foreground" dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Source')} />
+                                  <p
+                                    className="text-sm font-light text-foreground"
+                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Source')}
+                                  />
                                 </div>
                               </div>
                               {(hit as any).dataset_name && (
                                 <div>
-                                  <span className="text-sm font-semibold text-foreground">Dataset importé</span>
+                                  <span className="text-sm font-semibold text-foreground">{t('imported_dataset')}</span>
                                   <p className="text-sm font-light">{(hit as any).dataset_name}</p>
                                 </div>
                               )}
@@ -570,109 +662,41 @@ export const SearchResults: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {(hit.Localisation_fr||hit.Localisation_en) && <Badge variant="secondary">{hit.Localisation_fr||hit.Localisation_en}</Badge>}
-                          {hit.Date && <Badge variant="outline">{hit.Date}</Badge>}
-                          {(hit.Secteur_fr||hit.Secteur_en) && <Badge variant="outline">{hit.Secteur_fr||hit.Secteur_en}</Badge>}
-                          {(hit['Sous-secteur_fr']||hit['Sous-secteur_en']) && <Badge variant="outline">{hit['Sous-secteur_fr']||hit['Sous-secteur_en']}</Badge>}
-                        </div>
+                            {getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation']) && (
+                              <Badge variant="secondary">
+                                {getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation'])}
+                              </Badge>
+                            )}
+                            {hit.Date && <Badge variant="outline">{hit.Date}</Badge>}
+                            {getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur']) && (
+                              <Badge variant="outline">
+                                {getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur'])}
+                              </Badge>
+                            )}
+                            {getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur']) && (
+                              <Badge variant="outline">
+                                {getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur'])}
+                              </Badge>
+                            )}
+                              </div>
 
-                        {isExpanded && (
-                          <div className="mt-4 pt-4 border-t space-y-3">
-                            {(hit.Description_fr || hit.Description_en) && (
-                              <div>
-                                <span className="text-sm font-semibold text-indigo-950">Description</span>
-                                <div className="text-xs mt-1 text-break-words">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      a: ({ href, children, ...props }) => (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                          {children}
-                                        </a>
-                                      ),
-                                      p: ({ children, ...props }) => (
-                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                      )
-                                    }}
-                                  >
-                                    {(hit.Description_fr || hit.Description_en) as string}
-                                  </ReactMarkdown>
-                                </div>
+                          {isExpanded && (
+                            <div className="mt-4 pt-4 border-t space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {renderMarkdownField(t('description'), getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']))}
+                                {renderMarkdownField(t('commentary'), getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']))}
+                                {renderMarkdownField(t('contributor'), getLocalizedValue(hit, 'Contributeur', 'Contributeur_en'))}
+                                {renderMarkdownField(t('methodology'), getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en'))}
+                                {renderTextField(t('data_type'), getLocalizedValue(hit, 'Type_de_données', 'Type_de_données_en'))}
+                                {renderTextField(t('uncertainty'), hit.Incertitude)}
                               </div>
-                            )}
-                             <div>
-                               <span className="text-sm font-semibold text-indigo-950">Secteur</span>
-                               <p className="text-xs font-light mt-1">
-                                 {(() => {
-                                   const attr = (hit as any).Secteur_fr !== undefined
-                                     ? 'Secteur_fr'
-                                     : ((hit as any).Secteur_en !== undefined ? 'Secteur_en' : 'Secteur');
-                                   return <Highlight hit={hit as any} attribute={attr as any} />;
-                                 })()}
-                               </p>
-                             </div>
-                            {hit.Incertitude && (
                               <div>
-                                <span className="text-sm font-semibold text-indigo-950">Incertitude</span>
-                                <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
+                                <span className="text-sm font-semibold text-foreground">{t('sector')}</span>
+                                <div
+                                  className="text-xs font-light mt-1 text-muted-foreground"
+                                  dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Secteur')}
+                                />
                               </div>
-                            )}
-                            {((hit.Contributeur || hit.Contributeur_en)) && (
-                              <div>
-                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Contributeur' : 'Contributor'}</span>
-                                <div className="text-xs mt-1 text-break-words">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      a: ({ href, children, ...props }) => (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                          {children}
-                                        </a>
-                                      ),
-                                      p: ({ children, ...props }) => (
-                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                      )
-                                    }}
-                                  >
-                                    {(currentLang === 'fr' ? hit.Contributeur : hit.Contributeur_en) as string}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            )}
-                            {((hit.Méthodologie || hit.Méthodologie_en)) && (
-                              <div>
-                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}</span>
-                                <p className="text-xs font-light mt-1">{currentLang === 'fr' ? hit.Méthodologie : hit.Méthodologie_en}</p>
-                              </div>
-                            )}
-                            {((hit['Type_de_données'] || hit['Type_de_données_en'])) && (
-                              <div>
-                                <span className="text-sm font-semibold text-indigo-950">{currentLang === 'fr' ? 'Type de données' : 'Data Type'}</span>
-                                <p className="text-xs font-light mt-1">{currentLang === 'fr' ? hit['Type_de_données'] : hit['Type_de_données_en']}</p>
-                              </div>
-                            )}
-                            {(hit.Commentaires_fr || hit.Commentaires_en) && (
-                              <div>
-                                <span className="text-sm font-semibold text-indigo-950">Commentaires</span>
-                                <div className="text-xs mt-1 text-break-words">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      a: ({ href, children, ...props }) => (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" {...props}>
-                                          {children}
-                                        </a>
-                                      ),
-                                      p: ({ children, ...props }) => (
-                                        <p className="text-xs font-light leading-relaxed" {...props}>{children}</p>
-                                      )
-                                    }}
-                                  >
-                                      {(hit.Commentaires_fr || hit.Commentaires_en) as string}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         )}
                         </div>

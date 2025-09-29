@@ -1,0 +1,71 @@
+{
+  "loading": "Loading quotas",
+  "errors": {
+    "generic": "Unable to retrieve quota information"
+  },
+  "plan": {
+    "title": "{{plan}} plan",
+    "premium": "Premium",
+    "standard": "Standard",
+    "freemium": "Freemium",
+    "supra": "Supra Admin"
+  },
+  "limits": {
+    "unlimited": "Unlimited ∞",
+    "not_available": "Not available",
+    "used_over_total": "{{used}} / {{total}}",
+    "reached": "Limit reached",
+    "messages": {
+      "reached": "You have reached your monthly limits. Contact your administrator to upgrade your plan.",
+      "contact_admin": "Contact your administrator to increase your limits.",
+      "freemium_note": "Not available on Freemium"
+    }
+  },
+  "searches": {
+    "label": "Searches"
+  },
+  "exports": {
+    "label": "Excel exports"
+  },
+  "clipboard": {
+    "label": "Clipboard copies"
+  },
+  "favorites": {
+    "label": "Favorites",
+    "premium_only": "Premium"
+  },
+  "trial": {
+    "title": "Trial period",
+    "expired": "Trial period expired",
+    "days_remaining": "{{count}} day{{count, plural, one {} other {s}}} remaining"
+  },
+  "widget": {
+    "loading": {
+      "title": "Quota status",
+      "subtitle": "Loading"
+    },
+    "error": {
+      "badge": "Error",
+      "description": "Unable to load quota information."
+    },
+    "premium": {
+      "badge_premium": "Premium",
+      "badge_standard": "Standard",
+      "description_unlimited": "Unlimited",
+      "description_paid": "Paid plan"
+    },
+    "freemium": {
+      "badge_premium": "Premium",
+      "badge_standard": "Standard",
+      "badge_freemium": "Freemium",
+      "note_unavailable": "Not available on Freemium"
+    },
+    "actions": {
+      "view_plans": "View plans"
+    },
+    "summary": {
+      "locked": "Plan unavailable",
+      "available": "Plan available"
+    }
+  }
+}

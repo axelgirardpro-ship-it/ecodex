@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
@@ -17,18 +18,19 @@ import AuthCallback from "./pages/AuthCallback";
 import { SearchDashboard } from "@/components/search/algolia/AlgoliaSearchDashboard";
 import { FavorisAlgoliaDashboard } from "@/components/search/favoris/FavorisAlgoliaDashboard";
 import Import from "./pages/Import";
-import SimplifiedSettings from "./pages/SimplifiedSettings";
-import Debug from "./pages/Debug";
+import Settings from "./pages/SimplifiedSettings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
-import DevLogin from "./pages/DevLogin";
+import { LanguageProvider, SupportedLanguage, useLanguage } from "@/providers/LanguageProvider";
+import { buildLocalizedPath } from "@i18n/routing";
 
 const queryClient = new QueryClient();
 
 // Composant pour protéger les routes authentifiées
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+  const { language } = useLanguage();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -39,18 +41,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
+
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={buildLocalizedPath("/login", language)} replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Composant pour les routes publiques (rediriger si connecté)
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+  const { language } = useLanguage();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -61,12 +64,21 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
+
   if (user) {
-    return <Navigate to="/search" replace />;
+    return <Navigate to={buildLocalizedPath("/search", language)} replace />;
   }
-  
+
   return <>{children}</>;
+};
+
+const LanguageLayout = ({ lang }: { lang: SupportedLanguage }) => {
+  const { setLanguage } = useLanguage();
+  useEffect(() => {
+    setLanguage(lang, { skipStorage: true });
+  }, [lang, setLanguage]);
+
+  return <Outlet />;
 };
 
 const App = () => (
@@ -79,24 +91,38 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
-                <div className="min-h-screen">
-                  <ImpersonationBanner />
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-                    <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route path="/dev" element={<PublicRoute><DevLogin /></PublicRoute>} />
-                    <Route path="/search" element={<ProtectedRoute><SearchDashboard /></ProtectedRoute>} />
-                    <Route path="/favoris" element={<ProtectedRoute><FavorisAlgoliaDashboard /></ProtectedRoute>} />
-                    <Route path="/import" element={<ProtectedRoute><Import /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute><SimplifiedSettings /></ProtectedRoute>} />
-                    <Route path="/debug" element={<ProtectedRoute><Debug /></ProtectedRoute>} />
-                    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </div>
-              </BrowserRouter>
+                  <LanguageProvider>
+                    <div className="min-h-screen">
+                      <ImpersonationBanner />
+                      <Routes>
+                        <Route element={<LanguageLayout lang="fr" />}>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+                          <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+                          <Route path="/auth/callback" element={<AuthCallback />} />
+                          <Route path="/search" element={<ProtectedRoute><SearchDashboard /></ProtectedRoute>} />
+                          <Route path="/favoris" element={<ProtectedRoute><FavorisAlgoliaDashboard /></ProtectedRoute>} />
+                          <Route path="/import" element={<ProtectedRoute><Import /></ProtectedRoute>} />
+                          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                        </Route>
+                        <Route path="/en" element={<LanguageLayout lang="en" />}>
+                          <Route index element={<Index />} />
+                          <Route path="login" element={<PublicRoute><Login /></PublicRoute>} />
+                          <Route path="signup" element={<PublicRoute><Signup /></PublicRoute>} />
+                          <Route path="auth/callback" element={<AuthCallback />} />
+                          <Route path="search" element={<ProtectedRoute><SearchDashboard /></ProtectedRoute>} />
+                          <Route path="favoris" element={<ProtectedRoute><FavorisAlgoliaDashboard /></ProtectedRoute>} />
+                          <Route path="import" element={<ProtectedRoute><Import /></ProtectedRoute>} />
+                          <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                          <Route path="admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                          <Route path="*" element={<NotFound />} />
+                        </Route>
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </div>
+                  </LanguageProvider>
+                </BrowserRouter>
             </TooltipProvider>
           </FavoritesProvider>
         </WorkspaceProvider>

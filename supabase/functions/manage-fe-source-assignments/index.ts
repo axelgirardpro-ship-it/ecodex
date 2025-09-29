@@ -1,3 +1,14 @@
+type EdgeRequest = globalThis.Request
+type EdgeResponse = globalThis.Response
+type EdgeHandler = (req: EdgeRequest) => EdgeResponse | Promise<EdgeResponse>
+
+declare const Deno: {
+	serve: (handler: EdgeHandler) => void | Promise<void>
+	env: {
+		get: (key: string) => string | undefined
+	}
+}
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -41,10 +52,10 @@ Deno.serve(async (req) => {
 					'Content-Type': 'application/json'
 				}
 
-    const { data: rows, error } = await supabase
-        .from('emission_factors_all_search')
-        .select('*')
-        .eq('Source', sourceName)
+				const { data: rows, error } = await supabase
+					.from('emission_factors_all_search')
+					.select('*')
+					.eq('Source', sourceName)
 				if (error) throw new Error(`Projection fetch failed: ${error.message}`)
 
 				const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
@@ -131,6 +142,7 @@ Deno.serve(async (req) => {
 
 		if (!action || (action !== 'assign' && action !== 'unassign')) return json(400, { error: 'Invalid action' })
 		if (!source_name || !workspace_id) return json(400, { error: 'Missing source_name or workspace_id' })
+		if (!/^[0-9a-fA-F-]{36}$/.test(workspace_id)) return json(400, { error: 'Invalid workspace_id format' })
 
 		let projection_refresh: 'ok'|'failed' = 'ok'
 

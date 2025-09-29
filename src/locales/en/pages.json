@@ -1,0 +1,683 @@
+{
+  "index": {
+    "hero": {
+      "lines": [
+        "The most powerful",
+        "emission factors search engine",
+        "on the market"
+      ],
+      "subtitle": "Access over 255,000 French and international emission factors curated and enriched by our experts.",
+      "primaryCta": "Try the search engine",
+      "secondaryCta": "Log in",
+      "imageAlt": "Emission factors search interface"
+    },
+    "navbar": {
+      "partners": "Access leading French and international databases"
+    },
+    "demo": {
+      "title": "Discover the power of our search engine",
+      "subtitle": "Explore the interface through an interactive demonstration."
+    },
+    "tabsSection": {
+      "title": "A powerful and customizable search engine",
+      "items": [
+        {
+          "id": "data",
+          "label": "Data",
+          "title": "Your single gateway to carbon data",
+          "imageAlt": "Database interface",
+          "highlights": [
+            {
+              "title": "Structured data",
+              "description": "A unique and homogeneous structuring of more than 20 leading international databases."
+            },
+            {
+              "title": "Always up to date",
+              "description": "Continuous updates to guarantee high-quality emission factors."
+            },
+            {
+              "title": "+250K EF available",
+              "description": "Over 250k generic and specific emission factors available within a unified structure."
+            }
+          ]
+        },
+        {
+          "id": "search",
+          "label": "Search",
+          "title": "Smooth and easy to use",
+          "imageAlt": "Search interface",
+          "highlights": [
+            {
+              "title": "Intelligent search",
+              "description": "Search by keywords, codes, categories, or advanced filters to quickly find the right EF."
+            },
+            {
+              "title": "Intuitive interface",
+              "description": "Simple navigation with automatic suggestions and customizable sorting."
+            },
+            {
+              "title": "Accurate results",
+              "description": "An optimized algorithm delivering the most relevant emission factors for your criteria."
+            }
+          ]
+        },
+        {
+          "id": "custom",
+          "label": "Customization",
+          "title": "Tailor the engine to your needs",
+          "imageAlt": "Customization interface",
+          "highlights": [
+            {
+              "title": "Favorites and collections",
+              "description": "Save your favorite EF and create themed collections for quick access."
+            },
+            {
+              "title": "Custom filters",
+              "description": "Set up filters based on your industry and specific business requirements."
+            },
+            {
+              "title": "Bespoke data",
+              "description": "Integrate your own specific EF and build your personalized database."
+            }
+          ]
+        }
+      ]
+    },
+    "datasetsSection": {
+      "title": "All databases on a single platform",
+      "tabs": [
+        { "id": "standards", "label": "Standard datasets" },
+        { "id": "premium", "label": "Premium datasets" }
+      ]
+    },
+    "expertSection": {
+      "title": "A structured and enriched database built by our experts",
+      "imageAlt": "Data analysis expert",
+      "blocks": [
+        {
+          "title": "Curated and structured databases",
+          "description": "Our experts harmonize every integrated dataset to deliver a unified data format."
+        },
+        {
+          "title": "Enriched metadata",
+          "description": "Factor verification by emission scope, inflation adjustments, metadata translation, and more."
+        },
+        {
+          "title": "Continuous versioning",
+          "description": "Enjoy real-time maintenance aligned with updates from source databases."
+        }
+      ]
+    },
+    "pricing": {
+      "title": "Pricing that scales with your needs",
+      "plans": {
+        "standard": {
+          "name": "Standard",
+          "startingFrom": "Starting from",
+          "price": "€850",
+          "priceUnit": "/year",
+          "description": "Access the standard datasets and search engine",
+          "features": [
+            "Access to the search engine",
+            "Standard datasets (165k EF)",
+            "Weekly updates"
+          ],
+          "cta": "Learn more"
+        },
+        "premium": {
+          "name": "Premium",
+          "startingFrom": "Starting from",
+          "price": "€3000",
+          "priceUnit": "/year",
+          "description": "Unlock both standard and premium datasets plus data exports",
+          "features": [
+            "Access to the search engine",
+            "Standard datasets (165k EF)",
+            "Premium datasets (90k EF)",
+            "Weekly updates",
+            "Favorites management",
+            "Data exports",
+            "Support from our experts"
+          ],
+          "cta": "Learn more"
+        }
+      }
+    },
+    "finalCta": {
+      "title": "Ready to explore our emission factors?",
+      "subtitle": "Unlock the most powerful search engine on the market",
+      "primary": "Try the search engine",
+      "secondary": "Log in"
+    },
+    "footer": {
+      "tagline": "The most powerful emission factors search engine on the market.",
+      "legal": {
+        "privacy": "Privacy policy",
+        "terms": "Terms of use",
+        "cookies": "Cookies"
+      },
+      "copyright": "© 2025 Ecodex. All rights reserved."
+    }
+  },
+  "login": {
+    "back": "Back to homepage",
+    "title": "Log in",
+    "subtitle": "Access your Ecodex account",
+    "placeholders": {
+      "email": "you@example.com",
+      "password": "Your password"
+    },
+    "trial": {
+      "title": "Your freemium plan has ended.",
+      "description": "Please contact our sales team to upgrade to a paid plan."
+    },
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "loading": "Logging in...",
+    "or": "or",
+    "google": "Log in with Google",
+    "noAccount": "Don't have an account yet?",
+    "signUp": "Sign up",
+    "errors": {
+      "login": "Login error",
+      "google": "Google login error",
+      "unexpected": "An unexpected error occurred"
+    },
+    "toasts": {
+      "error": {
+        "title": "Login error",
+        "googleTitle": "Google error",
+        "unexpected": "An unexpected error occurred"
+      }
+    }
+  },
+  "signup": {
+    "back": "Back to homepage",
+    "title": "Create an account",
+    "subtitle": "Join the Ecodex platform",
+    "placeholders": {
+      "firstName": "Your first name",
+      "lastName": "Your last name",
+      "company": "Your company name",
+      "email": "you@example.com",
+      "password": "At least 6 characters",
+      "confirmPassword": "Confirm your password"
+    },
+    "errors": {
+      "title": "Error",
+      "passwordMismatch": "Passwords do not match",
+      "passwordLength": "Password must contain at least 6 characters",
+      "signup": "Signup error",
+      "signupGoogle": "Google signup error",
+      "unexpected": "An unexpected error occurred"
+    },
+    "success": {
+      "title": "Signup successful",
+      "description": "A confirmation email has been sent. Please check your inbox."
+    },
+    "toasts": {
+      "success": {
+        "title": "Signup successful",
+        "description": "A confirmation email has been sent. Please check your inbox."
+      },
+      "error": {
+        "title": "Signup error",
+        "googleTitle": "Google signup error",
+        "unexpected": "An unexpected error occurred"
+      }
+    },
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Work email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "company": "Company",
+    "position": "Job title",
+    "submit": "Create my account",
+    "loading": "Creating...",
+    "or": "or",
+    "alreadyAccount": "Already have an account?",
+    "login": "Log in",
+    "google": "Sign up with Google"
+  },
+  "favorites": {
+    "loading": {
+      "title": "Loading your favorites...",
+      "subtitle": "Fetching data from the database..."
+    },
+    "header": {
+      "title": "My Favorites",
+      "subtitle": "Search and manage your favorite emission factors with advanced filters"
+    },
+    "stats": {
+      "favorites": "favorites in total",
+      "sources": "sources",
+      "locations": "locations"
+    },
+    "empty": {
+      "title": "No favorites yet",
+      "description": "Add emission factors to your favorites from the search page",
+      "cta": "Start searching"
+    },
+    "actions": {
+      "remove": "Remove from favorites",
+      "removeCount": "Remove from favorites ({{count}})",
+      "export": "Export selection",
+      "exportCount": "Export selection ({{count}})",
+      "copy": "Copy selection",
+      "copyCount": "Copy selection ({{count}})"
+    },
+    "toasts": {
+      "removed": {
+        "title": "Favorite removed",
+        "description": "The item has been removed from your favorites"
+      },
+      "removeError": {
+        "title": "Error",
+        "description": "Error while removing the favorite"
+      },
+      "bulkRemoved": {
+        "title": "Favorites updated",
+        "description": "{{count}} item removed from favorites.",
+        "description_plural": "{{count}} items removed from favorites."
+      },
+      "bulkError": {
+        "title": "Error",
+        "description": "Error while removing the selected favorites"
+      }
+    }
+  },
+  "passwordReset": {
+    "toasts": {
+      "emailRequired": {
+        "title": "Email required",
+        "description": "Please enter your email address"
+      },
+      "emailSent": {
+        "title": "Email sent!",
+        "description": "Check your inbox to reset your password"
+      },
+      "error": {
+        "title": "Error",
+        "description": "Unable to send the reset email"
+      }
+    },
+    "sent": {
+      "title": "Email sent",
+      "description": "A password reset email has been sent to <strong>{{email}}</strong>. Click the link in the email to create a new password.",
+      "back": "Back to login",
+      "resend": "Resend email"
+    },
+    "form": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email to receive a reset link",
+      "email": "Email",
+      "placeholder": "your@email.com",
+      "sending": "Sending...",
+      "submit": "Send reset link",
+      "back": "Back to login"
+    }
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "pageSubtitle": "Personalize your Ecodex experience",
+    "account": {
+      "title": "Account information",
+      "description": "General information about your account",
+      "email": "Email",
+      "fullName": "Full name",
+      "missing": "Not provided",
+      "role": "Role",
+      "roleMissing": "Not assigned",
+      "workspacePlan": "Workspace plan",
+      "planDefault": "Freemium"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "description": "Information about your workspace",
+      "name": "Workspace name",
+      "plan": "Plan",
+      "none": "No workspace",
+      "freemium": "Freemium"
+    },
+    "notificationsCard": {
+      "title": "Notifications",
+      "description": "Manage your notification preferences",
+      "items": {
+        "email": {
+          "label": "Email notifications",
+          "description": "Receive important notifications by email"
+        },
+        "favoriteUpdates": {
+          "label": "Favorite updates",
+          "description": "Get notified when favorite factors are updated"
+        },
+        "newFeatures": {
+          "label": "New features",
+          "description": "Stay informed about new features"
+        },
+        "weeklyReport": {
+          "label": "Weekly report",
+          "description": "Receive a weekly summary of your activity"
+        }
+      }
+    },
+    "preferencesCard": {
+      "title": "Preferences",
+      "description": "Customize the interface and app behavior",
+      "language": "Language",
+      "timezone": "Time zone",
+      "defaultUnits": "Default units",
+      "resultsPerPage": "Results per page",
+      "languageOptions": {
+        "fr": "French",
+        "en": "English"
+      },
+      "timezoneOptions": {
+        "paris": "Paris (UTC+1)",
+        "london": "London (UTC+0)",
+        "newYork": "New York (UTC-5)"
+      },
+      "unitsOptions": {
+        "metric": "Metric",
+        "imperial": "Imperial"
+      },
+      "resultsOptions": {
+        "10": "10",
+        "20": "20",
+        "50": "50",
+        "100": "100"
+      }
+    },
+    "securityCard": {
+      "title": "Security",
+      "twoFactor": {
+        "label": "Two-factor authentication",
+        "description": "Secure your account with 2FA",
+        "action": "Configure"
+      },
+      "sessions": {
+        "label": "Active sessions",
+        "description": "Manage connected devices",
+        "action": "View sessions"
+      }
+    },
+    "billingCard": {
+      "title": "Billing",
+      "currentPlan": "Current plan",
+      "plans": {
+        "premium": "Premium plan – Unlimited",
+        "standard": "Standard plan – 100 searches/month",
+        "freemium": "Free plan – 10 searches/month"
+      },
+      "upgrade": "Upgrade to a paid plan",
+      "upgradeSubject": "paid plan request",
+      "history": "Billing history",
+      "download": "Download your invoices",
+      "downloadAction": "Download"
+    },
+    "dataCard": {
+      "title": "Data & privacy",
+      "export": "Export my data",
+      "deleteSearches": "Delete my searches",
+      "deleteAccount": "Delete my account"
+    },
+    "team": {
+      "title": "Workspace team",
+      "description": "Manage your workspace users",
+      "empty": "No users in this workspace yet.",
+      "invite": {
+        "button": "Invite a user",
+        "dialogTitle": "Invite a user",
+        "dialogDescription": "Invite a new member to join this workspace",
+        "emailPlaceholder": "user@email.com",
+        "roleLabel": "Role",
+        "cancel": "Cancel",
+        "submit": "Send invitation",
+        "sending": "Sending..."
+      },
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "addedAt": "Added on",
+        "fallbackName": "User",
+        "downgrade": "Demote",
+        "promote": "Promote to admin",
+        "remove": "Remove from workspace"
+      },
+      "roles": {
+        "supra_admin": "Supra administrator",
+        "admin": "Administrator",
+        "manager": "Manager",
+        "user": "User",
+        "gestionnaire": "Manager"
+      },
+      "toasts": {
+        "loadError": {
+          "title": "Error",
+          "description": "Unable to load workspace users"
+        },
+        "inviteSuccess": {
+          "title": "Invitation sent",
+          "description": "An invitation was sent to {{email}}"
+        },
+        "inviteExisting": {
+          "title": "User added",
+          "description": "{{email}} already had an account. They were linked to the workspace."
+        },
+        "inviteError": {
+          "title": "Error",
+          "description": "Unable to send the invitation"
+        },
+        "updateRoleSuccess": {
+          "title": "Role updated",
+          "description": "The user's role has been updated"
+        },
+        "updateRoleError": {
+          "title": "Error",
+          "description": "Unable to update the role"
+        },
+        "removeUserSuccess": {
+          "title": "User removed",
+          "description": "The user has been removed from the workspace"
+        },
+        "removeUserError": {
+          "title": "Error",
+          "description": "Unable to remove the user"
+        }
+      }
+    },
+    "admin": {
+      "title": "Administration",
+      "description": "Administration tools (Supra Admin only)",
+      "openPanel": "Open admin panel"
+    },
+    "actions": {
+      "title": "Account actions",
+      "description": "Manage your session and data",
+      "logout": {
+        "button": "Log out",
+        "confirmTitle": "Confirm logout",
+        "confirmDescription": "Are you sure you want to log out? You will need to log in again to access your account.",
+        "cancel": "Cancel",
+        "confirm": "Log out"
+      }
+    },
+    "adminNotice": {
+      "title": "Supra Administrator status",
+      "description": "You have access to all administration features. Use these privileges responsibly."
+    },
+    "roles": {
+      "supra_admin": "Supra administrator",
+      "admin": "Administrator",
+      "manager": "Manager",
+      "user": "User"
+    },
+    "toasts": {
+      "notificationUpdated": {
+        "title": "Setting updated",
+        "description": "Your notification preferences have been saved"
+      },
+      "preferenceUpdated": {
+        "title": "Setting updated",
+        "description": "Your preferences have been saved"
+      },
+      "signOutSuccess": {
+        "title": "Signed out successfully",
+        "description": "You have been signed out."
+      },
+      "signOutError": {
+        "title": "Sign-out error",
+        "description": "An error occurred during sign-out."
+      }
+    }
+  },
+  "authCallback": {
+    "loadingTitle": "Authenticating...",
+    "successTitle": "Authentication successful",
+    "redirectMessage": "Redirecting...",
+    "errorTitle": "Authentication error",
+    "errors": {
+      "auth": "Authentication error: {{message}}",
+      "noSession": "No user session found",
+      "generic": "An error occurred during authentication"
+    }
+  },
+  "import": {
+    "pageTitle": "Data import",
+    "pageSubtitle": "Import your own emission factors",
+    "cards": {
+      "noPermission": "You don't have the necessary permissions to import data.",
+      "upload": {
+        "title": "Import your dataset",
+        "description": "Select a CSV file formatted according to our template. Automatic compression included.",
+        "datasetName": "Dataset name",
+        "datasetPlaceholder": "My custom dataset",
+        "fileLabel": "CSV/GZ file",
+        "clickToSelect": "Click to select a file",
+        "acceptedFormats": "Accepted formats: CSV, CSV.GZ (automatically compressed)",
+        "changeFile": "Change file",
+        "selectFile": "Select a file",
+        "processingMessage": "Thank you, your dataset will be available in a few minutes.",
+        "addToFavorites": "Automatically add all elements from this dataset to my favorites",
+        "uploadButton": "Import dataset",
+        "uploading": "Importing...",
+        "processing": "Processing..."
+      },
+      "template": {
+        "title": "Download template",
+        "description": "Use our CSV template to properly format your data",
+        "downloadButton": "Download",
+        "requiredColumns": "Required columns",
+        "columnsList": "Nom, Description, FE, \"Unité donnée d'activité\", Source, Secteur, Sous-secteur, Localisation, Date, Incertitude, Périmètre"
+      }
+    },
+    "status": {
+      "success": "Import successful",
+      "error": "Import error",
+      "indexing": "Indexing in progress...",
+      "indexingComplete": "Indexing complete"
+    },
+    "toasts": {
+      "noFile": "Please select a file",
+      "noDataset": "Please enter a dataset name",
+      "uploadSuccess": "Import completed successfully",
+      "uploadError": "Error during import",
+      "indexingSuccess": "Data indexed successfully",
+      "indexingError": "Error during indexing",
+      "invalidFormat": {
+        "title": "Invalid format",
+        "description": "Please select a valid CSV or CSV.GZ file"
+      },
+      "missingInfo": {
+        "title": "Missing information",
+        "description": "Please select a file and provide a dataset name"
+      },
+      "general": {
+        "statusFetched": {
+          "title": "Status retrieved",
+          "description": "Queue: {{queue}} — Processing: {{processing}}"
+        },
+        "statusError": {
+          "title": "Status error",
+          "description": "{{message}}"
+        },
+        "missingFile": {
+          "title": "Missing file",
+          "description": "Please select a CSV file."
+        },
+        "uploadDone": {
+          "title": "Upload completed",
+          "description": "{{details}}",
+          "alreadyCompressed": "already compressed",
+          "compression": "compression"
+        },
+        "uploadErrorDetailed": {
+          "title": "Upload error",
+          "description": "{{message}}"
+        },
+        "chunkedRemoved": {
+          "title": "Chunked pipeline removed",
+          "description": "Use Dataiku → staging_emission_factors → SELECT public.run_import_from_staging();"
+        },
+        "analysisSuccess": {
+          "title": "Analysis completed",
+          "description": "{{details}}",
+          "rows": {
+            "one": "valid row",
+            "other": "valid rows"
+          },
+          "sources": {
+            "one": "source detected",
+            "other": "sources detected"
+          }
+        },
+        "importLaunched": {
+          "title": "Import started",
+          "description": "Job: {{job}}",
+          "queue": "queued"
+        },
+        "importError": {
+          "title": "Import error",
+          "description": "{{message}}"
+        },
+        "analysisRequired": {
+          "title": "Analysis required",
+          "description": "Click Analyze first, then Import."
+        }
+      }
+    },
+    "info": {
+      "sizeLimit": {
+        "label": "Size limit",
+        "value": "10 MB maximum per file (before compression)"
+      },
+      "format": {
+        "label": "Format",
+        "value": "CSV with comma separator (,)"
+      },
+      "encoding": {
+        "label": "Encoding",
+        "value": "UTF-8 recommended"
+      },
+      "compression": {
+        "label": "Compression",
+        "value": "Automatic to optimize transfers"
+      },
+      "validation": {
+        "label": "Validation",
+        "value": "Robust parser with source validation"
+      },
+      "workspace": {
+        "label": "Workspace",
+        "value": "Data will be imported into your current workspace"
+      }
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has moved.",
+    "backHome": "Back to homepage"
+  }
+}

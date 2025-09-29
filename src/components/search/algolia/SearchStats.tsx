@@ -1,22 +1,35 @@
 import React from 'react';
 import { useStats } from 'react-instantsearch';
+import { useTranslation } from 'react-i18next';
+import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 
 export const SearchStats: React.FC = () => {
   const { nbHits, nbSortedHits, areHitsSorted, processingTimeMS } = useStats();
+  const language = useSafeLanguage();
+  const { t } = useTranslation('search', { keyPrefix: 'stats' });
+
+  const formatNumber = (num: number) => num?.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US') ?? '0';
 
   return (
     <div className="flex items-center justify-between text-sm text-indigo-950 mb-4 font-montserrat">
       <div>
         {areHitsSorted && nbSortedHits !== nbHits ? (
           <span>
-            {nbSortedHits?.toLocaleString()} résultats pertinents sur {nbHits?.toLocaleString()}
+            {t('relevantResults', { 
+              sorted: formatNumber(nbSortedHits ?? 0), 
+              total: formatNumber(nbHits ?? 0) 
+            })}
           </span>
         ) : (
-          <span className="font-semibold">{nbHits?.toLocaleString()} résultat{nbHits > 1 ? 's' : ''} trouvé{nbHits > 1 ? 's' : ''}</span>
+          <span className="font-semibold">
+            {nbHits === 0 ? t('noResults') : 
+             nbHits === 1 ? t('oneResultFound', { formattedCount: formatNumber(nbHits) }) :
+             t('multipleResultsFound', { formattedCount: formatNumber(nbHits), count: nbHits })}
+          </span>
         )}
       </div>
       <div>
-        en {processingTimeMS} ms
+        {t('timeMs', { time: processingTimeMS })}
       </div>
     </div>
   );

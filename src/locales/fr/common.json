@@ -1,0 +1,51 @@
+{
+  "language": {
+    "fr": "Français",
+    "en": "Anglais",
+    "switch": "Changer de langue",
+    "toggle": {
+      "fr": "FR",
+      "en": "EN"
+    }
+  },
+  "actions": {
+    "back_home": "Retour à l'accueil",
+    "log_in": "Se connecter",
+    "sign_up": "S'inscrire"
+  },
+  "impersonation": {
+    "banner": {
+      "title": "Mode Impersonation :",
+      "description": "Vous êtes connecté en tant que <0>{{email}}</0> dans le workspace <1>{{workspace}}</1>",
+      "button": "Retour admin"
+    },
+    "toast": {
+      "success_title": "Impersonation terminée",
+      "success_description": "Vous êtes de nouveau connecté avec votre compte admin",
+      "error_title": "Erreur",
+      "error_description": "Impossible de terminer l'impersonation"
+    }
+  },
+  "toasts": {
+    "success": {
+      "title": "Succès",
+      "default": "Action réalisée avec succès"
+    },
+    "error": {
+      "title": "Erreur",
+      "default": "Une erreur inattendue est survenue"
+    },
+    "import": {
+      "launch_title": "Import lancé",
+      "launch_description": "Job : {{job}}",
+      "error_title": "Erreur import",
+      "error_description": "{{message}}",
+      "missing_file": "Fichier manquant",
+      "missing_file_description": "Veuillez uploader un fichier.",
+      "analysis_required": "Analyse requise",
+      "analysis_required_description": "Cliquez d'abord sur Analyser puis Importer.",
+      "analysis_success_title": "Analyse terminée",
+      "analysis_success_description": "{{processed}} lignes valides ; {{sources}} sources détectées"
+    }
+  }
+}

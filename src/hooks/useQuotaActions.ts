@@ -4,6 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { EmissionFactor } from '@/types/emission-factor';
 import type { AlgoliaHit } from '@/types/algolia';
+import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 
 export const useQuotaActions = () => {
   const { 
@@ -14,28 +15,44 @@ export const useQuotaActions = () => {
     incrementClipboardCopy 
   } = useQuotas();
   const { canExport: canExportPermission } = usePermissions();
+  const language = useSafeLanguage();
 
-  const mapHitToEmissionFactor = (hit: AlgoliaHit): EmissionFactor => ({
-    id: hit.objectID,
-    nom: (hit as any).Nom_fr || (hit as any).Nom_en || (hit as any).Nom || '',
-    description: (hit as any).Description_fr || (hit as any).Description_en || (hit as any).Description || '',
-    fe: hit.FE as number,
-    uniteActivite: (hit as any).Unite_fr || (hit as any).Unite_en || (hit as any)["Unité donnée d'activité"] || '',
-    source: hit.Source,
-    secteur: (hit as any).Secteur_fr || (hit as any).Secteur_en || (hit as any).Secteur || '',
-    sousSecteur: (hit as any)['Sous-secteur_fr'] || (hit as any)['Sous-secteur_en'] || (hit as any)['Sous-secteur'] || '',
-    localisation: (hit as any).Localisation_fr || (hit as any).Localisation_en || (hit as any).Localisation || '',
-    date: (hit.Date as number) || 0,
-    incertitude: hit.Incertitude as string,
-    perimetre: (hit as any)['Périmètre_fr'] || (hit as any)['Périmètre_en'] || (hit as any)['Périmètre'] || '',
-    contributeur: (hit as any).Contributeur || (hit as any).Contributeur_en || '',
-    contributeur_en: (hit as any).Contributeur_en || '',
-    methodologie: (hit as any).Méthodologie || (hit as any).Méthodologie_en || '',
-    methodologie_en: (hit as any).Méthodologie_en || '',
-    typeDonnees: (hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en'] || '',
-    typeDonnees_en: (hit as any)['Type_de_données_en'] || '',
-    commentaires: (hit as any).Commentaires_fr || (hit as any).Commentaires_en || (hit as any).Commentaires || '',
-  });
+  const mapHitToLocalizedFactor = (hit: AlgoliaHit, lang: 'fr' | 'en'): EmissionFactor => {
+    const isFR = lang === 'fr';
+    const choose = (frKey: keyof AlgoliaHit, enKey: keyof AlgoliaHit, fallbackKey?: keyof AlgoliaHit) => {
+      const primary = isFR ? hit[frKey] : hit[enKey];
+      if (primary !== undefined && primary !== null && String(primary).trim() !== '') return String(primary);
+      const secondary = isFR ? hit[enKey] : hit[frKey];
+      if (secondary !== undefined && secondary !== null && String(secondary).trim() !== '') return String(secondary);
+      if (fallbackKey) {
+        const fallback = hit[fallbackKey];
+        if (fallback !== undefined && fallback !== null && String(fallback).trim() !== '') return String(fallback);
+      }
+      return '';
+    };
+
+    return {
+      id: hit.objectID,
+      nom: choose('Nom_fr', 'Nom_en', 'Nom'),
+      description: choose('Description_fr', 'Description_en', 'Description'),
+      fe: hit.FE ?? 0,
+      uniteActivite: choose('Unite_fr', 'Unite_en', "Unité donnée d'activité" as keyof AlgoliaHit),
+      source: hit.Source,
+      secteur: choose('Secteur_fr', 'Secteur_en', 'Secteur'),
+      sousSecteur: choose('Sous-secteur_fr', 'Sous-secteur_en', 'Sous-secteur'),
+      localisation: choose('Localisation_fr', 'Localisation_en', 'Localisation'),
+      date: hit.Date ?? 0,
+      incertitude: hit.Incertitude ?? '',
+      perimetre: choose('Périmètre_fr', 'Périmètre_en', 'Périmètre'),
+      contributeur: choose('Contributeur', 'Contributeur_en'),
+      contributeur_en: String(hit.Contributeur_en ?? ''),
+      methodologie: choose('Méthodologie', 'Méthodologie_en'),
+      methodologie_en: String(hit.Méthodologie_en ?? ''),
+      typeDonnees: choose('Type_de_données', 'Type_de_données_en'),
+      typeDonnees_en: String(hit['Type_de_données_en'] ?? ''),
+      commentaires: choose('Commentaires_fr', 'Commentaires_en', 'Commentaires'),
+    };
+  };
 
   const handleExport = useCallback(async (
     items: EmissionFactor[] | AlgoliaHit[], 
@@ -67,72 +84,86 @@ export const useQuotaActions = () => {
     try {
       await incrementExport(items.length);
 
-      let normalizedItems: EmissionFactor[];
-      if (items.length > 0 && 'objectID' in items[0]) {
-        normalizedItems = (items as AlgoliaHit[]).map(mapHitToEmissionFactor);
-      } else {
-        normalizedItems = items as EmissionFactor[];
-      }
+      const normalizedItems: EmissionFactor[] =
+        items.length > 0 && 'objectID' in items[0]
+          ? (items as AlgoliaHit[]).map((hit) => mapHitToLocalizedFactor(hit, language))
+          : (items as EmissionFactor[]);
 
-      const csvHeaders = [
-        'Nom',
-        'Nom_en',
-        'Description',
-        'Description_en',
-        'FE',
-        "Unité donnée d'activité",
-        'Unite_en',
-        'Source',
-        'Secteur',
-        'Secteur_en',
-        'Sous-secteur',
-        'Sous-secteur_en',
-        'Localisation',
-        'Localisation_en',
-        'Date',
-        'Incertitude',
-        'Périmètre',
-        'Périmètre_en',
-        'Contributeur',
-        'Contributeur_en',
-        'Méthodologie',
-        'Méthodologie_en',
-        'Type_de_données',
-        'Type_de_données_en',
-        'Commentaires',
-        'Commentaires_en'
-      ];
+      const csvHeaders = language === 'fr'
+        ? [
+            'Nom',
+            'Description',
+            'FE',
+            "Unité donnée d'activité",
+            'Source',
+            'Secteur',
+            'Sous-secteur',
+            'Localisation',
+            'Date',
+            'Incertitude',
+            'Périmètre',
+            'Contributeur',
+            'Méthodologie',
+            'Type_de_données',
+            'Commentaires'
+          ]
+        : [
+            'Name',
+            'Description',
+            'FE',
+            'Activity unit',
+            'Source',
+            'Sector',
+            'Sub-sector',
+            'Location',
+            'Date',
+            'Uncertainty',
+            'Perimeter',
+            'Contributor',
+            'Methodology',
+            'Data type',
+            'Comments'
+          ];
 
       const csvData = [
         csvHeaders,
-        ...normalizedItems.map(item => [
-          item.nom || '',
-          '',
-          item.description || '',
-          '',
-          item.fe?.toString() || '',
-          item.uniteActivite || '',
-          '',
-          item.source || '',
-          item.secteur || '',
-          '',
-          item.sousSecteur || '',
-          '',
-          item.localisation || '',
-          '',
-          item.date?.toString() || '',
-          item.incertitude || '',
-          item.perimetre || '',
-          '',
-          item.contributeur || '',
-          item.contributeur_en || '',
-          item.methodologie || '',
-          item.methodologie_en || '',
-          item.typeDonnees || '',
-          item.typeDonnees_en || '',
-          item.commentaires || '',
-          ''
-        ])
+        ...normalizedItems.map(item =>
+          language === 'fr'
+            ? [
+                item.nom || '',
+                item.description || '',
+                item.fe?.toString() || '',
+                item.uniteActivite || '',
+                item.source || '',
+                item.secteur || '',
+                item.sousSecteur || '',
+                item.localisation || '',
+                item.date?.toString() || '',
+                item.incertitude || '',
+                item.perimetre || '',
+                item.contributeur || '',
+                item.methodologie || '',
+                item.typeDonnees || '',
+                item.commentaires || ''
+              ]
+            : [
+                item.nom || '',
+                item.description || '',
+                item.fe?.toString() || '',
+                item.uniteActivite || '',
+                item.source || '',
+                item.secteur || '',
+                item.sousSecteur || '',
+                item.localisation || '',
+                item.date?.toString() || '',
+                item.incertitude || '',
+                item.perimetre || '',
+                item.contributeur_en || item.contributeur || '',
+                item.methodologie_en || item.methodologie || '',
+                item.typeDonnees_en || item.typeDonnees || '',
+                item.commentaires || ''
+              ]
+        )
       ];
 
       const csvContent = csvData.map(row => 
@@ -177,24 +208,52 @@ export const useQuotaActions = () => {
     try {
       await incrementClipboardCopy(items.length);
 
-      let normalizedItems: EmissionFactor[];
-      if (items.length > 0 && 'objectID' in items[0]) {
-        normalizedItems = (items as AlgoliaHit[]).map(mapHitToEmissionFactor);
-      } else {
-        normalizedItems = items as EmissionFactor[];
-      }
+      const normalizedItems: EmissionFactor[] =
+        items.length > 0 && 'objectID' in items[0]
+          ? (items as AlgoliaHit[]).map((hit) => mapHitToLocalizedFactor(hit, language))
+          : (items as EmissionFactor[]);
 
-      const headers = [
-        'Nom', 'Nom_en', 'Description', 'Description_en', 'FE', 'Unité donnée d\'activité', 'Unite_en', 'Source',
-        'Secteur', 'Secteur_en', 'Sous-secteur', 'Sous-secteur_en', 'Localisation', 'Localisation_en', 'Date', 'Incertitude',
-        'Périmètre', 'Périmètre_en', 'Contributeur', 'Contributeur_en', 'Méthodologie', 'Méthodologie_en', 'Type_de_données', 'Type_de_données_en', 'Commentaires', 'Commentaires_en'
-      ];
+      const headers = language === 'fr'
+        ? ['Nom', 'Description', 'FE', "Unité donnée d'activité", 'Source', 'Secteur', 'Sous-secteur', 'Localisation', 'Date', 'Incertitude', 'Périmètre', 'Contributeur', 'Méthodologie', 'Type_de_données', 'Commentaires']
+        : ['Name', 'Description', 'FE', 'Activity unit', 'Source', 'Sector', 'Sub-sector', 'Location', 'Date', 'Uncertainty', 'Perimeter', 'Contributor', 'Methodology', 'Data type', 'Comments'];
 
-      const rows = normalizedItems.map(item => [
-        item.nom || '', '', item.description || '', '', item.fe?.toString() || '', item.uniteActivite || '', '', item.source || '',
-        item.secteur || '', '', item.sousSecteur || '', '', item.localisation || '', '', item.date?.toString() || '', item.incertitude || '',
-        item.perimetre || '', '', item.contributeur || '', item.contributeur_en || '', item.methodologie || '', item.methodologie_en || '', item.typeDonnees || '', item.typeDonnees_en || '', item.commentaires || '', ''
-      ]);
+      const rows = normalizedItems.map(item =>
+        language === 'fr'
+          ? [
+              item.nom || '',
+              item.description || '',
+              item.fe?.toString() || '',
+              item.uniteActivite || '',
+              item.source || '',
+              item.secteur || '',
+              item.sousSecteur || '',
+              item.localisation || '',
+              item.date?.toString() || '',
+              item.incertitude || '',
+              item.perimetre || '',
+              item.contributeur || '',
+              item.methodologie || '',
+              item.typeDonnees || '',
+              item.commentaires || ''
+            ]
+          : [
+              item.nom || '',
+              item.description || '',
+              item.fe?.toString() || '',
+              item.uniteActivite || '',
+              item.source || '',
+              item.secteur || '',
+              item.sousSecteur || '',
+              item.localisation || '',
+              item.date?.toString() || '',
+              item.incertitude || '',
+              item.perimetre || '',
+              item.contributeur_en || item.contributeur || '',
+              item.methodologie_en || item.methodologie || '',
+              item.typeDonnees_en || item.typeDonnees || '',
+              item.commentaires || ''
+            ]
+      );
 
       const allData = [headers, ...rows];
       const textData = allData.map(row => row.join('\t')).join('\n');

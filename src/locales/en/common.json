@@ -1,0 +1,51 @@
+{
+  "language": {
+    "fr": "French",
+    "en": "English",
+    "switch": "Change language",
+    "toggle": {
+      "fr": "FR",
+      "en": "EN"
+    }
+  },
+  "actions": {
+    "back_home": "Back to homepage",
+    "log_in": "Log in",
+    "sign_up": "Sign up"
+  },
+  "impersonation": {
+    "banner": {
+      "title": "Impersonation mode:",
+      "description": "You are signed in as <0>{{email}}</0> in workspace <1>{{workspace}}</1>",
+      "button": "Back to admin"
+    },
+    "toast": {
+      "success_title": "Impersonation ended",
+      "success_description": "You are now signed back in with your admin account",
+      "error_title": "Error",
+      "error_description": "Unable to end impersonation"
+    }
+  },
+  "toasts": {
+    "success": {
+      "title": "Success",
+      "default": "Action completed successfully"
+    },
+    "error": {
+      "title": "Error",
+      "default": "An unexpected error occurred"
+    },
+    "import": {
+      "launch_title": "Import started",
+      "launch_description": "Job: {{job}}",
+      "error_title": "Import error",
+      "error_description": "{{message}}",
+      "missing_file": "Missing file",
+      "missing_file_description": "Please upload a file.",
+      "analysis_required": "Analysis required",
+      "analysis_required_description": "Click Analyze first, then Import.",
+      "analysis_success_title": "Analysis completed",
+      "analysis_success_description": "{{processed}} valid rows; {{sources}} sources detected"
+    }
+  }
+}

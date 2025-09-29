@@ -7,6 +7,41 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const AUTH_LIST_USERS_PAGE_SIZE = 200;
+const AUTH_LIST_USERS_MAX_PAGES = 25;
+
+async function findAuthUserByEmail(adminClient: ReturnType<typeof createClient>, email: string) {
+  const emailLower = email.toLowerCase();
+
+  for (let page = 1; page <= AUTH_LIST_USERS_MAX_PAGES; page++) {
+    const { data, error } = await adminClient.auth.admin.listUsers({
+      page,
+      perPage: AUTH_LIST_USERS_PAGE_SIZE,
+    });
+
+    if (error) {
+      console.error('Error fetching auth users page', page, error);
+      throw new Error('Failed to list auth users');
+    }
+
+    const users = data?.users ?? [];
+    const match = users.find((candidate) => {
+      const candidateEmail = typeof candidate.email === 'string' ? candidate.email.toLowerCase() : '';
+      return candidateEmail === emailLower;
+    });
+
+    if (match) {
+      return match;
+    }
+
+    if (users.length < AUTH_LIST_USERS_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return null;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -65,9 +100,14 @@ Deno.serve(async (req) => {
 
     console.log(`Inviting ${email} to workspace ${workspaceName} with role ${role}`);
 
+    const emailLower = email.toLowerCase().trim();
+
+    // On ne peut pas vérifier directement dans auth.users depuis une Edge Function
+    // On va donc essayer d'inviter et gérer les erreurs
+
     // Send invitation using admin API
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(
-      email.toLowerCase().trim(),
+      emailLower,
       {
         redirectTo: redirectTo || `${req.headers.get('origin') || 'https://0815560b-83d3-424c-9aae-2424e8359352.lovableproject.com'}/auth/callback?type=invite&workspaceId=${workspaceId}&role=${role}`,
         data: {
@@ -80,7 +120,121 @@ Deno.serve(async (req) => {
     );
 
     if (error) {
-      console.error('Supabase invitation error:', error);
+      console.warn('Supabase invitation error, attempting fallback:', error);
+
+      const isDuplicate = typeof error.message === 'string' && (
+        error.message.includes('already been registered') ||
+        error.message.includes('Database error saving new user')
+      );
+
+      if (isDuplicate) {
+        console.log(`User ${emailLower} already exists, attempting to link to workspace via admin listUsers`);
+
+        const authUser = await findAuthUserByEmail(supabase, emailLower);
+
+        if (!authUser) {
+          console.log('Existing auth user not found via admin listUsers; invitation already sent by Supabase.');
+          return new Response(
+            JSON.stringify({
+              success: true,
+              alreadyExists: false,
+              code: 'invite-sent-pending',
+              message: 'Invitation sent by Supabase. User not yet present in auth.users.'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+        }
+
+        const existingUserId = String(authUser.id);
+        const metadata = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+        const firstNameFromMetadata = typeof metadata.first_name === 'string' ? metadata.first_name : '';
+        const lastNameFromMetadata = typeof metadata.last_name === 'string' ? metadata.last_name : '';
+
+        let normalizedFirstName = firstNameFromMetadata;
+        let normalizedLastName = lastNameFromMetadata;
+        let normalizedCompany = workspaceName;
+
+        const { data: existingAnyWorkspace } = await supabase
+          .from('users')
+          .select('first_name, last_name, company')
+          .eq('user_id', existingUserId)
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        if (existingAnyWorkspace && existingAnyWorkspace.length > 0) {
+          normalizedFirstName = normalizedFirstName || existingAnyWorkspace[0].first_name || '';
+          normalizedLastName = normalizedLastName || existingAnyWorkspace[0].last_name || '';
+          normalizedCompany = existingAnyWorkspace[0].company || normalizedCompany;
+        }
+
+        const { data: existingUserRecord } = await supabase
+          .from('users')
+          .select('id')
+          .eq('user_id', existingUserId)
+          .eq('workspace_id', workspaceId)
+          .maybeSingle();
+
+        if (!existingUserRecord) {
+          const { error: userError } = await supabase
+            .from('users')
+            .insert({
+              user_id: existingUserId,
+              workspace_id: workspaceId,
+              first_name: normalizedFirstName,
+              last_name: normalizedLastName,
+              company: normalizedCompany,
+              email: emailLower,
+              plan_type: 'freemium',
+              subscribed: false,
+              assigned_by: user.id
+            });
+
+          if (userError) {
+            console.error('Error inserting user in fallback:', userError);
+            throw new Error('Failed to add user to workspace');
+          }
+        }
+
+        const { data: existingRoleRecord } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', existingUserId)
+          .eq('workspace_id', workspaceId)
+          .maybeSingle();
+
+        if (!existingRoleRecord) {
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: existingUserId,
+              workspace_id: workspaceId,
+              role,
+              assigned_by: user.id,
+              is_supra_admin: role === 'supra_admin'
+            });
+
+          if (roleError) {
+            console.error('Error inserting role in fallback:', roleError);
+            throw new Error('Failed to assign role to user');
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            alreadyExists: true,
+            code: 'existing-user-linked'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+
       throw error;
     }
 
@@ -89,7 +243,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Invitation envoyée à ${email}`,
+        code: 'invite-sent',
         data: data
       }),
       { 

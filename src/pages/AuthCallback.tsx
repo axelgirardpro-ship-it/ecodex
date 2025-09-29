@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { buildLocalizedPath } from "@i18n/routing";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 export const AuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -12,6 +15,8 @@ export const AuthCallback = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { language } = useLanguage();
+  const { t } = useTranslation("pages", { keyPrefix: "authCallback" });
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -20,7 +25,7 @@ export const AuthCallback = () => {
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          throw new Error(`Erreur d'authentification: ${error.message}`);
+          throw new Error(t("errors.auth", { message: error.message ?? "" }));
         }
 
         // Extraire les paramètres d'invitation
@@ -44,14 +49,18 @@ export const AuthCallback = () => {
                 .rpc('workspace_has_access', { workspace_uuid: userData.workspace_id });
 
               if (!accessErr && hasAccess === false) {
-                try { sessionStorage.setItem('trial_expired', 'true'); } catch {}
+                try {
+                  sessionStorage.setItem('trial_expired', 'true');
+                } catch (storageError) {
+                  console.warn('Impossible de persister le flag trial_expired', storageError);
+                }
                 await supabase.auth.signOut();
-                navigate('/login?trial_expired=true');
+                navigate(`${buildLocalizedPath('/login', language)}?trial_expired=true`);
                 return;
               }
             }
-          } catch (e) {
-            console.warn('Vérification essai expiré (OAuth) échouée:', e);
+          } catch (verifyError) {
+            console.warn('Vérification essai expiré (OAuth) échouée:', verifyError);
           }
 
           // Si c'est une invitation à un workspace
@@ -59,23 +68,29 @@ export const AuthCallback = () => {
             await handleWorkspaceInvitation(data.session.user, workspaceId, role);
           } else {
             // Redirection normale vers le dashboard
-            navigate('/search');
+            navigate(buildLocalizedPath('/search', language));
           }
         } else {
-          throw new Error('Aucune session utilisateur trouvée');
+          throw new Error(t('errors.noSession'));
         }
-      } catch (error: any) {
-        console.error('Erreur lors du callback auth:', error);
-        setError(error.message || 'Erreur lors de l\'authentification');
+      } catch (err) {
+        console.error('Erreur lors du callback auth:', err);
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message || t('errors.generic'));
       } finally {
         setLoading(false);
       }
     };
 
-    handleAuthCallback();
-  }, [searchParams, navigate]);
+    void handleAuthCallback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, navigate, language, t]);
 
-  const handleWorkspaceInvitation = async (user: any, workspaceId: string, role: string) => {
+  const handleWorkspaceInvitation = async (
+    user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null },
+    workspaceId: string,
+    role: string
+  ) => {
     try {
       // Vérifier si l'utilisateur existe déjà dans ce workspace
       const { data: existingUser } = await supabase
@@ -87,10 +102,10 @@ export const AuthCallback = () => {
 
       if (existingUser) {
         toast({
-          title: "Déjà membre",
-          description: "Vous êtes déjà membre de ce workspace",
+          title: (t as any)('toasts.alreadyMember.title'),
+          description: (t as any)('toasts.alreadyMember.description'),
         });
-        navigate('/search');
+        navigate(buildLocalizedPath('/search', language));
         return;
       }
 
@@ -107,7 +122,6 @@ export const AuthCallback = () => {
       const { error: userError } = await supabase
         .from('users')
         .insert({
-          user_id: user.id,
           workspace_id: workspaceId,
           first_name: user.user_metadata?.first_name || '',
           last_name: user.user_metadata?.last_name || '',
@@ -116,7 +130,7 @@ export const AuthCallback = () => {
           plan_type: 'freemium',
           subscribed: false,
           assigned_by: user.id
-        });
+        } as any);
 
       if (userError) throw userError;
 
@@ -147,20 +161,20 @@ export const AuthCallback = () => {
       if (quotaError) console.warn('Erreur quotas (non critique):', quotaError);
 
       toast({
-        title: "Bienvenue !",
-        description: `Vous avez rejoint le workspace "${workspaceName}" avec succès`,
+        title: (t as any)('toasts.welcome.title'),
+        description: (t as any)('toasts.welcome.description', { workspace: workspaceName }),
       });
 
-      navigate('/search');
+      navigate(buildLocalizedPath('/search', language));
 
-    } catch (error: any) {
-      console.error('Erreur lors de l\'ajout au workspace:', error);
+    } catch (err) {
+      console.error('Erreur lors de l\'ajout au workspace:', err);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de rejoindre le workspace",
+        title: (t as any)('toasts.joinError.title'),
+        description: (t as any)('toasts.joinError.description'),
       });
-      navigate('/search');
+      navigate(buildLocalizedPath('/search', language));
     }
   };
 
@@ -172,7 +186,7 @@ export const AuthCallback = () => {
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
               <RefreshCw className="h-6 w-6 text-primary animate-spin" />
             </div>
-            <CardTitle>Authentification en cours...</CardTitle>
+          <CardTitle>{t('loadingTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Skeleton className="h-4 w-full" />
@@ -191,10 +205,10 @@ export const AuthCallback = () => {
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <XCircle className="h-6 w-6 text-destructive" />
             </div>
-            <CardTitle className="text-destructive">Erreur d'authentification</CardTitle>
+            <CardTitle className="text-destructive">{t('errorTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground text-center">{error}</p>
+            <p className="text-sm text-muted-foreground text-center">{error ?? t('errors.generic')}</p>
           </CardContent>
         </Card>
       </div>
@@ -208,11 +222,11 @@ export const AuthCallback = () => {
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <CardTitle>Authentification réussie</CardTitle>
+          <CardTitle>{t('successTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center">
-            Redirection en cours...
+            {t('redirectMessage')}
           </p>
         </CardContent>
       </Card>
