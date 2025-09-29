@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,30 +27,24 @@ interface WorkspaceUser {
   }>;
 }
 
-export const WorkspaceUsersManager = () => {
+export const WorkspaceUsersManager: React.FC = () => {
+  const { t, i18n } = useTranslation('pages', { keyPrefix: 'settings.team' });
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "gestionnaire">("gestionnaire");
   const [isInviting, setIsInviting] = useState(false);
-  
+
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (currentWorkspace?.id) {
-      getWorkspaceUsers();
-    }
-  }, [currentWorkspace?.id]);
-
-  const getWorkspaceUsers = async () => {
+  const getWorkspaceUsers = useCallback(async () => {
     if (!currentWorkspace?.id) return;
 
     try {
       setLoading(true);
-      
-      // Utiliser directement la RPC function existante
+
       const { data: rawUsers, error } = await supabase
         .rpc('get_workspace_users_with_roles', {
           target_workspace_id: currentWorkspace.id
@@ -57,11 +52,10 @@ export const WorkspaceUsersManager = () => {
 
       if (error) throw error;
 
-      // Normaliser les rôles renvoyés en JSON vers le type attendu par l'UI
-      const normalizedUsers: WorkspaceUser[] = (rawUsers || []).map((u: unknown) => {
-        const unsafeUser = u as Record<string, unknown>;
+      const normalizedUsers: WorkspaceUser[] = (rawUsers || []).map((rawUser) => {
+        const unsafeUser = rawUser as Record<string, unknown>;
 
-        let rolesUnknown = unsafeUser?.user_roles as unknown;
+        let rolesUnknown = unsafeUser?.user_roles;
         if (typeof rolesUnknown === 'string') {
           try {
             rolesUnknown = JSON.parse(rolesUnknown);
@@ -72,11 +66,14 @@ export const WorkspaceUsersManager = () => {
 
         const normalizedRoles = Array.isArray(rolesUnknown)
           ? rolesUnknown
-              .map((r: any) => ({
-                role: String(r?.role ?? r?.role_name ?? ''),
-                created_at: String(r?.created_at ?? ''),
-              }))
-              .filter((r: { role: string }) => r.role.length > 0)
+              .map((roleEntry) => {
+                const entry = roleEntry as Record<string, unknown>;
+                return {
+                  role: String(entry?.role ?? entry?.role_name ?? ''),
+                  created_at: String(entry?.created_at ?? ''),
+                };
+              })
+              .filter((role) => role.role.length > 0)
           : [];
 
         return {
@@ -90,18 +87,24 @@ export const WorkspaceUsersManager = () => {
       });
 
       setUsers(normalizedUsers);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching workspace users:', error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les utilisateurs du workspace",
+        title: t('toasts.loadError.title'),
+        description: t('toasts.loadError.description'),
       });
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentWorkspace?.id, t, toast]);
+
+  useEffect(() => {
+    if (currentWorkspace?.id) {
+      void getWorkspaceUsers();
+    }
+  }, [currentWorkspace?.id, getWorkspaceUsers]);
 
   const handleInviteUser = async () => {
     if (!currentWorkspace?.id || !inviteEmail.trim()) return;
@@ -109,7 +112,6 @@ export const WorkspaceUsersManager = () => {
     try {
       setIsInviting(true);
 
-      // Utiliser l'Edge Function (auth et apikey gérées par le client supabase)
       const { data: result, error } = await supabase.functions.invoke('invite-user', {
         body: {
           email: inviteEmail.toLowerCase().trim(),
@@ -119,27 +121,43 @@ export const WorkspaceUsersManager = () => {
         }
       });
 
-      if (error || !(result as any)?.success) {
-        throw new Error(error?.message || (result as any)?.error || 'Erreur lors de l\'invitation');
+      if (error) {
+        throw new Error(error.message || t('toasts.inviteError.description'));
+      }
+
+      const typedResult = result as { success?: boolean; error?: string; code?: string } | null;
+      if (!typedResult?.success) {
+        if (typedResult?.code === 'existing-user-linked') {
+          toast({
+            title: t('toasts.inviteExisting.title'),
+            description: t('toasts.inviteExisting.description', { email: inviteEmail })
+          });
+          setInviteEmail('');
+          setIsInviteDialogOpen(false);
+          void getWorkspaceUsers();
+          return;
+        }
+
+        throw new Error(typedResult?.error || t('toasts.inviteError.description'));
       }
 
       toast({
-        title: "Invitation envoyée !",
-        description: `Une invitation a été envoyée à ${inviteEmail}`,
+        title: t('toasts.inviteSuccess.title'),
+        description: t('toasts.inviteSuccess.description', { email: inviteEmail }),
       });
 
-      setInviteEmail("");
+      setInviteEmail('');
       setIsInviteDialogOpen(false);
-      
-      // Recharger la liste des utilisateurs
-      setTimeout(() => getWorkspaceUsers(), 1000);
 
-    } catch (error: any) {
+      setTimeout(() => {
+        void getWorkspaceUsers();
+      }, 1000);
+    } catch (error) {
       console.error('Error inviting user:', error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: error.message || "Impossible d'envoyer l'invitation",
+        title: t('toasts.inviteError.title'),
+        description: error instanceof Error ? error.message : t('toasts.inviteError.description'),
       });
     } finally {
       setIsInviting(false);
@@ -159,17 +177,17 @@ export const WorkspaceUsersManager = () => {
       if (error) throw error;
 
       toast({
-        title: "Rôle mis à jour",
-        description: `Le rôle de l'utilisateur a été modifié`,
+        title: t('toasts.updateRoleSuccess.title'),
+        description: t('toasts.updateRoleSuccess.description'),
       });
 
-      getWorkspaceUsers();
-    } catch (error: any) {
+      void getWorkspaceUsers();
+    } catch (error) {
       console.error('Error updating user role:', error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de modifier le rôle",
+        title: t('toasts.updateRoleError.title'),
+        description: t('toasts.updateRoleError.description'),
       });
     }
   };
@@ -178,7 +196,6 @@ export const WorkspaceUsersManager = () => {
     if (!currentWorkspace?.id) return;
 
     try {
-      // Supprimer de user_roles d'abord
       const { error: roleError } = await supabase
         .from('user_roles')
         .delete()
@@ -187,7 +204,6 @@ export const WorkspaceUsersManager = () => {
 
       if (roleError) throw roleError;
 
-      // Supprimer de users
       const { error: userError } = await supabase
         .from('users')
         .delete()
@@ -197,17 +213,17 @@ export const WorkspaceUsersManager = () => {
       if (userError) throw userError;
 
       toast({
-        title: "Utilisateur retiré",
-        description: "L'utilisateur a été retiré du workspace",
+        title: t('toasts.removeUserSuccess.title'),
+        description: t('toasts.removeUserSuccess.description'),
       });
 
-      getWorkspaceUsers();
-    } catch (error: any) {
+      void getWorkspaceUsers();
+    } catch (error) {
       console.error('Error removing user:', error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de retirer l'utilisateur",
+        title: t('toasts.removeUserError.title'),
+        description: t('toasts.removeUserError.description'),
       });
     }
   };
@@ -228,10 +244,10 @@ export const WorkspaceUsersManager = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Équipe du workspace
+                {t('title')}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Gérez les utilisateurs et leurs rôles dans votre workspace
+                {t('description')}
               </p>
             </div>
             <Skeleton className="h-10 w-48" />
@@ -260,27 +276,27 @@ export const WorkspaceUsersManager = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Équipe du workspace
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Gérez les utilisateurs et leurs rôles dans votre workspace
-            </p>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                {t('title')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t('description')}
+              </p>
           </div>
-          
+
           <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
-                INVITER UN UTILISATEUR
+                {t('invite.button')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Inviter un utilisateur</DialogTitle>
+                <DialogTitle>{t('invite.dialogTitle')}</DialogTitle>
                 <DialogDescription>
-                  Invitez un nouvel utilisateur à rejoindre ce workspace
+                  {t('invite.dialogDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -289,33 +305,33 @@ export const WorkspaceUsersManager = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="utilisateur@email.com"
+                    placeholder={t('invite.emailPlaceholder')}
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="role">Rôle</Label>
+                  <Label htmlFor="role">{t('invite.roleLabel')}</Label>
                   <Select value={inviteRole} onValueChange={(value: "admin" | "gestionnaire") => setInviteRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
-                      <SelectItem value="admin">Administrateur</SelectItem>
+                      <SelectItem value="gestionnaire">{t('roles.gestionnaire')}</SelectItem>
+                      <SelectItem value="admin">{t('roles.admin')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                    Annuler
+                    {t('invite.cancel')}
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleInviteUser}
                     disabled={!inviteEmail.trim() || isInviting}
                   >
                     <Mail className="h-4 w-4 mr-2" />
-                    {isInviting ? "Envoi..." : "Envoyer l'invitation"}
+                    {isInviting ? t('invite.sending') : t('invite.submit')}
                   </Button>
                 </div>
               </div>
@@ -328,7 +344,7 @@ export const WorkspaceUsersManager = () => {
         {users.length === 0 ? (
           <Alert>
             <AlertDescription>
-              Aucun utilisateur dans ce workspace pour le moment.
+              {t('empty')}
             </AlertDescription>
           </Alert>
         ) : (
@@ -337,13 +353,13 @@ export const WorkspaceUsersManager = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                    Utilisateur
+                    {t('table.user')}
                   </th>
                   <th className="text-center py-3 px-2 font-medium text-muted-foreground w-36">
-                    Rôle
+                    {t('table.role')}
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground w-28">
-                    Ajouté le
+                    {t('table.addedAt')}
                   </th>
                   <th className="w-16"></th>
                 </tr>
@@ -360,30 +376,30 @@ export const WorkspaceUsersManager = () => {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium">
-                            {user.first_name && user.last_name ? 
-                              `${user.first_name} ${user.last_name}` : 
-                              'Utilisateur'
+                            {user.first_name && user.last_name ?
+                              `${user.first_name} ${user.last_name}` :
+                              t('table.fallbackName')
                             }
                           </div>
                           <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                         </div>
                       </div>
                     </td>
-                    
+
                     <td className="py-4 px-2 text-center">
-                      <Badge 
-                        variant={getRoleBadgeVariant(user.user_roles[0]?.role)} 
+                      <Badge
+                        variant={getRoleBadgeVariant(user.user_roles[0]?.role)}
                         className="flex items-center gap-1 whitespace-nowrap text-xs px-3 py-1.5"
                       >
                         {React.createElement(getRoleIcon(user.user_roles[0]?.role), { className: "h-3 w-3" })}
-                        {user.user_roles[0]?.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
+                        {user.user_roles[0]?.role === 'admin' ? t('roles.admin') : t('roles.gestionnaire')}
                       </Badge>
                     </td>
-                    
+
                     <td className="py-4 px-4 text-sm text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                      {new Date(user.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-GB')}
                     </td>
-                    
+
                     <td className="py-4 px-4">
                       <div className="flex justify-end">
                         <DropdownMenu>
@@ -394,18 +410,18 @@ export const WorkspaceUsersManager = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleUpdateUserRole(
-                              user.user_id, 
+                              user.user_id,
                               user.user_roles[0]?.role === 'admin' ? 'gestionnaire' : 'admin'
                             )}>
                               <Crown className="h-4 w-4 mr-2" />
-                              {user.user_roles[0]?.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
+                              {user.user_roles[0]?.role === 'admin' ? t('table.downgrade') : t('table.promote')}
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleRemoveUser(user.user_id)}
                               className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Retirer du workspace
+                              {t('table.remove')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

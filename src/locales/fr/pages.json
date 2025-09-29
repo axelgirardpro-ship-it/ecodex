@@ -1,0 +1,687 @@
+{
+  "index": {
+    "hero": {
+      "lines": [
+        "Le moteur de recherche",
+        "de FE le plus puissant",
+        "du marché"
+      ],
+      "subtitle": "Accédez à plus de 255 000 facteurs d'émissions français et internationaux agrégés et enrichis par nos experts.",
+      "primaryCta": "Tester le moteur de recherche",
+      "secondaryCta": "Se connecter",
+      "imageAlt": "Interface de recherche de facteurs d'émission"
+    },
+    "navbar": {
+      "partners": "Retrouvez les plus grandes bases françaises et internationales"
+    },
+    "demo": {
+      "title": "Découvrez la puissance du moteur de recherche",
+      "subtitle": "Explorez l'interface via une démonstration interactive."
+    },
+    "tabsSection": {
+      "title": "Un moteur de recherche puissant et personnalisable",
+      "items": [
+        {
+          "id": "data",
+          "label": "Données",
+          "title": "Le guichet unique de vos données carbone",
+          "imageAlt": "Interface base de données",
+          "highlights": [
+            {
+              "title": "Une donnée structurée",
+              "description": "Une structuration unique et homogène de plus de 20 bases de données de références internationales."
+            },
+            {
+              "title": "Une donnée à jour",
+              "description": "Une mise à jour en continu des bases pour une garantie de qualité des facteurs d'émission."
+            },
+            {
+              "title": "+ 250K FE à disposition",
+              "description": "Plus de 250k FE génériques et spécifiques disponibles dans une structure commune."
+            }
+          ]
+        },
+        {
+          "id": "search",
+          "label": "Recherche",
+          "title": "Un moteur fluide et simple d'utilisation",
+          "imageAlt": "Interface de recherche",
+          "highlights": [
+            {
+              "title": "Recherche intelligente",
+              "description": "Recherchez par mots-clés, codes, catégories ou filtres avancés pour trouver rapidement vos FE."
+            },
+            {
+              "title": "Interface intuitive",
+              "description": "Navigation simple et rapide avec suggestions automatiques et tri personnalisable."
+            },
+            {
+              "title": "Résultats précis",
+              "description": "Algorithme optimisé pour proposer les facteurs d'émission les plus pertinents selon vos critères."
+            }
+          ]
+        },
+        {
+          "id": "custom",
+          "label": "Personnalisation",
+          "title": "Personnalisez le moteur selon vos besoins",
+          "imageAlt": "Interface de personnalisation",
+          "highlights": [
+            {
+              "title": "Favoris et collections",
+              "description": "Sauvegardez vos FE préférés et créez des collections thématiques pour un accès rapide."
+            },
+            {
+              "title": "Filtres personnalisés",
+              "description": "Configurez des filtres selon vos secteurs d'activité et vos besoins métier spécifiques."
+            },
+            {
+              "title": "Données sur-mesure",
+              "description": "Intégrez vos propres FE spécifiques et construisez votre base personnalisée."
+            }
+          ]
+        }
+      ]
+    },
+    "datasetsSection": {
+      "title": "Toutes les bases de données sur une seule plateforme",
+      "tabs": [
+        { "id": "standards", "label": "Datasets standards" },
+        { "id": "premium", "label": "Datasets premium" }
+      ]
+    },
+    "expertSection": {
+      "title": "Une base de données structurée et enrichie par nos experts",
+      "imageAlt": "Expert en analyse de données",
+      "blocks": [
+        {
+          "title": "Des bases de données nettoyées et structurées",
+          "description": "Nos experts harmonisent l'ensemble des bases intégrées afin de disposer d'un format de données unique."
+        },
+        {
+          "title": "Enrichissement des bases de données",
+          "description": "Vérification des facteurs par poste d'émission, correction de l'inflation, traduction des métadonnées..."
+        },
+        {
+          "title": "Versionnage continu",
+          "description": "Profitez d'un maintien en temps réel au rythme des mises à jour des différentes sources."
+        }
+      ]
+    },
+    "pricing": {
+      "title": "Un prix qui s'adapte à vos besoins",
+      "plans": {
+        "standard": {
+          "name": "Standard",
+          "startingFrom": "À partir de",
+          "price": "850€",
+          "priceUnit": "/an",
+          "description": "Profitez des datasets standards et du moteur de recherche",
+          "features": [
+            "Accès au moteur de recherche",
+            "Datasets standards (165k FE)",
+            "Mises à jour hebdomadaires"
+          ],
+          "cta": "En savoir plus"
+        },
+        "premium": {
+          "name": "Premium",
+          "startingFrom": "À partir de",
+          "price": "3000€",
+          "priceUnit": "/an",
+          "description": "Accédez aux bases standards et premium et aux exports de données",
+          "features": [
+            "Accès au moteur de recherche",
+            "Datasets standards (165k FE)",
+            "Datasets premium (90k FE)",
+            "Mises à jour hebdomadaires",
+            "Gestion des favoris",
+            "Export des données",
+            "Assistance de nos experts"
+          ],
+          "cta": "En savoir plus"
+        }
+      }
+    },
+    "finalCta": {
+      "title": "Prêt à explorer nos facteurs d'émission ?",
+      "subtitle": "Accédez dès maintenant au moteur de recherche le plus puissant du marché",
+      "primary": "Tester le moteur de recherche",
+      "secondary": "Se connecter"
+    },
+    "footer": {
+      "tagline": "Le moteur de recherche de facteurs d'émission le plus puissant du marché.",
+      "legal": {
+        "privacy": "Politique de confidentialité",
+        "terms": "Conditions d'utilisation",
+        "cookies": "Cookies"
+      },
+      "copyright": "© 2025 Ecodex. Tous droits réservés."
+    }
+  },
+  "login": {
+    "back": "Retour à l'accueil",
+    "title": "Se connecter",
+    "subtitle": "Connectez-vous à votre compte Ecodex",
+    "placeholders": {
+      "email": "votre@email.com",
+      "password": "Votre mot de passe"
+    },
+    "trial": {
+      "title": "Votre plan freemium est terminé.",
+      "description": "Merci de contacter notre équipe commerciale afin de souscrire à un plan payant."
+    },
+    "email": "Email",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "loading": "Connexion...",
+    "or": "ou",
+    "google": "Se connecter avec Google",
+    "noAccount": "Pas encore de compte ?",
+    "signUp": "S'inscrire",
+    "errors": {
+      "login": "Erreur lors de la connexion",
+      "google": "Erreur lors de la connexion avec Google",
+      "unexpected": "Une erreur inattendue s'est produite"
+    },
+    "toasts": {
+      "error": {
+        "title": "Erreur lors de la connexion",
+        "googleTitle": "Erreur Google",
+        "unexpected": "Une erreur inattendue s'est produite"
+      }
+    }
+  },
+  "signup": {
+    "back": "Retour à l'accueil",
+    "title": "Créer un compte",
+    "subtitle": "Rejoignez la plateforme Ecodex",
+    "placeholders": {
+      "firstName": "Votre prénom",
+      "lastName": "Votre nom",
+      "company": "Nom de votre entreprise",
+      "email": "votre@email.com",
+      "password": "Au moins 6 caractères",
+      "confirmPassword": "Confirmez votre mot de passe"
+    },
+    "errors": {
+      "title": "Erreur",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "passwordLength": "Le mot de passe doit contenir au moins 6 caractères",
+      "signup": "Erreur lors de l'inscription",
+      "signupGoogle": "Erreur lors de l'inscription avec Google",
+      "unexpected": "Une erreur inattendue s'est produite"
+    },
+    "success": {
+      "title": "Inscription réussie",
+      "description": "Un email de confirmation a été envoyé. Vérifiez votre boîte mail."
+    },
+    "toasts": {
+      "success": {
+        "title": "Inscription réussie",
+        "description": "Un email de confirmation a été envoyé. Vérifiez votre boîte mail."
+      },
+      "error": {
+        "title": "Erreur lors de l'inscription",
+        "googleTitle": "Erreur lors de l'inscription Google",
+        "unexpected": "Une erreur inattendue s'est produite"
+      }
+    },
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email professionnel",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "company": "Entreprise",
+    "position": "Poste",
+    "submit": "Créer mon compte",
+    "loading": "Création...",
+    "or": "ou",
+    "alreadyAccount": "Déjà un compte ?",
+    "login": "Se connecter",
+    "google": "S'inscrire avec Google"
+  },
+  "favorites": {
+    "loading": {
+      "title": "Chargement de vos favoris...",
+      "subtitle": "Récupération des données depuis la base..."
+    },
+    "header": {
+      "title": "Mes Favoris",
+      "subtitle": "Recherchez et gérez vos facteurs d'émission favoris avec les filtres avancés"
+    },
+    "stats": {
+      "favorites": "favoris au total",
+      "sources": "sources",
+      "locations": "localisations"
+    },
+    "empty": {
+      "title": "Aucun favori pour le moment",
+      "description": "Ajoutez des facteurs d'émissions à vos favoris depuis la page de recherche",
+      "cta": "Commencer une recherche"
+    },
+    "actions": {
+      "remove": "Retirer des favoris",
+      "removeCount": "Retirer des favoris ({{count}})",
+      "export": "Exporter la sélection",
+      "exportCount": "Exporter la sélection ({{count}})",
+      "copy": "Copier la sélection",
+      "copyCount": "Copier la sélection ({{count}})"
+    },
+    "toasts": {
+      "removed": {
+        "title": "Favori supprimé",
+        "description": "L'élément a été retiré de vos favoris"
+      },
+      "removeError": {
+        "title": "Erreur",
+        "description": "Erreur lors de la suppression du favori"
+      },
+      "bulkRemoved": {
+        "title": "Favoris mis à jour",
+        "description": "{{count}} élément retiré des favoris.",
+        "description_plural": "{{count}} éléments retirés des favoris."
+      },
+      "bulkError": {
+        "title": "Erreur",
+        "description": "Erreur lors de la suppression des favoris sélectionnés"
+      }
+    }
+  },
+  "passwordReset": {
+    "toasts": {
+      "emailRequired": {
+        "title": "Email requis",
+        "description": "Veuillez saisir votre adresse email"
+      },
+      "emailSent": {
+        "title": "Email envoyé !",
+        "description": "Vérifiez votre boîte mail pour réinitialiser votre mot de passe"
+      },
+      "error": {
+        "title": "Erreur",
+        "description": "Impossible d'envoyer l'email de réinitialisation"
+      }
+    },
+    "sent": {
+      "title": "Email envoyé",
+      "description": "Un email de réinitialisation a été envoyé à <strong>{{email}}</strong>. Cliquez sur le lien dans l'email pour créer un nouveau mot de passe.",
+      "back": "Retour à la connexion",
+      "resend": "Renvoyer l'email"
+    },
+    "form": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Saisissez votre email pour recevoir un lien de réinitialisation",
+      "email": "Email",
+      "placeholder": "votre@email.com",
+      "sending": "Envoi...",
+      "submit": "Envoyer le lien",
+      "back": "Retour à la connexion"
+    }
+  },
+  "settings": {
+    "pageTitle": "Paramètres",
+    "pageSubtitle": "Personnalisez votre expérience Ecodex",
+    "account": {
+      "title": "Informations du compte",
+      "description": "Informations générales sur votre compte",
+      "email": "Email",
+      "fullName": "Nom complet",
+      "missing": "Non renseigné",
+      "role": "Rôle",
+      "roleMissing": "Non assigné",
+      "workspacePlan": "Plan du workspace",
+      "planDefault": "Freemium"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "description": "Informations sur votre espace de travail",
+      "name": "Nom du workspace",
+      "plan": "Plan",
+      "none": "Aucun workspace",
+      "freemium": "Freemium"
+    },
+    "notificationsCard": {
+      "title": "Notifications",
+      "description": "Gérez vos préférences de notification",
+      "items": {
+        "email": {
+          "label": "Notifications par email",
+          "description": "Recevoir les notifications importantes par email"
+        },
+        "favoriteUpdates": {
+          "label": "Mises à jour des favoris",
+          "description": "Être notifié quand les facteurs en favoris sont mis à jour"
+        },
+        "newFeatures": {
+          "label": "Nouvelles fonctionnalités",
+          "description": "Être informé des nouvelles fonctionnalités"
+        },
+        "weeklyReport": {
+          "label": "Rapport hebdomadaire",
+          "description": "Recevoir un résumé de votre activité chaque semaine"
+        }
+      }
+    },
+    "preferencesCard": {
+      "title": "Préférences",
+      "description": "Personnalisez l'interface et le comportement de l'application",
+      "language": "Langue",
+      "timezone": "Fuseau horaire",
+      "defaultUnits": "Unités par défaut",
+      "resultsPerPage": "Résultats par page",
+      "languageOptions": {
+        "fr": "Français",
+        "en": "Anglais"
+      },
+      "timezoneOptions": {
+        "paris": "Paris (UTC+1)",
+        "london": "Londres (UTC+0)",
+        "newYork": "New York (UTC-5)"
+      },
+      "unitsOptions": {
+        "metric": "Métrique",
+        "imperial": "Impérial"
+      },
+      "resultsOptions": {
+        "10": "10",
+        "20": "20",
+        "50": "50",
+        "100": "100"
+      }
+    },
+    "securityCard": {
+      "title": "Sécurité",
+      "twoFactor": {
+        "label": "Authentification à deux facteurs",
+        "description": "Sécurisez votre compte avec 2FA",
+        "action": "Configurer"
+      },
+      "sessions": {
+        "label": "Sessions actives",
+        "description": "Gérer les appareils connectés",
+        "action": "Voir les sessions"
+      }
+    },
+    "billingCard": {
+      "title": "Facturation",
+      "currentPlan": "Plan actuel",
+      "plans": {
+        "premium": "Plan Premium - Illimité",
+        "standard": "Plan Standard - 100 recherches/mois",
+        "freemium": "Plan Gratuit - 10 recherches/mois"
+      },
+      "upgrade": "Passer sur un plan payant",
+      "upgradeSubject": "demande de plan payant",
+      "history": "Historique de facturation",
+      "download": "Télécharger vos factures",
+      "downloadAction": "Télécharger"
+    },
+    "dataCard": {
+      "title": "Données et confidentialité",
+      "export": "Exporter mes données",
+      "deleteSearches": "Supprimer mes recherches",
+      "deleteAccount": "Supprimer mon compte"
+    },
+    "team": {
+      "title": "Équipe du workspace",
+      "description": "Gérez les utilisateurs de votre workspace",
+      "empty": "Aucun utilisateur dans ce workspace pour le moment.",
+      "invite": {
+        "button": "Inviter un utilisateur",
+        "dialogTitle": "Inviter un utilisateur",
+        "dialogDescription": "Invitez un nouvel utilisateur à rejoindre ce workspace",
+        "emailPlaceholder": "utilisateur@email.com",
+        "roleLabel": "Rôle",
+        "cancel": "Annuler",
+        "submit": "Envoyer l'invitation",
+        "sending": "Envoi..."
+      },
+      "table": {
+        "user": "Utilisateur",
+        "role": "Rôle",
+        "addedAt": "Ajouté le",
+        "fallbackName": "Utilisateur",
+        "downgrade": "Rétrograder",
+        "promote": "Promouvoir admin",
+        "remove": "Retirer du workspace"
+      },
+      "roles": {
+        "supra_admin": "Supra administrateur",
+        "admin": "Administrateur",
+        "manager": "Gestionnaire",
+        "user": "Utilisateur",
+        "gestionnaire": "Gestionnaire"
+      },
+      "toasts": {
+        "loadError": {
+          "title": "Erreur",
+          "description": "Impossible de charger les utilisateurs du workspace"
+        },
+        "inviteSuccess": {
+          "title": "Invitation envoyée",
+          "description": "Une invitation a été envoyée à {{email}}"
+        },
+        "inviteExisting": {
+          "title": "Utilisateur ajouté",
+          "description": "{{email}} faisait déjà partie de Supabase. Nous l'avons associé au workspace."
+        },
+        "inviteError": {
+          "title": "Erreur",
+          "description": "Impossible d'envoyer l'invitation"
+        },
+        "updateRoleSuccess": {
+          "title": "Rôle mis à jour",
+          "description": "Le rôle de l'utilisateur a été modifié"
+        },
+        "updateRoleError": {
+          "title": "Erreur",
+          "description": "Impossible de modifier le rôle"
+        },
+        "removeUserSuccess": {
+          "title": "Utilisateur retiré",
+          "description": "L'utilisateur a été retiré du workspace"
+        },
+        "removeUserError": {
+          "title": "Erreur",
+          "description": "Impossible de retirer l'utilisateur"
+        }
+      }
+    },
+    "admin": {
+      "title": "Administration",
+      "description": "Outils d'administration (Supra Admin uniquement)",
+      "openPanel": "Ouvrir le panneau d'administration"
+    },
+    "actions": {
+      "title": "Actions du compte",
+      "description": "Gérez votre session et vos données",
+      "logout": {
+        "button": "Se déconnecter",
+        "confirmTitle": "Confirmer la déconnexion",
+        "confirmDescription": "Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.",
+        "cancel": "Annuler",
+        "confirm": "Se déconnecter"
+      }
+    },
+    "adminNotice": {
+      "title": "Statut Supra Administrateur",
+      "description": "Vous avez accès à toutes les fonctionnalités d'administration. Utilisez ces privilèges de manière responsable."
+    },
+    "roles": {
+      "supra_admin": "Supra administrateur",
+      "admin": "Administrateur",
+      "manager": "Gestionnaire",
+      "user": "Utilisateur"
+    },
+    "toasts": {
+      "notificationUpdated": {
+        "title": "Paramètre mis à jour",
+        "description": "Vos préférences de notification ont été sauvegardées"
+      },
+      "preferenceUpdated": {
+        "title": "Paramètre mis à jour",
+        "description": "Vos préférences ont été sauvegardées"
+      },
+      "signOutSuccess": {
+        "title": "Déconnexion réussie",
+        "description": "Vous avez été déconnecté de votre compte."
+      },
+      "signOutError": {
+        "title": "Erreur de déconnexion",
+        "description": "Une erreur est survenue lors de la déconnexion."
+      }
+    }
+  },
+  "authCallback": {
+    "loadingTitle": "Authentification en cours...",
+    "successTitle": "Authentification réussie",
+    "redirectMessage": "Redirection en cours...",
+    "errorTitle": "Erreur d'authentification",
+    "errors": {
+      "auth": "Erreur d'authentification: {{message}}",
+      "noSession": "Aucune session utilisateur trouvée",
+      "generic": "Une erreur est survenue lors de l'authentification"
+    }
+  },
+  "import": {
+    "pageTitle": "Import de données",
+    "pageSubtitle": "Importez vos propres facteurs d'émission",
+    "cards": {
+      "noPermission": "Vous n'avez pas les permissions nécessaires pour importer des données.",
+      "upload": {
+        "title": "Importer votre dataset",
+        "description": "Sélectionnez un fichier CSV formaté selon notre template. Compression automatique incluse.",
+        "datasetName": "Nom du dataset",
+        "datasetPlaceholder": "Mon dataset personnalisé",
+        "fileLabel": "Fichier CSV/GZ",
+        "clickToSelect": "Cliquez pour sélectionner un fichier",
+        "acceptedFormats": "Formats acceptés : CSV, CSV.GZ (compressé automatiquement)",
+        "changeFile": "Changer de fichier",
+        "selectFile": "Sélectionner un fichier",
+        "processingMessage": "Merci, votre jeu de données sera disponible dans quelques minutes.",
+        "addToFavorites": "Ajouter automatiquement tous les éléments de ce dataset à mes favoris",
+        "uploadButton": "Importer le dataset",
+        "uploading": "Import en cours...",
+        "processing": "Traitement..."
+      },
+      "template": {
+        "title": "Télécharger le template",
+        "description": "Utilisez notre template CSV pour formater correctement vos données",
+        "downloadButton": "Télécharger",
+        "requiredColumns": "Colonnes requises",
+        "columnsList": "Nom, Description, FE, \"Unité donnée d'activité\", Source, Secteur, Sous-secteur, Localisation, Date, Incertitude, Périmètre"
+      }
+    },
+    "status": {
+      "success": "Import réussi",
+      "error": "Erreur d'import",
+      "indexing": "Indexation en cours...",
+      "indexingComplete": "Indexation terminée"
+    },
+    "toasts": {
+      "noFile": "Veuillez sélectionner un fichier",
+      "noDataset": "Veuillez saisir un nom de dataset",
+      "uploadSuccess": "Import terminé avec succès",
+      "uploadError": "Erreur lors de l'import",
+      "indexingSuccess": "Données indexées avec succès",
+      "indexingError": "Erreur lors de l'indexation",
+      "invalidFormat": {
+        "title": "Format invalide",
+        "description": "Veuillez sélectionner un fichier CSV ou CSV.GZ valide"
+      },
+      "missingInfo": {
+        "title": "Informations manquantes",
+        "description": "Veuillez sélectionner un fichier et donner un nom à votre dataset"
+      },
+      "general": {
+        "statusFetched": {
+          "title": "Statut récupéré",
+          "description": "Queue : {{queue}} — Processing : {{processing}}"
+        },
+        "statusError": {
+          "title": "Erreur statut",
+          "description": "{{message}}"
+        },
+        "missingFile": {
+          "title": "Aucun fichier",
+          "description": "Sélectionnez un fichier CSV."
+        },
+        "uploadDone": {
+          "title": "Upload terminé",
+          "description": "{{details}}"
+        },
+        "uploadDone": {
+          "title": "Upload terminé",
+          "description": "{{details}}",
+          "alreadyCompressed": "déjà compressé",
+          "compression": "de compression"
+        },
+        "uploadErrorDetailed": {
+          "title": "Erreur upload",
+          "description": "{{message}}"
+        },
+        "chunkedRemoved": {
+          "title": "Pipeline chunké retiré",
+          "description": "Utilisez Dataiku → staging_emission_factors → SELECT public.run_import_from_staging();"
+        },
+        "analysisSuccess": {
+          "title": "Analyse terminée",
+          "description": "{{details}}",
+          "rows": {
+            "one": "ligne valide",
+            "other": "lignes valides"
+          },
+          "sources": {
+            "one": "source détectée",
+            "other": "sources détectées"
+          }
+        },
+        "importLaunched": {
+          "title": "Import lancé",
+          "description": "Job : {{job}}",
+          "queue": "en file"
+        },
+        "importError": {
+          "title": "Erreur import",
+          "description": "{{message}}"
+        },
+        "analysisRequired": {
+          "title": "Analyse requise",
+          "description": "Cliquez d'abord sur Analyser puis Importer."
+        }
+      }
+    },
+    "info": {
+      "sizeLimit": {
+        "label": "Limite de taille",
+        "value": "10 MB maximum par fichier (avant compression)"
+      },
+      "format": {
+        "label": "Format",
+        "value": "CSV avec séparateur virgule (,)"
+      },
+      "encoding": {
+        "label": "Encodage",
+        "value": "UTF-8 recommandé"
+      },
+      "compression": {
+        "label": "Compression",
+        "value": "Automatique pour optimiser les transferts"
+      },
+      "validation": {
+        "label": "Validation",
+        "value": "Parser robuste avec validation des sources"
+      },
+      "workspace": {
+        "label": "Workspace",
+        "value": "Les données seront importées dans votre workspace actuel"
+      }
+    }
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour à l'accueil"
+  }
+}

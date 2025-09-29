@@ -1,36 +1,27 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
-import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
+import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Settings as SettingsIcon, User, Building, Crown, ExternalLink, LogOut, Shield } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { usePermissions } from "@/hooks/usePermissions";
-import { 
-  User, 
-  LogOut, 
-  Building, 
-  Crown,
-  Settings,
-  Shield,
-  ExternalLink,
-  Trash2,
-  Download,
-  Users
-} from "lucide-react";
+import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
+import { RoleGuard } from "@/components/ui/RoleGuard";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-const SimplifiedSettings = () => {
+const Settings = () => {
+  const { t } = useTranslation('pages', { keyPrefix: 'settings' });
   const { user, signOut } = useAuth();
-  const { userProfile } = useUser();
-  const { currentWorkspace } = useWorkspace();
-  const permissions = usePermissions();
-  
+  const { userProfile, loading: userLoading } = useUser();
+  const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
+
   const { toast } = useToast();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
@@ -38,14 +29,14 @@ const SimplifiedSettings = () => {
     try {
       await signOut();
       toast({
-        title: "Déconnecté avec succès",
-        description: "Vous avez été déconnecté de votre compte.",
+        title: t('toasts.signOutSuccess.title'),
+        description: t('toasts.signOutSuccess.description')
       });
     } catch (error) {
       toast({
-        title: "Erreur de déconnexion",
-        description: "Une erreur est survenue lors de la déconnexion.",
-        variant: "destructive",
+        title: t('toasts.signOutError.title'),
+        description: t('toasts.signOutError.description'),
+        variant: 'destructive'
       });
     }
   };
@@ -53,190 +44,224 @@ const SimplifiedSettings = () => {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
-      
-      <div className="container max-w-4xl mx-auto py-8 px-4 space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Paramètres</h1>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2 flex items-center homepage-text">
+              <SettingsIcon className="w-8 h-8 mr-3 text-primary" />
+              {t('pageTitle')}
+            </h1>
           <p className="text-muted-foreground">
-            Gérez votre compte et vos préférences
+              {t('pageSubtitle')}
           </p>
         </div>
 
-        {/* Informations du compte */}
-        <Card>
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <User className="mr-2 h-5 w-5" />
-              Informations du compte
+                <User className="w-5 h-5 mr-2" />
+                {t('account.title')}
             </CardTitle>
             <CardDescription>
-              Informations générales sur votre compte
+                {t('account.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userLoading ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Email</label>
-                <p className="text-sm">{user?.email || 'Non renseigné'}</p>
+                      <Label>{t('account.email')}</Label>
+                      <Skeleton className="h-4 w-full mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nom complet</label>
-                <p className="text-sm">
-                  {userProfile?.first_name && userProfile?.last_name 
-                    ? `${userProfile.first_name} ${userProfile.last_name}`
-                    : 'Non renseigné'
-                  }
+                      <Label>{t('account.fullName')}</Label>
+                      <Skeleton className="h-4 w-full mt-1" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">{t('account.email')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {user?.email || t('account.missing')}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Rôle</label>
-                <div className="mt-1">
-                  <Badge variant={permissions.role === 'supra_admin' ? 'default' : 'secondary'}>
-                    {permissions.role}
-                  </Badge>
+                    <Label className="text-sm font-medium">{t('account.fullName')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userProfile?.first_name && userProfile?.last_name
+                        ? `${userProfile.first_name} ${userProfile.last_name}`
+                        : t('account.missing')}
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              <Separator />
+
+              {userLoading ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>{t('account.role')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Plan du workspace</label>
-                <div className="mt-1">
-                  <Badge variant={permissions.planType === 'premium' ? 'default' : 'secondary'}>
-                    {permissions.planType}
-                  </Badge>
+                    <Label>{t('account.workspacePlan')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">{t('account.role')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userProfile?.role || t('account.roleMissing')}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">{t('account.workspacePlan')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userProfile?.plan_type || t('account.planDefault')}
+                    </p>
               </div>
             </div>
+              )}
           </CardContent>
         </Card>
 
-        {/* Section Workspace */}
-        <Card>
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Building className="mr-2 h-5 w-5" />
-              Workspace
+                <Building className="w-5 h-5 mr-2" />
+                {t('workspace.title')}
             </CardTitle>
             <CardDescription>
-              Informations sur votre espace de travail
+                {t('workspace.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {workspaceLoading ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>{t('workspace.name')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
+                  </div>
+                  <div>
+                    <Label>{t('workspace.plan')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nom du workspace</label>
-                <p className="text-sm">{currentWorkspace?.name || 'Aucun workspace'}</p>
+                    <Label className="text-sm font-medium">{t('workspace.name')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {currentWorkspace?.name || t('workspace.none')}
+                    </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Plan</label>
-                <p className="text-sm capitalize">{currentWorkspace?.plan_type || 'freemium'}</p>
+                    <Label className="text-sm font-medium">{t('workspace.plan')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1 capitalize">
+                      {currentWorkspace?.plan_type || t('workspace.freemium')}
+                    </p>
               </div>
             </div>
+              )}
           </CardContent>
         </Card>
 
-        {/* Section Équipe du workspace - visible pour les admins */}
-        {(permissions.role === 'admin' || permissions.isSupraAdmin) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="mr-2 h-5 w-5" />
-                Équipe du workspace
-              </CardTitle>
-              <CardDescription>
-                Gérez les utilisateurs de votre workspace
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WorkspaceUsersManager />
-            </CardContent>
-          </Card>
-        )}
+          <RoleGuard requirePermission="canManageUsers">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ExternalLink className="mr-2 h-5 w-5" />
+                  {t('team.title')}
+                </CardTitle>
+                <CardDescription>
+                  {t('team.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <WorkspaceUsersManager />
+              </CardContent>
+            </Card>
+          </RoleGuard>
 
-        {/* Section Admin - visible seulement pour les supra admins */}
-        {permissions.isSupraAdmin && (
-          <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center text-primary">
-                <Shield className="mr-2 h-5 w-5" />
-                Administration
-              </CardTitle>
-              <CardDescription>
-                Outils d'administration (Supra Admin uniquement)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-center"
-                  onClick={() => window.open('/admin', '_blank')}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Panneau d'administration
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Actions du compte */}
-        <Card>
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Settings className="mr-2 h-5 w-5" />
-              Actions du compte
+                <SettingsIcon className="w-5 h-5 mr-2" />
+                {t('actions.title')}
             </CardTitle>
-            <CardDescription>
-              Gérez votre session et vos données
-            </CardDescription>
+              <CardDescription>{t('actions.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
               <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="flex items-center justify-center">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Se déconnecter
+                    {t('actions.logout.button')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+                    <AlertDialogTitle>{t('actions.logout.confirmTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.
+                      {t('actions.logout.confirmDescription')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogCancel>{t('actions.logout.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleSignOut}>
-                      Se déconnecter
+                      {t('actions.logout.confirm')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Note de sécurité pour les supra admins */}
-        {permissions.isSupraAdmin && (
+          <RoleGuard allowedRoles={["supra_admin"]}>
+            <Card className="mb-6 border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center text-primary">
+                  <Shield className="mr-2 h-5 w-5" />
+                  {t('admin.title')}
+                </CardTitle>
+                <CardDescription>{t('admin.description')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-center"
+                  onClick={() => window.open('/admin', '_blank')}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {t('admin.openPanel')}
+                </Button>
+              </CardContent>
+            </Card>
           <Card className="border-orange-200 bg-orange-50">
             <CardContent className="pt-6">
               <div className="flex items-start space-x-3">
                 <Crown className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-orange-800">Statut Supra Administrateur</h4>
+                    <h4 className="text-sm font-medium text-orange-800">{t('adminNotice.title')}</h4>
                   <p className="text-sm text-orange-700 mt-1">
-                    Vous avez accès à toutes les fonctionnalités d'administration. 
-                    Utilisez ces privilèges de manière responsable.
+                      {t('adminNotice.description')}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
+          </RoleGuard>
+        </div>
       </div>
     </div>
   );
 };
 
-export default SimplifiedSettings;
+export default Settings;

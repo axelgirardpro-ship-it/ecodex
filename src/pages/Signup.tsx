@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { SSOButton } from "@/components/ui/SSOButton";
 import { SSOProvider, useSSO } from "@/components/ui/SSOProvider";
+import { useTranslation } from "react-i18next";
+import { buildLocalizedPath } from "@i18n/routing";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
@@ -22,6 +25,8 @@ const SignupForm = () => {
   const { toast } = useToast();
   const { signUp, signInWithGoogle } = useAuth();
   const { ssoState, setProviderLoading, setLastError } = useSSO();
+  const { language } = useLanguage();
+  const { t } = useTranslation("pages", { keyPrefix: "signup" });
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +34,8 @@ const SignupForm = () => {
     if (password !== confirmPassword) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas",
+        title: t("errors.title"),
+        description: t("errors.passwordMismatch"),
       });
       return;
     }
@@ -38,8 +43,8 @@ const SignupForm = () => {
     if (password.length < 6) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 6 caractères",
+        title: t("errors.title"),
+        description: t("errors.passwordLength"),
       });
       return;
     }
@@ -57,27 +62,27 @@ const SignupForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: "Erreur lors de l'inscription",
+          title: (t as any)("toasts.error.title"),
           description: result.error.message,
         });
         setLastError(result.error.message);
       } else {
         toast({
-          title: "Inscription réussie",
-          description: "Un email de confirmation a été envoyé. Vérifiez votre boîte mail.",
+          title: (t as any)("toasts.success.title"),
+          description: (t as any)("toasts.success.description"),
         });
         // Rediriger vers la page login après inscription réussie
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = buildLocalizedPath('/login', language);
         }, 2000);
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur lors de l'inscription",
-        description: "Une erreur inattendue s'est produite",
+        title: (t as any)("toasts.error.title"),
+        description: (t as any)("toasts.error.unexpected"),
       });
-      setLastError("Une erreur inattendue s'est produite");
+      setLastError(t("errors.unexpected"));
     } finally {
       setLoading(false);
     }
@@ -93,7 +98,7 @@ const SignupForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: "Erreur lors de l'inscription avec Google",
+          title: (t as any)("toasts.error.googleTitle"),
           description: result.error.message,
         });
         setLastError(result.error.message);
@@ -101,10 +106,10 @@ const SignupForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur lors de l'inscription avec Google",
-        description: "Une erreur inattendue s'est produite",
+        title: (t as any)("toasts.error.googleTitle"),
+        description: (t as any)("toasts.error.unexpected"),
       });
-      setLastError("Une erreur inattendue s'est produite");
+      setLastError(t("errors.unexpected"));
     } finally {
       setProviderLoading(provider, false);
     }
@@ -115,11 +120,11 @@ const SignupForm = () => {
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
-            to="/" 
+            to={buildLocalizedPath("/", language)} 
             className="inline-flex items-center text-primary-foreground hover:opacity-80 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour à l'accueil
+            {t("back")}
           </Link>
         </div>
 
@@ -128,83 +133,83 @@ const SignupForm = () => {
             <div className="w-12 h-12 mx-auto mb-4">
               <img src="/assets/logo-ecodex-auth.png" alt="Ecodex" className="w-full h-full object-contain" />
             </div>
-            <CardTitle className="text-2xl">Créer un compte</CardTitle>
+            <CardTitle className="text-2xl">{t("title")}</CardTitle>
             <CardDescription>
-              Rejoignez Ecodex et accédez à notre base de données complète
+              {t("subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleEmailSignup} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">{t("firstName")}</Label>
                   <Input
                     id="firstName"
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    placeholder="Votre prénom"
+                    placeholder={t("placeholders.firstName")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">{t("lastName")}</Label>
                   <Input
                     id="lastName"
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    placeholder="Votre nom"
+                    placeholder={t("placeholders.lastName")}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">Nom de l'entreprise</Label>
+                <Label htmlFor="company">{t("company")}</Label>
                 <Input
                   id="company"
                   type="text"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                   required
-                  placeholder="Nom de votre entreprise"
+                  placeholder={t("placeholders.company")}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="votre@email.com"
+                  placeholder={t("placeholders.email")}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Au moins 6 caractères"
+                  placeholder={t("placeholders.password")}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  placeholder="Confirmez votre mot de passe"
+                  placeholder={t("placeholders.confirmPassword")}
                 />
               </div>
               
@@ -212,16 +217,16 @@ const SignupForm = () => {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Création en cours...
+                    {t("loading")}
                   </>
                 ) : (
-                  "Créer un compte"
+                  t("submit")
                 )}
               </Button>
             </form>
 
             <div className="my-6 text-center text-sm text-gray-500">
-              <span>ou</span>
+              <span>{t("or")}</span>
             </div>
 
             <SSOButton
@@ -238,7 +243,7 @@ const SignupForm = () => {
                 </svg>
               }
             >
-              S'inscrire avec Google
+              {t("google")}
             </SSOButton>
 
             {/* Error Alert */}
@@ -253,9 +258,9 @@ const SignupForm = () => {
 
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
-                Vous avez déjà un compte ?{' '}
-                <Link to="/login" className="text-blue-600 hover:underline">
-                  Se connecter
+                {t("alreadyAccount")} {' '}
+                <Link to={buildLocalizedPath('/login', language)} className="text-blue-600 hover:underline">
+                  {t("login")}
                 </Link>
               </p>
             </div>

@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AlgoliaErrorBoundary from '@/components/search/AlgoliaErrorBoundary';
 import DebugSearchState from '@/components/search/DebugSearchState';
 import { resolveOrigin } from '@/lib/algolia/searchClient';
+import { useLanguage } from '@/providers/LanguageProvider';
 
 function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string[] = []) {
   const [client, setClient] = useState<any>(null);
@@ -80,10 +81,13 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const quotaHook = useQuotas();
   const { currentWorkspace } = useWorkspace();
   const { assignedSources } = useEmissionFactorAccess();
+  const { language } = useLanguage();
   const unifiedClient = useOptimizedAlgoliaClient(currentWorkspace?.id, assignedSources);
   const [origin, setOriginState] = useState<Origin>('public');
+  const languageRef = useRef(language);
   const originRef = useRef<Origin>('public');
   useEffect(() => { originRef.current = origin; }, [origin]);
+  useEffect(() => { languageRef.current = language; }, [language]);
   const workspaceIdRef = useRef<string | undefined>(currentWorkspace?.id);
   useEffect(() => { workspaceIdRef.current = currentWorkspace?.id; }, [currentWorkspace?.id]);
 
@@ -125,10 +129,12 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           const enrichedRequests = requests.map(r => {
             const baseParams = r?.params || {};
             const computedOrigin = resolveOrigin(baseParams) || originRef.current;
+
             console.log('DEBUG SearchProvider:', { 
               currentWorkspaceId: currentWorkspace?.id, 
               workspaceIdRef: workspaceIdRef.current,
-              computedOrigin 
+              computedOrigin,
+              language: languageRef.current
             });
             return {
               ...r,
@@ -139,10 +145,15 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
                 _search_context: {
                   workspace_id: workspaceIdRef.current,
                   origin: computedOrigin,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
+                  language: languageRef.current
                 },
                 // DEBUG: Temporaire pour diagnostic
-                workspace_id: workspaceIdRef.current
+                workspace_id: workspaceIdRef.current,
+                // Query hints pour le proxy edge
+                query_language: languageRef.current,
+                remove_stop_words: languageRef.current,
+                ignore_plurals: languageRef.current
               }
             };
           });
@@ -209,7 +220,12 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
               // Rendre le container pour éviter le flash, mais pas de fallback UI legacy
               <div />
             ) : (
-              <InstantSearch searchClient={searchClient as any} indexName={INDEX_ALL} future={{ preserveSharedStateOnUnmount: true }}>
+              <InstantSearch
+                searchClient={searchClient as any}
+                indexName={INDEX_ALL}
+                future={{ preserveSharedStateOnUnmount: true }}
+                key={`instant-${language}`}
+              >
                 {children}
                 <DebugSearchState />
               </InstantSearch>

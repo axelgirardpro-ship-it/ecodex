@@ -1,0 +1,93 @@
+{
+  "filters": {
+    "title": "Filtres",
+    "reset": "Réinitialiser",
+    "origin": "Origine",
+    "origin_public": "Base commune",
+    "origin_private": "Base personnelle"
+  },
+  "favoris": {
+    "searchPlaceholder": "Rechercher dans vos {{count}} favoris...",
+    "title": "Mes Favoris",
+    "subtitle": "Recherchez et gérez vos facteurs d'émission favoris",
+    "stats": {
+      "totalFavorites": "favoris au total",
+      "sources": "sources", 
+      "locations": "localisations",
+      "relevantFavorites": "{{sorted}} résultats pertinents sur {{total}} favoris",
+      "noFavorites": "0 favori trouvé",
+      "oneFavoriteFound": "{{formattedCount}} favori trouvé",
+      "multipleFavoritesFound": "{{formattedCount}} favoris trouvés",
+      "favoritesDisplayed": "{{formattedCount}} favori affiché",
+      "favoritesDisplayed_plural": "{{formattedCount}} favoris affichés"
+    },
+    "empty": {
+      "title": "Vous n'avez pas encore de favoris.",
+      "description": "Recherchez des facteurs d'émission et ajoutez-les à vos favoris en cliquant sur ❤️",
+      "no_match": "Aucun favori ne correspond à votre recherche."
+    }
+  },
+  "search_box": {
+    "placeholder": "Rechercher des facteurs d'émission...",
+    "min_chars_warning": "Minimum 3 caractères pour lancer la recherche.",
+    "button": "Rechercher"
+  },
+  "results": {
+    "no_results_short_query_title": "Commencez votre recherche",
+    "no_results_short_query_description": "Commencez votre recherche en tapant au moins 3 caractères",
+    "no_results_empty_query_title": "Commencez votre recherche",
+    "no_results_empty_query_description": "Utilisez la barre de recherche ou les filtres pour explorer notre base de données",
+    "no_results_found_title": "Aucun résultat trouvé",
+    "no_results_found_description": "Nous n'avons trouvé aucun facteur d'émission pour \"{{query}}\"",
+    "suggestions_title": "Suggestions :",
+    "suggestion_1": "Vérifiez l'orthographe de votre recherche",
+    "suggestion_2": "Essayez des termes plus généraux",
+    "suggestion_3": "Utilisez moins de filtres",
+    "displayed_results": "{{count}} résultat(s) affiché(s)",
+    "select_all": "Tout sélectionner",
+    "deselect_all": "Tout désélectionner",
+    "selected_items": "{{count}} sélectionné(s)",
+    "copy": "Copier",
+    "add_to_favorites": "Ajouter aux favoris",
+    "export": "Exporter",
+    "locked_content_not_selectable": "Contenu verrouillé: non sélectionnable",
+    "feature_premium_favorites": "Fonctionnalité disponible uniquement avec le plan Premium",
+    "blurred_content_not_addable_to_favorites": "Contenu flouté: non ajoutable aux favoris",
+    "locked_content_not_addable_to_favorites": "Contenu verrouillé: non ajoutable aux favoris",
+    "no_selection": "Aucune sélection",
+    "select_at_least_one": "Veuillez sélectionner au moins un facteur d'émission.",
+    "locked_content_not_copyable": "Contenu verrouillé: non copiable.",
+    "locked_content_not_exportable": "Contenu verrouillé: non exportable.",
+    "already_in_favorites": "Tous les éléments sélectionnés sont déjà dans vos favoris.",
+    "favorites_updated": "Favoris mis à jour",
+    "favorites_added": "{{count}} élément(s) ajouté(s) aux favoris",
+    "favorites_removed": "Retiré des favoris",
+    "imported_ef": "FE importé",
+    "emission_factor": "Facteur d'émission",
+    "unit": "Unité",
+    "perimeter": "Périmètre",
+    "source": "Source",
+    "imported_dataset": "Dataset importé",
+    "location": "Localisation",
+    "date": "Date",
+    "sector": "Secteur",
+    "sub_sector": "Sous-secteur",
+    "description": "Description",
+    "uncertainty": "Incertitude",
+    "contributor": "Contributeur",
+    "methodology": "Méthodologie",
+    "data_type": "Type de données",
+    "commentary": "Commentaire",
+    "show_details": "Afficher les détails",
+    "hide_details": "Masquer les détails",
+    "remove": "Retirer",
+    "error_removing_favorite": "Erreur lors de la suppression du favori"
+  },
+  "stats": {
+    "relevantResults": "{{sorted}} résultats pertinents sur {{total}}",
+    "noResults": "0 résultat trouvé",
+    "oneResultFound": "{{formattedCount}} résultat trouvé", 
+    "multipleResultsFound": "{{formattedCount}} résultats trouvés",
+    "timeMs": "en {{time}} ms"
+  }
+}

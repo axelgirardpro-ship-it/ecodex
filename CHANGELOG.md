@@ -68,3 +68,12 @@
   - Respect strict du champ `Source` tel que fourni dans le CSV (suppression du trigger de forçage et projection mise à jour antérieurement).
   - Favoris automatiques: retries jusqu'à disponibilité des `object_id` dans `user_batch_algolia` via RPC `add_import_overlays_to_favorites`.
 
+## 2025-09-29 – Internationalisation Search/Favoris
+
+- Ajout du `LanguageProvider` et du routing `/en` pour toutes les pages publiques/privées.
+- Hard refresh automatique lors du changement de langue sur Search & Favoris.
+- Mapping Algolia dynamique des champs FR/EN + localisation des exports/copier (`useQuotaActions`).
+- Harmonisation UI : accordéon Search/Favoris (typo, markdown, liens) et filtres localisés.
+- Nettoyage Supabase : suppression des colonnes `language(s)` et refonte des fonctions/projections associées.
+- Documentation mise à jour (`docs/architecture/search-i18n.md`, `docs/migration/2025-09-29_language_cleanup.md`).
+

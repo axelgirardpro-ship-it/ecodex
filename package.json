@@ -70,7 +70,9 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "i18next": "^23.11.5",
+    "react-i18next": "^15.1.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

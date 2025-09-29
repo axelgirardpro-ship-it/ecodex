@@ -1,0 +1,71 @@
+{
+  "loading": "Chargement des quotas",
+  "errors": {
+    "generic": "Impossible de récupérer les informations de quota"
+  },
+  "plan": {
+    "title": "Plan {{plan}}",
+    "premium": "Premium",
+    "standard": "Standard",
+    "freemium": "Freemium",
+    "supra": "Supra Admin"
+  },
+  "limits": {
+    "unlimited": "Illimité ∞",
+    "not_available": "Non disponible",
+    "used_over_total": "{{used}} / {{total}}",
+    "reached": "Limite atteinte",
+    "messages": {
+      "reached": "Vous avez atteint vos limites mensuelles. Contactez l'administrateur pour augmenter votre plan.",
+      "contact_admin": "Contactez votre administrateur pour augmenter vos limites.",
+      "freemium_note": "Non disponible en Freemium"
+    }
+  },
+  "searches": {
+    "label": "Recherches"
+  },
+  "exports": {
+    "label": "Exports Excel"
+  },
+  "clipboard": {
+    "label": "Copies presse-papiers"
+  },
+  "favorites": {
+    "label": "Favoris",
+    "premium_only": "Premium"
+  },
+  "trial": {
+    "title": "Période d'essai",
+    "expired": "Période d'essai expirée",
+    "days_remaining": "{{count}} jour{{count, plural, one {} other {s}}} restant{{count, plural, one {} other {s}}}"
+  },
+  "widget": {
+    "loading": {
+      "title": "Statut du quota",
+      "subtitle": "Chargement en cours"
+    },
+    "error": {
+      "badge": "Erreur",
+      "description": "Impossible de charger les informations de quota."
+    },
+    "premium": {
+      "badge_premium": "Premium",
+      "badge_standard": "Standard",
+      "description_unlimited": "Illimité",
+      "description_paid": "Plan payant"
+    },
+    "freemium": {
+      "badge_premium": "Premium",
+      "badge_standard": "Standard",
+      "badge_freemium": "Freemium",
+      "note_unavailable": "Non disponible en Freemium"
+    },
+    "actions": {
+      "view_plans": "Voir les plans"
+    },
+    "summary": {
+      "locked": "Plan non disponible",
+      "available": "Plan disponible"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSearchBox, useStats, useInstantSearch } from 'react-instantsearch';
+import { useTranslation } from 'react-i18next';
 import { Search, X } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,8 @@ export const SearchBox: React.FC = () => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
   const { refresh } = useInstantSearch();
-  const controls = (() => { try { return useSearchControls(); } catch { return null; } })();
+  const controls = useSearchControls();
+  const { t } = useTranslation('search');
 
   // Pas de debounce: retour immédiat requis par l'UX
   const [inputValue, setInputValue] = React.useState<string>(query);
@@ -31,7 +33,11 @@ export const SearchBox: React.FC = () => {
       // Ne pas déclencher de recherche réseau (UX stricte 3+)
       return;
     }
-    try { controls?.forceNextSearch(); } catch {}
+    try { 
+      controls?.forceNextSearch(); 
+    } catch (error) {
+      console.warn('Force search failed:', error);
+    }
     refine(trimmed);
     refresh();
   };
@@ -61,7 +67,7 @@ export const SearchBox: React.FC = () => {
                   handleSearch();
                 }
               }}
-              placeholder="Rechercher des facteurs d'émission..."
+              placeholder={t('search:search_box.placeholder')}
               className="flex-1 bg-white border-white/20 text-indigo-950 placeholder:text-indigo-950/60 font-montserrat h-14 text-lg pl-12 pr-12 rounded-lg shadow-sm"
             />
             {inputValue && (
@@ -79,12 +85,12 @@ export const SearchBox: React.FC = () => {
             className="h-14 px-6 text-lg rounded-lg"
             disabled={(inputValue || '').trim().length > 0 && (inputValue || '').trim().length < 3}
           >
-            Rechercher
+            {t('search:search_box.button')}
           </Button>
         </div>
         {(inputValue || '').trim().length < 3 && (
           <p className="mt-1 ml-1 text-xs md:text-[13px] leading-tight text-white/85">
-            Minimum 3 caractères pour lancer la recherche.
+            {t('search:search_box.min_chars_warning')}
           </p>
         )}
       </div>

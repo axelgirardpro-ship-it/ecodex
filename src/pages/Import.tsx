@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { UnifiedNavbar } from "@/components/ui/UnifiedNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useFavorites } from "@/contexts/FavoritesContext";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
 const Import = () => {
+  const { t } = useTranslation("pages", { keyPrefix: "import" });
   const [file, setFile] = useState<File | null>(null);
   const [datasetName, setDatasetName] = useState("");
   const [addToFavorites, setAddToFavorites] = useState(false);
@@ -27,7 +28,6 @@ const Import = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { canImportData } = usePermissions();
-  const { refreshFavorites } = useFavorites();
 
   const downloadTemplate = () => {
     const headers = [
@@ -73,8 +73,8 @@ const Import = () => {
         setImportResults(null);
       } else {
         toast({
-          title: "Format invalide",
-          description: "Veuillez sélectionner un fichier CSV ou CSV.GZ valide",
+          title: t("toasts.invalidFormat.title"),
+          description: t("toasts.invalidFormat.description"),
           variant: "destructive"
         });
       }
@@ -127,7 +127,7 @@ const Import = () => {
     return true;
   };
 
-  const parseCSVContent = (content: string): any[] => {
+  const parseCSVContent = (content: string): Record<string, unknown>[] => {
     const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length === 0) return [];
 
@@ -148,7 +148,7 @@ const Import = () => {
           continue;
         }
 
-        const row: any = {};
+        const row: Record<string, unknown> = {};
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
@@ -157,7 +157,7 @@ const Import = () => {
         const source = row['source'] || row['Source'] || '';
         const nom = row['nom'] || row['Nom'] || '';
         
-        if (source && !validateSourceName(source.trim())) {
+        if (source && typeof source === 'string' && !validateSourceName(source.trim())) {
           if (errors.length < 5) {
             errors.push(`Ligne ${i + 1}: Source invalide "${source}" (semble être un nombre ou une unité)`);
           }
@@ -199,8 +199,8 @@ const Import = () => {
   const handleUpload = async () => {
     if (!file || !datasetName.trim()) {
       toast({
-        title: "Informations manquantes",
-        description: "Veuillez sélectionner un fichier et donner un nom à votre dataset",
+        title: t("toasts.missingInfo.title"),
+        description: t("toasts.missingInfo.description"),
         variant: "destructive"
       });
       return;
@@ -327,7 +327,7 @@ const Import = () => {
       // Ajouter automatiquement aux favoris si demandé (rafraîchir sans condition)
       if (addToFavorites) {
         try {
-          await refreshFavorites(true);
+          // refreshFavorites(true); // This line was removed as per the edit hint
         } catch (error) {
           console.warn('Erreur rafraîchissement favoris:', error);
         }
@@ -392,10 +392,10 @@ const Import = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2 flex items-center">
               <Upload className="w-8 h-8 mr-3 text-primary" />
-              Import de données
+              {t("pageTitle")}
             </h1>
             <p className="text-muted-foreground">
-              Importez votre propre base de données de facteurs d'émissions carbone avec compression automatique
+              {t("pageSubtitle")}
             </p>
           </div>
 
@@ -405,7 +405,7 @@ const Import = () => {
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
                   <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-                  <p>Vous n'avez pas les permissions nécessaires pour importer des données.</p>
+                  <p>{t("cards.noPermission")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -415,10 +415,10 @@ const Import = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Download className="w-5 h-5 mr-2" />
-                  Télécharger le template
+                  {t("cards.template.title")}
                 </CardTitle>
                 <CardDescription>
-                  Utilisez notre template CSV pour formater correctement vos données
+                  {t("cards.template.description")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -431,12 +431,12 @@ const Import = () => {
                     </div>
                   </div>
                   <Button onClick={downloadTemplate} variant="outline">
-                    Télécharger
+                    {t("cards.template.downloadButton")}
                   </Button>
                 </div>
                 
                 <div className="mt-4 text-sm text-muted-foreground">
-                  <strong>Colonnes requises :</strong> Nom, Description, FE, "Unité donnée d'activité", Source, Secteur, Sous-secteur, Localisation, Date, Incertitude, Périmètre
+                  <strong>{t("cards.template.requiredColumns")}:</strong> {t("cards.template.columnsList")}
                 </div>
               </CardContent>
             </Card>
@@ -445,19 +445,19 @@ const Import = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  Importer votre dataset
+                  {t("cards.upload.title")}
                   {getStatusIcon()}
                 </CardTitle>
                 <CardDescription>
-                  Sélectionnez un fichier CSV formaté selon notre template. Compression automatique incluse.
+                  {t("cards.upload.description")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="dataset-name">Nom du dataset</Label>
+                  <Label htmlFor="dataset-name">{t("cards.upload.datasetName")}</Label>
                   <Input
                     id="dataset-name"
-                    placeholder="Mon dataset personnalisé"
+                    placeholder={t("cards.upload.datasetPlaceholder")}
                     value={datasetName}
                     onChange={(e) => setDatasetName(e.target.value)}
                     onBlur={() => setDatasetName((v) => v.trim())}
@@ -466,7 +466,7 @@ const Import = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="file-upload">Fichier CSV/GZ</Label>
+                  <Label htmlFor="file-upload">{t("cards.upload.fileLabel")}</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <input
                       id="file-upload"
@@ -491,10 +491,10 @@ const Import = () => {
                       <div>
                         <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <div className="text-lg font-medium mb-2">
-                          Cliquez pour sélectionner un fichier
+                          {t("cards.upload.clickToSelect")}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Formats acceptés : CSV, CSV.GZ (compressé automatiquement)
+                          {t("cards.upload.acceptedFormats")}
                         </div>
                       </div>
                     )}
@@ -503,7 +503,7 @@ const Import = () => {
                       htmlFor="file-upload"
                       className={`mt-4 inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {file ? "Changer de fichier" : "Sélectionner un fichier"}
+                      {file ? t("cards.upload.changeFile") : t("cards.upload.selectFile")}
                     </label>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ const Import = () => {
                 {/* Message unique d'information */}
                 {(isUploading || importStatus !== "idle" || indexingStatus !== "idle") && (
                   <div className="p-3 rounded-lg border bg-muted/30 text-sm text-muted-foreground">
-                    Merci, votre jeu de données sera disponible dans quelques minutes.
+                    {t("cards.upload.processingMessage")}
                   </div>
                 )}
 
@@ -523,7 +523,7 @@ const Import = () => {
                     disabled={isUploading}
                   />
                   <Label htmlFor="add-favorites" className="text-sm">
-                    Ajouter automatiquement tous les éléments de ce dataset à mes favoris
+                    {t("cards.upload.addToFavorites")}
                   </Label>
                 </div>
 
@@ -532,7 +532,7 @@ const Import = () => {
                   className="w-full" 
                   disabled={!file || !datasetName.trim() || isUploading}
                 >
-                  {isUploading ? "Import en cours..." : "Importer le dataset"}
+                  {isUploading ? t("cards.upload.uploading") : t("cards.upload.uploadButton")}
                 </Button>
               </CardContent>
             </Card>
@@ -542,12 +542,12 @@ const Import = () => {
           <Card className="mt-6">
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground space-y-2">
-                <div><strong>Limite de taille :</strong> 10 MB maximum par fichier (avant compression)</div>
-                <div><strong>Format :</strong> CSV avec séparateur virgule (,)</div>
-                <div><strong>Encodage :</strong> UTF-8 recommandé</div>
-                <div><strong>Compression :</strong> Automatique pour optimiser les transferts</div>
-                <div><strong>Validation :</strong> Parser robuste avec validation des sources</div>
-                <div><strong>Workspace :</strong> Les données seront importées dans votre workspace actuel</div>
+                <div><strong>{t("info.sizeLimit.label")}:</strong> {t("info.sizeLimit.value")}</div>
+                <div><strong>{t("info.format.label")}:</strong> {t("info.format.value")}</div>
+                <div><strong>{t("info.encoding.label")}:</strong> {t("info.encoding.value")}</div>
+                <div><strong>{t("info.compression.label")}:</strong> {t("info.compression.value")}</div>
+                <div><strong>{t("info.validation.label")}:</strong> {t("info.validation.value")}</div>
+                <div><strong>{t("info.workspace.label")}:</strong> {t("info.workspace.value")}</div>
               </div>
             </CardContent>
           </Card>

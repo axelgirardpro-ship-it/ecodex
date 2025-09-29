@@ -10,7 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { SSOButton } from "@/components/ui/SSOButton";
 import { SSOProvider, useSSO } from "@/components/ui/SSOProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
+import { buildLocalizedPath } from "@i18n/routing";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -21,6 +23,8 @@ const LoginForm = () => {
   const { signIn, signInWithGoogle } = useAuth();
   const { ssoState, setProviderLoading, setLastError } = useSSO();
   const location = useLocation();
+  const { language } = useLanguage();
+  const { t } = useTranslation("pages", { keyPrefix: "login" });
 
   useEffect(() => {
     // Active l'alerte si flag session ou query param est présent
@@ -32,7 +36,9 @@ const LoginForm = () => {
         setTrialExpiredMessage(true);
         sessionStorage.removeItem('trial_expired');
       }
-    } catch {}
+    } catch (error) {
+      console.error("Failed to parse trial_expired flags", error);
+    }
   }, [location]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -46,12 +52,13 @@ const LoginForm = () => {
       
       if (result.error) {
         // Si l'essai est expiré, afficher l'alerte dédiée
-        if ((result.error as any).code === 'TRIAL_EXPIRED') {
+      const trialError = result.error as { code?: string };
+      if (trialError.code === 'TRIAL_EXPIRED') {
           setTrialExpiredMessage(true);
         }
         toast({
           variant: "destructive",
-          title: "Erreur lors de la connexion",
+          title: (t as any)("toasts.error.title"),
           description: result.error.message,
         });
         setLastError(result.error.message);
@@ -59,10 +66,10 @@ const LoginForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur lors de la connexion",
-        description: "Une erreur inattendue s'est produite",
+        title: (t as any)("toasts.error.title"),
+        description: (t as any)("toasts.error.unexpected"),
       });
-      setLastError("Une erreur inattendue s'est produite");
+      setLastError(t("errors.unexpected"));
     } finally {
       setLoading(false);
     }
@@ -78,7 +85,7 @@ const LoginForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: "Erreur lors de la connexion avec Google",
+          title: (t as any)("toasts.error.googleTitle"),
           description: result.error.message,
         });
         setLastError(result.error.message);
@@ -86,10 +93,10 @@ const LoginForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erreur lors de la connexion avec Google",
-        description: "Une erreur inattendue s'est produite",
+        title: (t as any)("toasts.error.googleTitle"),
+        description: (t as any)("toasts.error.unexpected"),
       });
-      setLastError("Une erreur inattendue s'est produite");
+      setLastError(t("errors.unexpected"));
     } finally {
       setProviderLoading(provider, false);
     }
@@ -100,11 +107,11 @@ const LoginForm = () => {
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
-            to="/" 
+            to={buildLocalizedPath("/", language)} 
             className="inline-flex items-center text-primary-foreground hover:opacity-80 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour à l'accueil
+            {t("back")}
           </Link>
         </div>
 
@@ -113,9 +120,9 @@ const LoginForm = () => {
             <div className="w-12 h-12 mx-auto mb-4">
               <img src="/assets/logo-ecodex-auth.png" alt="Ecodex" className="w-full h-full object-contain" />
             </div>
-            <CardTitle className="text-2xl">Se connecter</CardTitle>
+            <CardTitle className="text-2xl">{t("title")}</CardTitle>
             <CardDescription>
-              Connectez-vous à votre compte Ecodex
+              {t("subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -125,8 +132,8 @@ const LoginForm = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-medium">Votre plan freemium est terminé.</p>
-                    <p>Merci de contacter notre équipe commerciale afin de souscrire à un plan payant.</p>
+                    <p className="font-medium">{t("trial.title")}</p>
+                    <p>{t("trial.description")}</p>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -134,26 +141,26 @@ const LoginForm = () => {
 
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="votre@email.com"
+                  placeholder={t("placeholders.email")}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Votre mot de passe"
+                  placeholder={t("placeholders.password")}
                 />
               </div>
               
@@ -161,16 +168,16 @@ const LoginForm = () => {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Connexion...
+                    {t("loading")}
                   </>
                 ) : (
-                  "Se connecter"
+                  t("submit")
                 )}
               </Button>
             </form>
 
             <div className="my-6 text-center text-sm text-gray-500">
-              <span>ou</span>
+              <span>{t("or")}</span>
             </div>
 
             <SSOButton
@@ -187,7 +194,7 @@ const LoginForm = () => {
                 </svg>
               }
             >
-              Se connecter avec Google
+              {t("google")}
             </SSOButton>
 
             {/* Error Alert */}
@@ -202,9 +209,9 @@ const LoginForm = () => {
 
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
-                Pas encore de compte ?{' '}
-                <Link to="/signup" className="text-blue-600 hover:underline">
-                  S'inscrire
+                {t("noAccount")} {' '}
+                <Link to={buildLocalizedPath('/signup', language)} className="text-blue-600 hover:underline">
+                  {t("signUp")}
                 </Link>
               </p>
             </div>

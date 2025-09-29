@@ -17,6 +17,7 @@ import { RoleGuard } from '@/components/ui/RoleGuard';
 import { Button } from '@/components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLanguage } from '@/providers/LanguageProvider';
 
 interface FavorisAlgoliaContentProps {
   favoriteIds: string[];
@@ -163,11 +164,12 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
 
 export const FavorisAlgoliaDashboard: React.FC = () => {
   const { favorites } = useFavorites();
+  const { language } = useLanguage();
   const favoriteIds = useMemo(() => favorites.map(f => f.id), [favorites]);
 
   return (
     <OriginProvider>
-      <SearchProvider>
+      <SearchProvider key={`favorites-${language}`}>
         <FavorisAlgoliaContent favoriteIds={favoriteIds} />
       </SearchProvider>
     </OriginProvider>

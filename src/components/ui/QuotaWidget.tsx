@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Zap, Crown, TrendingUp, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface QuotaWidgetProps {
   quotaData: any;
@@ -12,6 +13,8 @@ interface QuotaWidgetProps {
 }
 
 export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
+  const { t } = useTranslation('quota' as any);
+
   if (isLoading) {
     return (
       <Card>
@@ -47,12 +50,12 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <CardHeader className="pb-3">
           <Badge variant="destructive">
             <AlertTriangle className="w-3 h-3 mr-1" />
-            Erreur
+            {(t as any)('widget.error.badge')}
           </Badge>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Impossible de charger les informations de quota.
+            {(t as any)('widget.error.description')}
           </p>
         </CardContent>
       </Card>
@@ -90,36 +93,35 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <Badge className={isPremium ? "bg-primary text-primary-foreground" : "bg-blue-600 text-white"}>
-              {isPremium ? <Crown className="w-4 h-4 mr-1" /> : <Zap className="w-4 h-4 mr-1" />}
-              {isUnlimited ? 'Supra Admin' : isPremium ? 'Premium' : 'Standard'}
+              {(t as any)(isUnlimited ? 'plan.supra' : isPremium ? 'plan.premium' : 'plan.standard')}
             </Badge>
             <div className="text-sm text-muted-foreground">
-              {isUnlimited || isPremium ? 'Illimité' : 'Plan payant'}
+              {(t as any)(isUnlimited || isPremium ? 'widget.premium.description_unlimited' : 'widget.premium.description_paid')}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Recherches</span>
-              <span className="text-primary font-medium">Illimitées ∞</span>
+              <span>{(t as any)('searches.label')}</span>
+              <span className="text-primary font-medium">{(t as any)('limits.unlimited')}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Exports</span>
+              <span>{(t as any)('exports.label')}</span>
               <span className="text-primary font-medium">
-                {isUnlimited || isPremium ? 'Illimités ∞' : `${exportsUsed} / ${exportsLimit}`}
+                {isUnlimited || isPremium ? (t as any)('limits.unlimited') : `${exportsUsed} / ${exportsLimit}`}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Copies presse-papiers</span>
+              <span>{(t as any)('clipboard.label')}</span>
               <span className="text-primary font-medium">
-                {isUnlimited || isPremium ? 'Illimitées ∞' : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
+                {isUnlimited || isPremium ? (t as any)('limits.unlimited') : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Favoris</span>
+              <span>{(t as any)('favorites.label')}</span>
               <span className="text-primary font-medium">
-                {isPremium ? 'Illimités ∞' : 'Premium'}
+                {isPremium ? (t as any)('limits.unlimited') : (t as any)('favorites.premium_only')}
               </span>
             </div>
           </div>
@@ -134,14 +136,12 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Badge variant={planType === 'premium' ? "default" : planType === 'standard' ? "default" : "secondary"}>
-              {planType === 'premium' ? 'Premium' : 
-               planType === 'standard' ? 'Standard' :
-               "Freemium"}
+              {(t as any)(planType === 'premium' ? 'plan.premium' : planType === 'standard' ? 'plan.standard' : 'plan.freemium')}
             </Badge>
             {isAtLimit && (
               <Badge variant="destructive">
                 <AlertTriangle className="w-3 h-3 mr-1" />
-                Limite atteinte
+                {(t as any)('limits.reached')}
               </Badge>
             )}
           </div>
@@ -150,14 +150,14 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Recherches</span>
-            <span className="text-primary font-medium">Illimitées ∞</span>
+            <span>{(t as any)('searches.label')}</span>
+            <span className="text-primary font-medium">{(t as any)('limits.unlimited')}</span>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Exports Excel</span>
+            <span>{(t as any)('exports.label')}</span>
             <span className={!canExport ? "text-destructive font-medium" : ""}>
               {exportsUsed} / {(isUnlimited || exportsLimit === null) ? "∞" : exportsLimit || 0}
             </span>
@@ -169,13 +169,13 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
             />
           )}
           {exportsLimit === 0 && (
-            <div className="text-xs text-muted-foreground">Non disponible en Freemium</div>
+            <div className="text-xs text-muted-foreground">{(t as any)('limits.messages.freemium_note')}</div>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Copies presse-papiers</span>
+            <span>{(t as any)('clipboard.label')}</span>
             <span className={clipboardCopiesLimit !== null && clipboardCopiesUsed >= clipboardCopiesLimit ? "text-destructive font-medium" : ""}>
               {clipboardCopiesLimit === null ? "Illimitées ∞" : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
             </span>
@@ -189,16 +189,16 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         </div>
 
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Favoris</span>
-            <span className="text-muted-foreground">Premium</span>
+          <div className="flex justify_between text-sm">
+            <span>{(t as any)('favorites.label')}</span>
+            <span className="text-muted-foreground">{(t as any)('favorites.premium_only')}</span>
           </div>
         </div>
 
         {isAtLimit && (
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              Vous avez atteint vos limites mensuelles. Contactez l'administrateur pour augmenter votre plan.
+              {(t as any)('limits.messages.reached')}
             </p>
           </div>
         )}
