@@ -277,8 +277,7 @@ Deno.serve(async (req) => {
       switch (searchType) {
         case 'fullPublic':
           appliedFilters = `scope:public`
-          if (ws) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:"${ws}"` ]]
-          else appliedFacetFilters = [[ 'access_level:standard' ]]
+          appliedFacetFilters = []
           break
         case 'teaserPublic':
           appliedFilters = `scope:public`
@@ -290,8 +289,7 @@ Deno.serve(async (req) => {
           break
         default:
           appliedFilters = `scope:public`
-          if (ws) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:"${ws}"` ]]
-          else appliedFacetFilters = [[ 'access_level:standard' ]]
+          appliedFacetFilters = []
       }
       return { appliedFilters, appliedFacetFilters }
     }
@@ -326,7 +324,7 @@ Deno.serve(async (req) => {
         switch (stype) {
           case 'fullPublic':
             appliedFilters = `scope:public`
-            if (requestWorkspaceId) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:\"${requestWorkspaceId}\"` ]]; else appliedFacetFilters = [[ 'access_level:standard' ]]
+            appliedFacetFilters = []
             break
           case 'teaserPublic':
             appliedFilters = `scope:public`
@@ -342,7 +340,7 @@ Deno.serve(async (req) => {
             break
           default:
             appliedFilters = `scope:public`
-            if (requestWorkspaceId) appliedFacetFilters = [[ 'access_level:standard', `assigned_workspace_ids:\"${requestWorkspaceId}\"` ]]; else appliedFacetFilters = [[ 'access_level:standard' ]]
+            appliedFacetFilters = []
         }
         return { appliedFilters, appliedFacetFilters }
       }
