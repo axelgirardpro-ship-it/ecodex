@@ -264,8 +264,6 @@ export const AdminImportsPanel: React.FC = () => {
     }
   };
 
-  // Reindex manuel supprimé: l'indexation se fait automatiquement via Webhooks après import
-
   const loadJobs = React.useCallback(async () => {
     try {
       if (inflightRef.current) return; // anti-chevauchement

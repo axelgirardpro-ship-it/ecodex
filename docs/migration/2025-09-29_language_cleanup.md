@@ -21,3 +21,10 @@
 - Rebuild complet : `select public.rebuild_emission_factors_all_search();`.
 - Vérifier via `select * from emission_factors_all_search limit 5;` (plus de colonne `languages`).
 - Edge Function `algolia-search-proxy` redéployée pour supporter les arrays correctement (`encodeParams`).
+
+
+
+
+
+
+

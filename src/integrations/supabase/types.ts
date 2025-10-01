@@ -203,7 +203,7 @@ export type Database = {
           id: string
           import_type: string | null
           Incertitude: string | null
-          is_latest: boolean | null
+          ID_FE: string
           language: string
           Localisation: string | null
           Localisation_en: string | null
@@ -219,9 +219,6 @@ export type Database = {
           "Unité donnée d'activité": string
           Unite_en: string | null
           updated_at: string | null
-          valid_from: string | null
-          valid_to: string | null
-          version_id: string | null
           workspace_id: string | null
         }
         Insert: {
@@ -243,7 +240,7 @@ export type Database = {
           id?: string
           import_type?: string | null
           Incertitude?: string | null
-          is_latest?: boolean | null
+          ID_FE: string
           language?: string
           Localisation?: string | null
           Localisation_en?: string | null
@@ -259,9 +256,6 @@ export type Database = {
           "Unité donnée d'activité": string
           Unite_en?: string | null
           updated_at?: string | null
-          valid_from?: string | null
-          valid_to?: string | null
-          version_id?: string | null
           workspace_id?: string | null
         }
         Update: {
@@ -283,7 +277,7 @@ export type Database = {
           id?: string
           import_type?: string | null
           Incertitude?: string | null
-          is_latest?: boolean | null
+          ID_FE?: string
           language?: string
           Localisation?: string | null
           Localisation_en?: string | null
@@ -299,9 +293,6 @@ export type Database = {
           "Unité donnée d'activité"?: string
           Unite_en?: string | null
           updated_at?: string | null
-          valid_from?: string | null
-          valid_to?: string | null
-          version_id?: string | null
           workspace_id?: string | null
         }
         Relationships: [

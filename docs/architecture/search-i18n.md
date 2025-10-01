@@ -42,3 +42,10 @@
 3. Utiliser les helpers `getLocalizedValue` pour chaque champ Algolia.
 4. Pour les exports/copier, convertir les `AlgoliaHit` via `mapHitToLocalizedFactor`.
 5. Éviter toute dépendance à l’ancien champ `languages` (Supabase/Algolia).
+
+
+
+
+
+
+

@@ -146,3 +146,7 @@ Cette simplification est plus robuste et évite les erreurs de type SQL.
 - [x] Toutes les fonctions corrigées
 - [ ] Surveiller les performances de la tâche Algolia sur gros volumes
 - [ ] Considérer l'ajout d'un retry automatique en cas d'échec Algolia
+
+
+
+
