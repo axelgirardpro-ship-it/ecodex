@@ -19,27 +19,27 @@ interface LocalizedFilterConfig {
 }
 
 const FILTERS_FR: LocalizedFilterConfig[] = [
-  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
-  { attribute: 'dataset_name', label: 'Dataset importé', searchable: true, limit: 500 },
   { attribute: 'Unite_fr', label: 'Unité', searchable: true, limit: 500 },
-  { attribute: 'Date', label: 'Date', limit: 20 },
-  { attribute: 'Secteur_fr', label: 'Secteur', searchable: true, limit: 500 },
-  { attribute: 'Sous-secteur_fr', label: 'Sous-secteur', searchable: true, limit: 500 },
+  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
   { attribute: 'Localisation_fr', label: 'Localisation', searchable: true, limit: 500 },
   { attribute: 'Périmètre_fr', label: 'Périmètre', searchable: true, limit: 500 },
-  { attribute: 'Type_de_données', label: 'Type_de_données', searchable: true, limit: 500 },
+  { attribute: 'Date', label: 'Date', limit: 20 },
+  { attribute: 'Type_de_données', label: 'Type de données', searchable: true, limit: 500 },
+  { attribute: 'Secteur_fr', label: 'Secteur', searchable: true, limit: 500 },
+  { attribute: 'Sous-secteur_fr', label: 'Sous-secteur', searchable: true, limit: 500 },
+  { attribute: 'dataset_name', label: 'Dataset importé', searchable: true, limit: 500 },
 ];
 
 const FILTERS_EN: LocalizedFilterConfig[] = [
-  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
-  { attribute: 'dataset_name', label: 'Imported Dataset', searchable: true, limit: 500 },
   { attribute: 'Unite_en', label: 'Unit', searchable: true, limit: 500 },
-  { attribute: 'Date', label: 'Date', limit: 20 },
-  { attribute: 'Secteur_en', label: 'Sector', searchable: true, limit: 500 },
-  { attribute: 'Sous-secteur_en', label: 'Sub-Sector', searchable: true, limit: 500 },
+  { attribute: 'Source', label: 'Source', searchable: true, limit: 500 },
   { attribute: 'Localisation_en', label: 'Location', searchable: true, limit: 500 },
   { attribute: 'Périmètre_en', label: 'Perimeter', searchable: true, limit: 500 },
+  { attribute: 'Date', label: 'Date', limit: 20 },
   { attribute: 'Type_de_données_en', label: 'Data Type', searchable: true, limit: 500 },
+  { attribute: 'Secteur_en', label: 'Sector', searchable: true, limit: 500 },
+  { attribute: 'Sous-secteur_en', label: 'Sub-Sector', searchable: true, limit: 500 },
+  { attribute: 'dataset_name', label: 'Imported Dataset', searchable: true, limit: 500 },
 ];
 
 /**
