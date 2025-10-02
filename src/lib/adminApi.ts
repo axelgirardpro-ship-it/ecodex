@@ -92,7 +92,7 @@ export async function deleteUser(userId: string) {
 }
 
 export async function assignFeSourceToWorkspace(sourceName: string, workspaceId: string) {
-  const { data, error } = await invokeWithAuth('manage-fe-source-assignments', {
+  const { data, error } = await invokeWithAuth('schedule-source-reindex', {
     body: { action: 'assign', source_name: sourceName, workspace_id: workspaceId }
   })
   if (error) throw error
@@ -100,7 +100,7 @@ export async function assignFeSourceToWorkspace(sourceName: string, workspaceId:
 }
 
 export async function unassignFeSourceFromWorkspace(sourceName: string, workspaceId: string) {
-  const { data, error } = await invokeWithAuth('manage-fe-source-assignments', {
+  const { data, error } = await invokeWithAuth('schedule-source-reindex', {
     body: { action: 'unassign', source_name: sourceName, workspace_id: workspaceId }
   })
   if (error) throw error

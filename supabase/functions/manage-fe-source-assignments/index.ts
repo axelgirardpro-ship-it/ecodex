@@ -58,65 +58,51 @@ Deno.serve(async (req) => {
 					.eq('Source', sourceName)
 				if (error) throw new Error(`Projection fetch failed: ${error.message}`)
 
-				const records = (rows || []).map((r: any) => ({ ...r, objectID: String(r.object_id) }))
-				const currentIds = new Set(records.map((r: any) => r.objectID))
-
-				// Récupérer les objectID existants pour cette Source via API REST
-				const existingIds: string[] = []
-				const searchUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/query`
-				const searchBody = {
-					query: '',
-					filters: `Source:"${sourceName.replaceAll('"', '\\"')}"`,
-					attributesToRetrieve: ['objectID'],
-					hitsPerPage: 1000
-				}
-				
-				const searchResponse = await fetch(searchUrl, {
-					method: 'POST',
-					headers: algoliaHeaders,
-					body: JSON.stringify(searchBody)
-				})
-				
-				if (searchResponse.ok) {
-					const searchData = await searchResponse.json()
-					if (searchData.hits) {
-						searchData.hits.forEach((hit: any) => {
-							existingIds.push(String(hit.objectID))
-						})
-					}
-				}
-
-				const toDelete = existingIds.filter((id) => !currentIds.has(id))
-				
-				// Supprimer les objets obsolètes via API REST
-				if (toDelete.length > 0) {
-					const deleteUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/deleteByQuery`
-					const deleteBody = {
-						filters: `Source:"${sourceName}" AND objectID:${toDelete.map(id => `"${id}"`).join(' OR objectID:')}`
-					}
-					
-					await fetch(deleteUrl, {
-						method: 'POST',
-						headers: algoliaHeaders,
-						body: JSON.stringify(deleteBody)
-					})
-				}
-				
-				// Sauvegarder les nouveaux objets via API REST
+			// Utiliser ID_FE comme objectID (standard Algolia) ET garder object_id pour compatibilité
+			const records = (rows || []).map((r: any) => ({
+				...r,
+				objectID: String(r.ID_FE || r.object_id) // Priorité à ID_FE
+			}))
+			debug.records_count = records.length
+			debug.source_name = sourceName
+			debug.sample_objectID = records[0]?.objectID
+			
+			// Sauvegarder TOUS les records via API REST EN BATCHES DE 1000
+			// Note: updateObject est idempotent (crée ou met à jour), donc pas besoin de supprimer d'abord
 				if (records.length > 0) {
 					const saveUrl = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX_ALL}/batch`
-					const saveBody = {
-						requests: records.map((record: any) => ({
-							action: 'updateObject',
-							body: record
-						}))
-					}
+					const batchSize = 1000
+					let totalSaved = 0
+					const maxBatches = 10 // Limite à 10 batches (10k records) pour éviter timeout
+					const batchesToSend = Math.min(Math.ceil(records.length / batchSize), maxBatches)
 					
-					await fetch(saveUrl, {
-						method: 'POST',
-						headers: algoliaHeaders,
-						body: JSON.stringify(saveBody)
-					})
+					// Découper les records en batches de 1000 max (limite Algolia)
+					for (let i = 0; i < batchesToSend * batchSize && i < records.length; i += batchSize) {
+						const batch = records.slice(i, i + batchSize)
+						const saveBody = {
+							requests: batch.map((record: any) => ({
+								action: 'updateObject',
+								body: record
+							}))
+						}
+						
+						const saveResponse = await fetch(saveUrl, {
+							method: 'POST',
+							headers: algoliaHeaders,
+							body: JSON.stringify(saveBody)
+						})
+						
+						if (saveResponse.ok) {
+							totalSaved += batch.length
+						} else {
+							debug[`batch_${i}_error`] = await saveResponse.text()
+						}
+					}
+					debug.total_saved = totalSaved
+					debug.total_records = records.length
+					if (records.length > maxBatches * batchSize) {
+						debug.warning = `Source too large (${records.length} records). Only first ${maxBatches * batchSize} synced. Use bulk reindex for full sync.`
+					}
 				}
 				return 'ok'
 			} catch (e) {
