@@ -174,7 +174,9 @@ export function buildFavoriteIdsFilter(favoriteIds?: string[]): string {
 
 export function buildPublicFilters(wsId?: string, favoriteIdsFilter?: string) {
   const base = '(access_level:standard)';
-  const ws = wsId ? ` OR (assigned_workspace_ids:${wsId})` : '';
+  // CORRECTION: assigned_workspace_ids est un ARRAY dans Algolia
+  // Il faut utiliser assigned_workspace_ids:"uuid" (pas de = ou :)
+  const ws = wsId ? ` OR (assigned_workspace_ids:"${wsId}")` : '';
   const fav = favoriteIdsFilter ? ` AND (${favoriteIdsFilter})` : '';
   return base + ws + fav;
 }

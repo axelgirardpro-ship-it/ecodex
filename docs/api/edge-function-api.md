@@ -102,10 +102,9 @@ const attributesToRetrieve = undefined;   // Tous les attributs
 
 // Utilisateur sans sources premium
 const facetFilters = [
-  ['variant:full', 'is_blurred:true'],    // Standards + teasers
-  ['access_level:standard', 'is_blurred:true']
+  ['variant:full', 'is_blurred:true']     // Standards + premium floutés
 ];
-const attributesToRetrieve = [           // Attributs limités
+const attributesToRetrieve = [           // Attributs limités (post-process)
   'objectID', 'Source', 'Nom_fr', 'Secteur_fr', 'is_blurred', 'variant'
   // PAS de FE, Description, Commentaires
 ];
