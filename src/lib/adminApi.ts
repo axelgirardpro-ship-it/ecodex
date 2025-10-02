@@ -108,11 +108,38 @@ export async function unassignFeSourceFromWorkspace(sourceName: string, workspac
 }
 
 export async function syncWorkspaceAssignments(workspaceId: string, assigned: string[], unassigned: string[]) {
-  const { data, error } = await invokeWithAuth('manage-fe-source-assignments-bulk', {
-    body: { workspace_id: workspaceId, assigned, unassigned }
-  })
-  if (error) throw error
-  return data
+  // Utilise le nouveau flux schedule-source-reindex pour chaque source
+  const results = {
+    assigned_count: 0,
+    unassigned_count: 0,
+    errors: [] as string[]
+  }
+
+  // Traiter les assignations
+  for (const sourceName of assigned) {
+    try {
+      await assignFeSourceToWorkspace(sourceName, workspaceId)
+      results.assigned_count++
+    } catch (error) {
+      results.errors.push(`Failed to assign ${sourceName}: ${error}`)
+    }
+  }
+
+  // Traiter les désassignations
+  for (const sourceName of unassigned) {
+    try {
+      await unassignFeSourceFromWorkspace(sourceName, workspaceId)
+      results.unassigned_count++
+    } catch (error) {
+      results.errors.push(`Failed to unassign ${sourceName}: ${error}`)
+    }
+  }
+
+  if (results.errors.length > 0) {
+    console.warn('Some operations failed:', results.errors)
+  }
+
+  return results
 }
 
 // ============================================================================
