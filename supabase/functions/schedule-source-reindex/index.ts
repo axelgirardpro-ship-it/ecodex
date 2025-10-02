@@ -151,7 +151,7 @@ serve(async (req) => {
     }
 
     // 5. Déclencher la Task Algolia
-    const taskId = "cc1759c5-1e16-4ad5-a43d-7f12bac903ad";
+    const taskId = "f3cd3fd0-2db4-49fa-be67-6bd88cbc5950";
     const { data: taskData, error: taskError } = await supabase.functions.invoke("algolia-run-task", {
       body: { task_id: taskId, region: "eu" }
     });
