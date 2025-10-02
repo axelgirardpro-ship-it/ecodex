@@ -115,21 +115,37 @@ serve(async (req) => {
       console.error("Warning: Failed to clear projection table:", truncateError);
     }
 
-    // 4. Remplir la projection avec tous les records de la source
-    const { data: projectionData, error: projectionError } = await supabase
-      .from("emission_factors_all_search")
-      .select("ID_FE, Source, assigned_workspace_ids")
-      .eq("Source", source_name);
+    // 4. Remplir la projection avec tous les records de la source (avec pagination)
+    let allRecords: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (projectionError) {
-      return new Response(JSON.stringify({ error: `Failed to fetch projection data: ${projectionError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    while (hasMore) {
+      const { data: projectionData, error: projectionError } = await supabase
+        .from("emission_factors_all_search")
+        .select("ID_FE, Source, assigned_workspace_ids")
+        .eq("Source", source_name)
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (projectionError) {
+        return new Response(JSON.stringify({ error: `Failed to fetch projection data: ${projectionError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (projectionData && projectionData.length > 0) {
+        allRecords = allRecords.concat(projectionData);
+        page++;
+        hasMore = projectionData.length === pageSize;
+      } else {
+        hasMore = false;
+      }
     }
 
-    if (projectionData && projectionData.length > 0) {
-      const recordsToInsert = projectionData.map((row: any) => ({
+    if (allRecords.length > 0) {
+      const recordsToInsert = allRecords.map((row: any) => ({
         id_fe: row.ID_FE,
         source_name: row.Source,
         assigned_workspace_ids: row.assigned_workspace_ids || [],
@@ -150,21 +166,43 @@ serve(async (req) => {
       }
     }
 
-    // 5. Déclencher la Task Algolia
+    // 5. Déclencher la Task Algolia via API REST directe
     const taskId = "f3cd3fd0-2db4-49fa-be67-6bd88cbc5950";
-    const { data: taskData, error: taskError } = await supabase.functions.invoke("algolia-run-task", {
-      body: { task_id: taskId, region: "eu" }
-    });
-
-    if (taskError) {
-      console.error("Warning: Failed to trigger Algolia task:", taskError);
+    const ALGOLIA_APP_ID = Deno.env.get("ALGOLIA_APP_ID") || "";
+    const ALGOLIA_ADMIN_KEY = Deno.env.get("ALGOLIA_ADMIN_KEY") || "";
+    
+    let taskTriggered = false;
+    if (ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY) {
+      try {
+        const taskUrl = `https://data.eu.algolia.com/2/tasks/${taskId}/run`;
+        const taskResponse = await fetch(taskUrl, {
+          method: "POST",
+          headers: {
+            "x-algolia-application-id": ALGOLIA_APP_ID,
+            "x-algolia-api-key": ALGOLIA_ADMIN_KEY,
+            "accept": "application/json",
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({ runMetadata: {} })
+        });
+        
+        if (taskResponse.ok) {
+          taskTriggered = true;
+          console.log("Algolia task triggered successfully");
+        } else {
+          const errorText = await taskResponse.text();
+          console.error("Failed to trigger Algolia task:", errorText);
+        }
+      } catch (e) {
+        console.error("Error triggering Algolia task:", String(e));
+      }
     }
 
     return new Response(JSON.stringify({
       success: true,
       message: `Source ${source_name} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}`,
-      algolia_sync: taskError ? "failed" : "scheduled",
-      records_prepared: projectionData?.length || 0
+      algolia_sync: taskTriggered ? "scheduled" : "failed",
+      records_prepared: allRecords.length
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
