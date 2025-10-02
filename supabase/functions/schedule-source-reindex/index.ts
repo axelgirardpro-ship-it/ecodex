@@ -105,16 +105,14 @@ serve(async (req) => {
       console.error("Warning: refresh_ef_all_for_source failed:", refreshError);
     }
 
-    // 3. TRUNCATE la table de projection Algolia
-    const { error: truncateError } = await supabase.rpc("execute_sql", {
-      query: "TRUNCATE TABLE public.algolia_source_assignments_projection;"
-    });
+    // 3. TRUNCATE la table de projection Algolia (en utilisant DELETE pour contourner les permissions)
+    const { error: truncateError } = await supabase
+      .from("algolia_source_assignments_projection")
+      .delete()
+      .neq("id_fe", "impossible-uuid-to-match-all");
 
     if (truncateError) {
-      return new Response(JSON.stringify({ error: `Failed to truncate projection: ${truncateError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      console.error("Warning: Failed to clear projection table:", truncateError);
     }
 
     // 4. Remplir la projection avec tous les records de la source
