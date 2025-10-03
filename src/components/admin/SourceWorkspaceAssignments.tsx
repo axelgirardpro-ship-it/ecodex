@@ -34,7 +34,7 @@ export const SourceWorkspaceAssignments = () => {
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const getSourceBadgeVariant = (accessLevel: string) => accessLevel === 'premium' ? 'default' : 'secondary';
+  const getSourceBadgeVariant = (accessLevel: string) => accessLevel === 'paid' ? 'default' : 'secondary';
 
   const fetchWorkspaces = useCallback(async () => {
     const rows = await getAdminWorkspaces('all')
@@ -135,12 +135,12 @@ export const SourceWorkspaceAssignments = () => {
             onClick={async ()=>{
               if (!selectedWorkspaceId) return
               try {
-                const premiumSources = sources.filter(s=> s.access_level==='premium').map(s=>s.source_name)
-                const standardSources = sources.filter(s=> s.access_level==='standard').map(s=>s.source_name)
-                const assignedPremium = premiumSources.filter(s=> assignedSet.has(s))
-                const unassignedPremium = premiumSources.filter(s=> !assignedSet.has(s))
-                const assigned = [...standardSources, ...assignedPremium]
-                const unassigned = unassignedPremium
+                const paidSources = sources.filter(s=> s.access_level==='paid').map(s=>s.source_name)
+                const freeSources = sources.filter(s=> s.access_level==='free').map(s=>s.source_name)
+                const assignedPaid = paidSources.filter(s=> assignedSet.has(s))
+                const unassignedPaid = paidSources.filter(s=> !assignedSet.has(s))
+                const assigned = [...freeSources, ...assignedPaid]
+                const unassigned = unassignedPaid
                 await syncWorkspaceAssignments(selectedWorkspaceId, assigned, unassigned)
                 toast({ title: 'Synchronisation réussie', description: `Assignés: ${assigned.length} • Désassignés: ${unassigned.length}` })
                 await fetchAssignments(selectedWorkspaceId)
@@ -177,9 +177,9 @@ export const SourceWorkspaceAssignments = () => {
           </TableHeader>
           <TableBody>
             {sources.map((s)=>{
-              const enabled = (s.access_level === 'standard') || assignedSet.has(s.source_name)
+              const enabled = (s.access_level === 'free') || assignedSet.has(s.source_name)
               const busy = !!rowBusy[s.source_name]
-              const premium = s.access_level === 'premium'
+              const paid = s.access_level === 'paid'
               return (
                 <TableRow key={s.source_name}>
                   <TableCell>
@@ -195,8 +195,8 @@ export const SourceWorkspaceAssignments = () => {
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                       <Checkbox 
                         checked={enabled}
-                        onCheckedChange={() => premium && toggle(s.source_name, true)}
-                        disabled={!selectedWorkspaceId || !premium}
+                        onCheckedChange={() => paid && toggle(s.source_name, true)}
+                        disabled={!selectedWorkspaceId || !paid}
                       />
                     )}
                   </TableCell>
@@ -204,8 +204,8 @@ export const SourceWorkspaceAssignments = () => {
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                       <Checkbox 
                         checked={!enabled}
-                        onCheckedChange={() => premium && toggle(s.source_name, false)}
-                        disabled={!selectedWorkspaceId || !premium}
+                        onCheckedChange={() => paid && toggle(s.source_name, false)}
+                        disabled={!selectedWorkspaceId || !paid}
                       />
                     )}
                   </TableCell>

@@ -200,8 +200,7 @@ export const FreemiumCompaniesTable = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="freemium">Freemium</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="pro">Pro</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button

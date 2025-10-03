@@ -21,7 +21,7 @@ export const VALID_ALGOLIA_PARAMS = [
 /**
  * Type d'origine pour la recherche de facteurs d'émission
  * 
- * - 'public': Base commune - données publiques et premium selon assignations workspace
+ * - 'public': Base commune - données gratuites et payantes selon assignations workspace
  * - 'private': Base personnelle - données importées par le workspace
  */
 export type Origin = 'public' | 'private';
@@ -173,7 +173,7 @@ export function buildFavoriteIdsFilter(favoriteIds?: string[]): string {
 }
 
 export function buildPublicFilters(wsId?: string, favoriteIdsFilter?: string) {
-  const base = '(access_level:standard)';
+  const base = '(access_level:free)';
   // CORRECTION: assigned_workspace_ids est un ARRAY dans Algolia
   // Il faut utiliser assigned_workspace_ids:"uuid" (pas de = ou :)
   const ws = wsId ? ` OR (assigned_workspace_ids:"${wsId}")` : '';
@@ -183,16 +183,16 @@ export function buildPublicFilters(wsId?: string, favoriteIdsFilter?: string) {
 
 export function buildPublicFiltersBySources(allowedSources: string[], favoriteIdsFilter?: string) {
   // Group1: Autorisé sans restriction
-  // - standard
+  // - free
   // - full (sera restreint par Group2)
-  const group1 = '(access_level:standard OR variant:full)';
+  const group1 = '(access_level:free OR variant:full)';
 
-  // Group2: restreindre les FULL premium aux sources assignées
-  // On inclut standard pour ne pas bloquer ces résultats
+  // Group2: restreindre les FULL paid aux sources assignées
+  // On inclut free pour ne pas bloquer ces résultats
   const sourcesOr = (allowedSources && allowedSources.length)
     ? `(${allowedSources.map(s => `Source:"${s.replace(/\"/g, '\\\"').replace(/"/g, '\\"')}"`).join(' OR ')})`
     : '';
-  const group2Base = '(access_level:standard)';
+  const group2Base = '(access_level:free)';
   const group2 = sourcesOr ? `${group2Base} OR ${sourcesOr}` : group2Base;
 
   const fav = favoriteIdsFilter ? ` AND (${favoriteIdsFilter})` : '';

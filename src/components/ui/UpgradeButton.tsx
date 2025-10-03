@@ -10,7 +10,7 @@ export const UpgradeButton = () => {
     window.location.href = '/settings';
   };
 
-  // Don't show for premium users - simplified logic for now
+  // Don't show for pro users - simplified logic for now
   return null;
 
 };

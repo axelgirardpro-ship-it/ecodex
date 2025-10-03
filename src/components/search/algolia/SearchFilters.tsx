@@ -166,7 +166,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
  * Composant de sélection d'origine avec auto-refresh
  * 
  * FONCTIONNEMENT :
- * - 'public': Base commune (données publiques + premium selon assignations)
+ * - 'public': Base commune (données gratuites + payantes selon assignations)
  * - 'private': Base personnelle (données importées par le workspace)
  * - Auto-refresh: changement d'origine relance automatiquement la recherche
  */

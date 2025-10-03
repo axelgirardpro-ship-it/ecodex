@@ -40,10 +40,10 @@ export const CompaniesTable = () => {
     try {
       setLoading(true);
       
-      // Get only paying workspaces (standard and premium)
+      // Get only paying workspaces (pro)
       const rows = await getAdminWorkspaces('paid')
       const payingCompanies = rows.filter((company: Company) => 
-        company.plan_type === 'standard' || company.plan_type === 'premium'
+        company.plan_type === 'pro'
       );
       setCompanies(payingCompanies);
     } catch (error) {
@@ -113,8 +113,7 @@ export const CompaniesTable = () => {
 
   const getPlanBadgeVariant = (planType: string) => {
     switch (planType) {
-      case 'premium': return 'default';
-      case 'standard': return 'secondary';
+      case 'pro': return 'default';
       case 'freemium': return 'outline';
       default: return 'outline';
     }
@@ -208,8 +207,7 @@ export const CompaniesTable = () => {
                            </SelectTrigger>
                            <SelectContent>
                              <SelectItem value="freemium">Freemium</SelectItem>
-                             <SelectItem value="standard">Standard</SelectItem>
-                             <SelectItem value="premium">Premium</SelectItem>
+                             <SelectItem value="pro">Pro</SelectItem>
                            </SelectContent>
                          </Select>
                          <Button
