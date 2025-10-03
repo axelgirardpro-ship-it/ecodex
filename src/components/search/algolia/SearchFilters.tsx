@@ -79,41 +79,35 @@ interface RefinementListProps {
   limit?: number;
 }
 
+/**
+ * RefinementList avec filtrage côté client
+ * Solution simple et fonctionnelle en attendant une configuration Algolia optimale
+ */
 const RefinementList: React.FC<RefinementListProps> = ({
   attribute,
   title,
   searchable = false,
-  limit = 100
+  limit = 500
 }) => {
-  const { items, refine, searchForItems } = useRefinementList({
+  const { items, refine } = useRefinementList({
     attribute,
     limit
   });
 
-  // Debug pour comprendre pourquoi les items sont vides
-  React.useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log(`[RefinementList ${attribute}] items:`, items.length, items.slice(0, 3));
-    }
-  }, [items, attribute]);
-
   const [searchQuery, setSearchQuery] = React.useState('');
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Filtrer les items localement basé sur la requête de recherche
+  const filteredItems = React.useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter(item => 
+      item.label.toLowerCase().includes(query)
+    );
+  }, [items, searchQuery]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (!searchable || !searchForItems) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 2) return; // seuil mini
-    debounceRef.current = setTimeout(() => {
-      searchForItems(query);
-    }, 300);
+    setSearchQuery(e.target.value);
   };
-
-  React.useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, []);
 
   return (
     <div className="space-y-2">
@@ -129,19 +123,21 @@ const RefinementList: React.FC<RefinementListProps> = ({
       {searchable && (
         <Input
           type="text"
-          placeholder={title}
+          placeholder={`Rechercher ${title.toLowerCase()}...`}
           value={searchQuery}
           onChange={handleSearch}
-          className="text-xs"
+          className="text-xs h-8"
         />
       )}
 
       <div className="max-h-48 overflow-y-auto space-y-1">
-        {items.length === 0 ? (
-          <div className="text-xs text-gray-400">-</div>
+        {filteredItems.length === 0 ? (
+          <div className="text-xs text-gray-400">
+            {searchQuery ? 'Aucun résultat' : '-'}
+          </div>
         ) : (
-          items.map(item => (
-            <div key={item.value} className="flex items-center space-x-2">
+          filteredItems.map(item => (
+            <div key={item.value} className="flex items-center space-x-2 py-0.5">
               <Checkbox
                 id={`${attribute}-${item.value}`}
                 checked={item.isRefined}
@@ -152,7 +148,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
                 className="text-sm cursor-pointer flex-1 truncate"
                 title={item.label}
               >
-                {item.label} ({item.count})
+                {item.label} <span className="text-xs text-gray-500">({item.count})</span>
               </label>
             </div>
           ))
