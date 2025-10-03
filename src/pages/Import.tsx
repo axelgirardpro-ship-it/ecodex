@@ -279,7 +279,7 @@ const Import = () => {
       try {
         await supabase
           .from('fe_sources')
-          .upsert({ source_name: datasetNormalized, access_level: 'standard', is_global: false }, { onConflict: 'source_name' })
+          .upsert({ source_name: datasetNormalized, access_level: 'free', is_global: false }, { onConflict: 'source_name' })
         
         // IMPORTANT: Assigner automatiquement la source au workspace pour éviter le floutage
         await supabase

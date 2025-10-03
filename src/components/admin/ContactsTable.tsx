@@ -76,8 +76,7 @@ export const ContactsTable = () => {
 
   const getPlanBadgeVariant = (plan: string) => {
     switch (plan) {
-      case 'premium': return 'default';
-      case 'standard': return 'secondary';
+      case 'pro': return 'default';
       case 'freemium': return 'outline';
       default: return 'outline';
     }
@@ -342,8 +341,7 @@ export const ContactsTable = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="freemium">Freemium</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="pro">Pro</SelectItem>
                       </SelectContent>
                     </Select>
                     

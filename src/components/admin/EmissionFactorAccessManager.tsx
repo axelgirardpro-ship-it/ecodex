@@ -5,15 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Database, Shield, Crown, RefreshCw, CheckCircle, Loader2 } from "lucide-react";
+import { Database, Lock, Globe, RefreshCw, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SourceAccessLevel } from "@/types/source";
 
 interface SourceAccessData {
   source: string;
-  current_tier: 'standard' | 'premium';
-  standard_count: number;
-  premium_count: number;
+  current_tier: SourceAccessLevel;
+  free_count: number;
+  paid_count: number;
   total_count: number;
 }
 
@@ -35,15 +36,15 @@ export const EmissionFactorAccessManager = () => {
   useEffect(() => {
     const finalData: SourceAccessData[] = (sources || []).map((source: any) => ({
       source: source.source_name,
-      current_tier: source.access_level as 'standard' | 'premium',
-      standard_count: source.access_level === 'standard' ? 1 : 0,
-      premium_count: source.access_level === 'premium' ? 1 : 0,
+      current_tier: source.access_level as SourceAccessLevel,
+      free_count: source.access_level === 'free' ? 1 : 0,
+      paid_count: source.access_level === 'paid' ? 1 : 0,
       total_count: 1,
     })) || [];
     setSourceData(finalData);
   }, [sources]);
 
-  const updateSourceTier = useCallback(async (source: string, newTier: 'standard' | 'premium') => {
+  const updateSourceTier = useCallback(async (source: string, newTier: SourceAccessLevel) => {
     // Set loading state for this specific source
     setUpdateStates(prev => ({
       ...prev,
@@ -76,7 +77,7 @@ export const EmissionFactorAccessManager = () => {
 
       toast({
         title: "Succès",
-        description: `Source "${source}" mise à jour vers ${newTier}`,
+        description: `Source "${source}" mise à jour vers ${newTier === 'paid' ? 'Payant' : 'Gratuit'}`,
       });
 
       // Clear success state after 3 seconds
@@ -106,12 +107,12 @@ export const EmissionFactorAccessManager = () => {
   // Loading reflects context state
   const loading = sourcesLoading;
 
-  const getTierBadgeVariant = (tier: string) => {
-    return tier === 'premium' ? 'default' : 'secondary';
+  const getTierBadgeVariant = (tier: SourceAccessLevel) => {
+    return tier === 'paid' ? 'default' : 'secondary';
   };
 
-  const getTierIcon = (tier: string) => {
-    return tier === 'premium' ? Crown : Shield;
+  const getTierIcon = (tier: SourceAccessLevel) => {
+    return tier === 'paid' ? Lock : Globe;
   };
 
   const getButtonContent = (source: SourceAccessData) => {
@@ -135,18 +136,18 @@ export const EmissionFactorAccessManager = () => {
       );
     }
     
-    if (source.current_tier === 'standard') {
+    if (source.current_tier === 'free') {
       return (
         <>
-          <Crown className="h-3 w-3 mr-1" />
-          Passer en Premium
+          <Lock className="h-3 w-3 mr-1" />
+          Passer en Payant
         </>
       );
     } else {
       return (
         <>
-          <Shield className="h-3 w-3 mr-1" />
-          Passer en Standard
+          <Globe className="h-3 w-3 mr-1" />
+          Passer en Gratuit
         </>
       );
     }
@@ -191,9 +192,9 @@ export const EmissionFactorAccessManager = () => {
         <p className="text-sm text-muted-foreground">
           Gérez les niveaux d'accès des sources de facteurs d'émission.
           <br />
-          <span className="font-medium">Standard</span> : accessible à tous les utilisateurs
+          <span className="font-medium">Gratuit</span> : accessible à tous les workspaces
           <br />
-          <span className="font-medium">Premium</span> : accessible uniquement aux utilisateurs premium
+          <span className="font-medium">Payant</span> : nécessite une assignation manuelle au workspace
         </p>
       </CardHeader>
       <CardContent>
@@ -202,8 +203,8 @@ export const EmissionFactorAccessManager = () => {
             <TableRow>
               <TableHead>Source</TableHead>
               <TableHead>Niveau actuel</TableHead>
-              <TableHead>Facteurs Standard</TableHead>
-              <TableHead>Facteurs Premium</TableHead>
+              <TableHead>Facteurs Gratuits</TableHead>
+              <TableHead>Facteurs Payants</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -226,14 +227,14 @@ export const EmissionFactorAccessManager = () => {
                   <TableCell>
                     <Badge variant={getTierBadgeVariant(source.current_tier)}>
                       <TierIcon className="h-3 w-3 mr-1" />
-                      {source.current_tier === 'premium' ? 'Premium' : 'Standard'}
+                      {source.current_tier === 'paid' ? 'Payant' : 'Gratuit'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">{source.standard_count}</span>
+                    <span className="text-muted-foreground">{source.free_count}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">{source.premium_count}</span>
+                    <span className="text-muted-foreground">{source.paid_count}</span>
                   </TableCell>
                   <TableCell>
                     <span className="font-medium">{source.total_count}</span>
@@ -244,7 +245,7 @@ export const EmissionFactorAccessManager = () => {
                       variant={updateState?.success ? "default" : "outline"}
                       onClick={() => updateSourceTier(
                         source.source, 
-                        source.current_tier === 'standard' ? 'premium' : 'standard'
+                        source.current_tier === 'free' ? 'paid' : 'free'
                       )}
                       disabled={updateState?.loading}
                     >

@@ -7,19 +7,19 @@ export const useEmissionFactorAccess = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const [assignedSources, setAssignedSources] = useState<string[]>([]);
-  const [standardSources, setStandardSources] = useState<string[]>([]);
+  const [freeSources, setFreeSources] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchSources = async () => {
       if (!user || !currentWorkspace) return;
 
       try {
-        const { data: stdData } = await supabase
+        const { data: freeData } = await supabase
           .from('fe_sources')
           .select('source_name')
-          .eq('access_level', 'standard')
+          .eq('access_level', 'free')
           .eq('is_global', true);
-        if (stdData) setStandardSources(stdData.map(s => s.source_name));
+        if (freeData) setFreeSources(freeData.map(s => s.source_name));
 
         const { data: assignedSourcesData } = await supabase
           .from('fe_source_workspace_assignments')
@@ -42,30 +42,30 @@ export const useEmissionFactorAccess = () => {
     return true;
   }, [user]);
 
-  const shouldBlurPremiumContent = useCallback((source: string) => {
+  const shouldBlurPaidContent = useCallback((source: string) => {
     // Nouvelle règle unique: full seulement si la source est assignée au workspace
     return !assignedSources.includes(source);
   }, [assignedSources]);
 
   const canUseFavorites = useCallback(() => {
     if (!user || !currentWorkspace) return false;
-    return currentWorkspace.plan_type === 'premium';
+    return currentWorkspace.plan_type === 'pro';
   }, [user, currentWorkspace?.id, currentWorkspace?.plan_type]);
 
   const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string) => {
     if (isWorkspaceSpecific) return { variant: "secondary" as const, label: "Workspace" };
-    // Facultatif: pas de label premium/standard désormais
+    // Facultatif: pas de label paid/free désormais
     return null;
   }, []);
 
   return {
     hasAccess,
-    shouldBlurPremiumContent,
+    shouldBlurPaidContent,
     getSourceLabel,
     canUseFavorites,
     user,
     currentWorkspace,
-    standardSources,
+    freeSources,
     assignedSources,
   };
 };

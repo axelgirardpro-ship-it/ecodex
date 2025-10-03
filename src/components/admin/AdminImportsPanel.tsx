@@ -25,7 +25,7 @@ interface ImportJob {
   estimated_completion_at?: string | null;
 }
 
-type AccessLevel = 'standard' | 'premium';
+type AccessLevel = 'free' | 'paid';
 interface MappingRow { name: string; count: number; access_level: AccessLevel; is_global: boolean }
 
 export const AdminImportsPanel: React.FC = () => {
@@ -179,7 +179,7 @@ export const AdminImportsPanel: React.FC = () => {
       const rows: MappingRow[] = (data?.sources || []).map((s: any) => ({
         name: s.name,
         count: s.count,
-        access_level: s.access_level || 'standard',
+        access_level: s.access_level || 'free',
         is_global: typeof s.is_global === 'boolean' ? s.is_global : true,
       }));
       setMappingRows(rows);

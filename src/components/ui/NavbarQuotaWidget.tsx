@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Crown, Zap, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, Crown, Shield, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PlanType } from '@/hooks/useQuotaSync';
 import { TrialWidget } from './TrialWidget';
@@ -52,15 +52,13 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
   const clipboardProgress = clipboardCopiesLimit === null ? 0 : (clipboardCopiesUsed / clipboardCopiesLimit) * 100;
 
   const getPlanIcon = () => {
-    if (planType === 'premium') return <Crown className="h-4 w-4" />;
-    if (planType === 'standard') return <Zap className="h-4 w-4" />;
-    return null;
+    if (planType === 'pro') return <Crown className="h-4 w-4 text-yellow-500" />;
+    return <Shield className="h-4 w-4 text-blue-500" />;
   };
 
   const getPlanLabel = () => {
-    if (planType === 'premium') return (t as any)('plan.premium');
-    if (planType === 'standard') return (t as any)('plan.standard');
-    return (t as any)('plan.freemium');
+    if (planType === 'pro') return 'Pro';
+    return 'Freemium';
   };
 
   const getExportDisplay = () => {
@@ -75,17 +73,21 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
   };
 
   const getFavoritesDisplay = () => {
-    if (planType !== 'premium') return (t as any)('favorites.premium_only');
+    if (planType !== 'pro') return (t as any)('favorites.pro_only');
     return (t as any)('limits.unlimited');
   };
 
-  // Pour premium et standard, affichage simplifié
-  const isPremiumOrStandard = planType === 'premium' || planType === 'standard';
+  // Pour pro, affichage simplifié
+  const isPro = planType === 'pro';
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
         className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 ${isAtLimit ? 'bg-destructive hover:bg-destructive/90' : ''}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -103,7 +105,11 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
         <>
           <div
             className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsOpen(false);
+            }}
           />
 
           <div className="absolute right-0 mt-2 w-72 bg-popover rounded-lg shadow-lg border border-border z-20">
@@ -140,7 +146,7 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                       {getExportDisplay()}
                     </span>
                   </div>
-                  {!isPremiumOrStandard && exportsLimit !== null && exportsLimit > 0 && (
+                  {!isPro && exportsLimit !== null && exportsLimit > 0 && (
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${
@@ -160,7 +166,7 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                       {getClipboardDisplay()}
                     </span>
                   </div>
-                  {!isPremiumOrStandard && clipboardCopiesLimit !== null && (
+                  {!isPro && clipboardCopiesLimit !== null && (
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${
@@ -176,7 +182,7 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-muted-foreground">{(t as any)('favorites.label')}</span>
-                    <span className={`text-sm font-medium ${planType === 'premium' ? 'text-success' : 'text-muted-foreground'}`}>
+                    <span className={`text-sm font-medium ${planType === 'pro' ? 'text-success' : 'text-muted-foreground'}`}>
                       {getFavoritesDisplay()}
                     </span>
                   </div>

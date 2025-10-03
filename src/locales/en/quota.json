@@ -5,8 +5,7 @@
   },
   "plan": {
     "title": "{{plan}} plan",
-    "premium": "Premium",
-    "standard": "Standard",
+    "pro": "Pro",
     "freemium": "Freemium",
     "supra": "Supra Admin"
   },
@@ -32,7 +31,7 @@
   },
   "favorites": {
     "label": "Favorites",
-    "premium_only": "Premium"
+    "pro_only": "Pro"
   },
   "trial": {
     "title": "Trial period",
@@ -48,15 +47,12 @@
       "badge": "Error",
       "description": "Unable to load quota information."
     },
-    "premium": {
-      "badge_premium": "Premium",
-      "badge_standard": "Standard",
+    "pro": {
+      "badge_pro": "Pro",
       "description_unlimited": "Unlimited",
       "description_paid": "Paid plan"
     },
     "freemium": {
-      "badge_premium": "Premium",
-      "badge_standard": "Standard",
       "badge_freemium": "Freemium",
       "note_unavailable": "Not available on Freemium"
     },

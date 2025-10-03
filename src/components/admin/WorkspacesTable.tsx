@@ -13,7 +13,7 @@ interface WorkspaceRow {
   id: string
   name: string
   owner_email?: string
-  plan_type: 'freemium'|'standard'|'premium'
+  plan_type: 'freemium'|'pro'
   user_count?: number
   created_at: string
 }
@@ -40,9 +40,9 @@ export const WorkspacesTable = () => {
     })()
   }, [filter])
 
-  const badge = (plan: string) => plan === 'premium' ? 'default' : plan === 'standard' ? 'secondary' : 'outline'
+  const badge = (plan: string) => plan === 'pro' ? 'default' : 'outline'
 
-  const onUpdatePlan = async (id: string, newPlan: 'freemium'|'standard'|'premium') => {
+  const onUpdatePlan = async (id: string, newPlan: 'freemium'|'pro') => {
     try {
       await updateWorkspacePlan(id, newPlan)
       toast({ title: 'Plan mis à jour', description: `Nouveau plan: ${newPlan}` })
@@ -130,8 +130,7 @@ export const WorkspacesTable = () => {
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="freemium">Freemium</SelectItem>
-                              <SelectItem value="standard">Standard</SelectItem>
-                              <SelectItem value="premium">Premium</SelectItem>
+                              <SelectItem value="pro">Pro</SelectItem>
                             </SelectContent>
                           </Select>
                           <Button variant="outline" size="sm" onClick={()=>setEditingPlanId(null)}>Annuler</Button>

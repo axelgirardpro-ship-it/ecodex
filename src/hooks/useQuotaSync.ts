@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'freemium' | 'standard' | 'premium';
+export type PlanType = 'freemium' | 'pro';
 
 // Règles de quotas par plan (recherches illimitées pour tous)
 interface PlanQuotaRules {
@@ -18,13 +18,8 @@ const PLAN_QUOTA_RULES: Record<PlanType, PlanQuotaRules> = {
     clipboard_copies_limit: 10,
     favorites_limit: 10,
   },
-  standard: {
-    exports_limit: 100,
-    clipboard_copies_limit: 100,
-    favorites_limit: 100,
-  },
-  premium: {
-    // Premium: quotas élevés mais bornés (favoris illimités)
+  pro: {
+    // Pro: quotas élevés avec favoris illimités
     exports_limit: 1000,
     clipboard_copies_limit: 1000,
     favorites_limit: null,
@@ -38,8 +33,8 @@ export const useQuotaSync = () => {
   const syncUserQuotas = useCallback(async () => {
     if (!user) return;
 
-    // Déterminer le plan effectif (supra_admin = premium)
-    const effectivePlanType: PlanType = isSupraAdmin ? 'premium' : (planType as PlanType || 'freemium');
+    // Déterminer le plan effectif (supra_admin = pro)
+    const effectivePlanType: PlanType = isSupraAdmin ? 'pro' : (planType as PlanType || 'freemium');
     const rules = PLAN_QUOTA_RULES[effectivePlanType];
 
     try {

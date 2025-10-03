@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PremiumBlur } from '@/components/ui/PremiumBlur';
+import { PaidBlur } from '@/components/ui/PaidBlur';
 import { RoleGuard } from '@/components/ui/RoleGuard';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
@@ -40,7 +40,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const { currentRefinement: currentPage, nbPages, refine: paginationRefine } = usePagination();
   const { removeFromFavorites } = useFavorites();
   const { getSourceLogo } = useSourceLogos();
-  const { shouldBlurPremiumContent } = useEmissionFactorAccess();
+  const { shouldBlurPaidContent } = useEmissionFactorAccess();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const { t } = useTranslation('search');
   const { t: tResults } = useTranslation('search', { keyPrefix: 'results' });
@@ -291,7 +291,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
       <div className="space-y-4">
         {hits.map((hit) => {
           const isExpanded = expandedRows.has(hit.objectID);
-          const shouldBlur = shouldBlurPremiumContent(hit.Source);
+          const shouldBlur = shouldBlurPaidContent(hit.Source);
 
           return (
             <Card key={hit.objectID} className="relative overflow-hidden bg-background border border-border hover:shadow-lg transition-shadow">
@@ -346,18 +346,18 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                         <div>
                           <span className="text-sm font-semibold text-foreground">{tResults('emission_factor')}</span>
-                          <PremiumBlur isBlurred={shouldBlur}>
+                          <PaidBlur isBlurred={shouldBlur}>
                             <p className="text-2xl font-bold text-primary">
                               {hit.FE ? (typeof hit.FE === 'number' ? hit.FE : Number(hit.FE)).toLocaleString('fr-FR', { maximumFractionDigits: 4 }) : ''} kgCO₂eq
                             </p>
-                          </PremiumBlur>
+                          </PaidBlur>
                           <div className="mt-2">
                             <span className="text-sm font-semibold text-foreground">{tResults('unit')}</span>
-                            <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                            <PaidBlur isBlurred={shouldBlur} showBadge={false}>
                               <p className="text-sm font-light">
                                 {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
                               </p>
-                            </PremiumBlur>
+                            </PaidBlur>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-3">

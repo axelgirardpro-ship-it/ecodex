@@ -9,10 +9,10 @@ export const usePermissions = () => {
   const { isSupraAdmin } = useSupraAdmin();
   const { currentWorkspace } = useWorkspace();
 
-  // Can import data: admin on Premium workspace, or supra_admin
+  // Can import data: admin on Pro workspace, or supra_admin
   const planType = currentWorkspace?.plan_type || userProfile?.plan_type;
-  const isPremiumPlan = planType === 'premium';
-  const canImportData = isSupraAdmin || (isPremiumPlan && userProfile?.role === 'admin');
+  const isPro = planType === 'pro';
+  const canImportData = isSupraAdmin || (isPro && userProfile?.role === 'admin');
   
   // Can export: gestionnaire or admin (will be managed by quota system)
   const canExport = isSupraAdmin || userProfile?.role === 'admin' || userProfile?.role === 'gestionnaire';

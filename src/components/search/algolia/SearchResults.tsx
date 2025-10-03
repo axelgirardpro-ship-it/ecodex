@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Heart, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Lock, Copy } from 'lucide-react';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { PremiumBlur } from '@/components/ui/PremiumBlur';
+import { PaidBlur } from '@/components/ui/PaidBlur';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { useToast } from '@/hooks/use-toast';
 import { useQuotaActions } from '@/hooks/useQuotaActions';
@@ -191,7 +191,7 @@ export const SearchResults: React.FC = () => {
   const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
   
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
-  const { hasAccess, shouldBlurPremiumContent, canUseFavorites } = useEmissionFactorAccess();
+  const { hasAccess, shouldBlurPaidContent, canUseFavorites } = useEmissionFactorAccess();
   const { toast } = useToast();
   const { getSourceLogo } = useSourceLogos();
   const { handleExport: quotaHandleExport, handleCopyToClipboard: quotaHandleCopyToClipboard } = useQuotaActions();
@@ -331,7 +331,7 @@ export const SearchResults: React.FC = () => {
 
   // Helper: déterminer si un hit est flouté (supporte le flag proxy is_blurred et le fallback UI)
   const isHitBlurred = (hit: AlgoliaHit) => {
-    return ((hit as any).is_blurred === true) || shouldBlurPremiumContent(hit.Source);
+    return ((hit as any).is_blurred === true) || shouldBlurPaidContent(hit.Source);
   };
 
   const handleItemSelect = (id: string) => {
@@ -345,7 +345,7 @@ export const SearchResults: React.FC = () => {
   };
 
   const tooltipMap = React.useMemo(() => ({
-    premiumOnly: t('feature_premium_favorites'),
+    premiumOnly: t('feature_pro_favorites'),
     blurredNotAddable: t('blurred_content_not_addable_to_favorites'),
     blurredNotSelectable: t('locked_content_not_selectable')
   }), [t]);
@@ -443,8 +443,8 @@ export const SearchResults: React.FC = () => {
   const handleAddSelectedToFavorites = async () => {
     if (!canUseFavorites()) {
       toast({
-        title: t('feature_premium_favorites'),
-        description: t('feature_premium_favorites'),
+        title: t('feature_pro_favorites'),
+        description: t('feature_pro_favorites'),
       });
       return;
     }
@@ -615,16 +615,16 @@ export const SearchResults: React.FC = () => {
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                           <div>
                               <span className="text-sm font-semibold text-foreground">{t('emission_factor')}</span>
-                            <PremiumBlur isBlurred={shouldBlur} showBadge>
+                            <PaidBlur isBlurred={shouldBlur} showBadge>
                                 <p className="text-2xl font-bold text-primary font-montserrat">{formatFE(hit.FE)} kgCO₂eq</p>
-                            </PremiumBlur>
+                            </PaidBlur>
                             <div className="mt-2">
                                 <span className="text-sm font-semibold text-foreground">{t('unit')}</span>
-                                <PremiumBlur isBlurred={shouldBlur} showBadge={false}>
+                                <PaidBlur isBlurred={shouldBlur} showBadge={false}>
                                   <p className="text-sm font-light">
                                     {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
                                   </p>
-                                </PremiumBlur>
+                                </PaidBlur>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 gap-3">

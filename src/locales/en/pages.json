@@ -86,8 +86,8 @@
     "datasetsSection": {
       "title": "All databases on a single platform",
       "tabs": [
-        { "id": "standards", "label": "Standard datasets" },
-        { "id": "premium", "label": "Premium datasets" }
+        { "id": "free", "label": "Free datasets" },
+        { "id": "paid", "label": "Paid datasets" }
       ]
     },
     "expertSection": {
@@ -111,29 +111,29 @@
     "pricing": {
       "title": "Pricing that scales with your needs",
       "plans": {
-        "standard": {
-          "name": "Standard",
+        "freemium": {
+          "name": "Freemium",
           "startingFrom": "Starting from",
-          "price": "€850",
+          "price": "€0",
           "priceUnit": "/year",
-          "description": "Access the standard datasets and search engine",
+          "description": "Access the free datasets and search engine",
           "features": [
             "Access to the search engine",
-            "Standard datasets (165k EF)",
+            "Free datasets (165k EF)",
             "Weekly updates"
           ],
           "cta": "Learn more"
         },
-        "premium": {
-          "name": "Premium",
+        "pro": {
+          "name": "Pro",
           "startingFrom": "Starting from",
           "price": "€3000",
           "priceUnit": "/year",
-          "description": "Unlock both standard and premium datasets plus data exports",
+          "description": "Unlock both free and paid datasets plus data exports",
           "features": [
             "Access to the search engine",
-            "Standard datasets (165k EF)",
-            "Premium datasets (90k EF)",
+            "Free datasets (165k EF)",
+            "Paid datasets (90k EF)",
             "Weekly updates",
             "Favorites management",
             "Data exports",
@@ -407,9 +407,8 @@
       "title": "Billing",
       "currentPlan": "Current plan",
       "plans": {
-        "premium": "Premium plan – Unlimited",
-        "standard": "Standard plan – 100 searches/month",
-        "freemium": "Free plan – 10 searches/month"
+        "pro": "Pro plan – Unlimited",
+        "freemium": "Freemium plan – 10 searches/month"
       },
       "upgrade": "Upgrade to a paid plan",
       "upgradeSubject": "paid plan request",

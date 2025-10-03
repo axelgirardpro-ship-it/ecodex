@@ -121,7 +121,7 @@ export const useQuotas = () => {
   const incrementExport = useCallback(async (count: number = 1) => {
     if (!user || !quotaData) return;
     
-    // Ne pas incrémenter si les exports sont illimités (Premium)
+    // Ne pas incrémenter si les exports sont illimités (Pro)
     if (quotaData.exports_limit === null) {
       return;
     }
@@ -141,7 +141,7 @@ export const useQuotas = () => {
   const incrementClipboardCopy = useCallback(async (count: number = 1) => {
     if (!user || !quotaData) return;
     
-    // Ne pas incrémenter si les copies sont illimitées (Premium)
+    // Ne pas incrémenter si les copies sont illimitées (Pro)
     if (quotaData.clipboard_copies_limit === null) {
       return;
     }

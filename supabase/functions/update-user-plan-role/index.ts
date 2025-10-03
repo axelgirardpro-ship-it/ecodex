@@ -10,7 +10,7 @@ interface UpdateRequest {
   action: 'update_workspace_plan' | 'update_user_role' | 'update_user_plan';
   workspaceId?: string;
   userId?: string;
-  newPlan?: 'freemium' | 'standard' | 'premium';
+  newPlan?: 'freemium' | 'pro';
   newRole?: 'admin' | 'gestionnaire' | 'lecteur';
 }
 
@@ -88,14 +88,13 @@ serve(async (req) => {
         let quotaUpdates: Record<string, any> = {}
         switch (newPlan) {
           case 'freemium':
-            quotaUpdates = { exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
+            quotaUpdates = { exports_limit: 10, clipboard_copies_limit: 10, favorites_limit: 10 }
             break
-          case 'standard':
-            quotaUpdates = { exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
+          case 'pro':
+            quotaUpdates = { exports_limit: 1000, clipboard_copies_limit: 1000, favorites_limit: null }
             break
-          case 'premium':
-            quotaUpdates = { exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
-            break
+          default:
+            throw new Error(`Invalid plan type: ${newPlan}. Must be 'freemium' or 'pro'.`)
         }
 
         console.log('Updating quotas with:', quotaUpdates)
@@ -181,14 +180,13 @@ serve(async (req) => {
       let quotaUpdates: Record<string, any> = {}
       switch (newPlan) {
         case 'freemium':
-          quotaUpdates = { exports_limit: 0, clipboard_copies_limit: 10, favorites_limit: 10 }
+          quotaUpdates = { exports_limit: 10, clipboard_copies_limit: 10, favorites_limit: 10 }
           break
-        case 'standard':
-          quotaUpdates = { exports_limit: 100, clipboard_copies_limit: 100, favorites_limit: 100 }
+        case 'pro':
+          quotaUpdates = { exports_limit: 1000, clipboard_copies_limit: 1000, favorites_limit: null }
           break
-        case 'premium':
-          quotaUpdates = { exports_limit: null, clipboard_copies_limit: null, favorites_limit: null }
-          break
+        default:
+          throw new Error(`Invalid plan type: ${newPlan}. Must be 'freemium' or 'pro'.`)
       }
 
       console.log('Updating user quota with:', quotaUpdates)

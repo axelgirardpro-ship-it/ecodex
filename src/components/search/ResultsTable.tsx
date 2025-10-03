@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { PremiumBlur } from "@/components/ui/PremiumBlur";
+import { PaidBlur } from "@/components/ui/PaidBlur";
 import { useEmissionFactorAccess } from "@/hooks/useEmissionFactorAccess";
 import { useSourceLogos } from "@/hooks/useSourceLogos";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +50,7 @@ export const ResultsTable = ({
   onCopyToClipboard,
   isLoading = false
 }: ResultsTableProps) => {
-  const { shouldBlurPremiumContent, getSourceLabel } = useEmissionFactorAccess();
+  const { shouldBlurPaidContent, getSourceLabel } = useEmissionFactorAccess();
   const { getSourceLogo } = useSourceLogos();
   const { toast } = useToast();
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
@@ -355,16 +355,16 @@ export const ResultsTable = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                    <PaidBlur isBlurred={shouldBlurPaidContent(item.source)}>
                       <Badge variant="outline" className="font-mono">
                         {typeof item.fe === 'number' ? parseFloat(item.fe.toFixed(4)).toLocaleString('fr-FR') : (typeof item.fe === 'string' ? parseFloat(parseFloat(item.fe).toFixed(4)).toLocaleString('fr-FR') : item.fe)}
                       </Badge>
-                    </PremiumBlur>
+                    </PaidBlur>
                   </TableCell>
                   <TableCell>
-                    <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                    <PaidBlur isBlurred={shouldBlurPaidContent(item.source)}>
                       <Badge variant="secondary">{item.uniteActivite}</Badge>
-                    </PremiumBlur>
+                    </PaidBlur>
                   </TableCell>
                  <TableCell>
                    <div className="flex items-center gap-2">
@@ -432,15 +432,15 @@ export const ResultsTable = ({
                            </div>
                            <div>
                              <span className="font-medium">FE: </span>
-                             <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                             <PaidBlur isBlurred={shouldBlurPaidContent(item.source)}>
                                <span className="font-mono">{item.fe}</span>
-                             </PremiumBlur>
+                             </PaidBlur>
                            </div>
                            <div>
                              <span className="font-medium">Unité donnée d'activité: </span>
-                             <PremiumBlur isBlurred={shouldBlurPremiumContent(item.source)}>
+                             <PaidBlur isBlurred={shouldBlurPaidContent(item.source)}>
                                <span>{item.uniteActivite}</span>
-                             </PremiumBlur>
+                             </PaidBlur>
                            </div>
                            <div>
                              <span className="font-medium">Source: </span>

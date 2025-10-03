@@ -286,7 +286,7 @@ const Index = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight md:leading-[1.1] text-center mb-8 sm:mb-12">
             {tPages("datasetsSection.title")}
           </h2>
-          <Tabs defaultValue={datasetTabs[0]?.id ?? "standards"} className="max-w-6xl mx-auto">
+          <Tabs defaultValue={datasetTabs[0]?.id ?? "free"} className="max-w-6xl mx-auto">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-12 rounded-full items-center h-auto py-2">
               {datasetTabs.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id} className="rounded-full w-full text-sm sm:text-base">
@@ -294,7 +294,7 @@ const Index = () => {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <TabsContent value="standards" className="mt-6 sm:mt-8">
+            <TabsContent value="free" className="mt-6 sm:mt-8">
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-6 sm:gap-8">
                 {STANDARD_DATASET_LOGOS.map((logo) => (
                   <div key={logo.name} className="flex flex-col items-center space-y-2">
@@ -306,7 +306,7 @@ const Index = () => {
                 ))}
               </div>
             </TabsContent>
-            <TabsContent value="premium" className="mt-6 sm:mt-8">
+            <TabsContent value="paid" className="mt-6 sm:mt-8">
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-6 sm:gap-8">
                 {PREMIUM_DATASET_LOGOS.map((logo) => (
                   <div key={logo.name} className="flex flex-col items-center space-y-2">
@@ -355,7 +355,7 @@ const Index = () => {
             {tPages("pricing.title")}
           </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {(["standard", "premium"] as const).map((planKey) => {
+            {(["freemium", "pro"] as const).map((planKey) => {
               const plan = pricingPlans[planKey];
               return (
                 <Card key={planKey} className="p-8 border border-border">

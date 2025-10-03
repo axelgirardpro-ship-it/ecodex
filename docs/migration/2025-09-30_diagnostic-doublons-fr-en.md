@@ -86,3 +86,4 @@ Créer une VIEW intermédiaire qui fusionne les paires FR/EN, puis utiliser cett
 - Nouvelle migration à créer pour la VIEW
 
 
+

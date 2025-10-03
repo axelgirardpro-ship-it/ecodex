@@ -108,3 +108,4 @@ WHERE "Nom_fr" LIKE '%Kérosène jet A1 ou A%' LIMIT 1;
 - Les colonnes `is_blurred` et `variant` sont bien présentes et définies à `false` et `'full'` par défaut
 
 
+
