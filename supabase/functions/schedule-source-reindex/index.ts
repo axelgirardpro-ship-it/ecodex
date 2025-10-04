@@ -97,22 +97,36 @@ serve(async (req) => {
     }
 
     // 2. Rafraîchir la projection principale
+    console.log(`Calling refresh_ef_all_for_source for: ${source_name}`);
     const { error: refreshError } = await supabase.rpc("refresh_ef_all_for_source", {
       p_source: source_name
     });
 
     if (refreshError) {
-      console.error("Warning: refresh_ef_all_for_source failed:", refreshError);
+      console.error("Error: refresh_ef_all_for_source failed:", refreshError);
+      return new Response(JSON.stringify({ 
+        error: `Failed to refresh projection: ${refreshError.message}`,
+        details: refreshError 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
+    console.log("refresh_ef_all_for_source completed successfully");
 
-    // 3. TRUNCATE la table de projection Algolia (en utilisant DELETE pour contourner les permissions)
-    const { error: truncateError } = await supabase
+    // 3. Supprimer tous les records de la projection Algolia pour réinitialisation complète
+    // On utilise un DELETE massif au lieu de TRUNCATE (pas de permissions)
+    console.log("Clearing algolia_source_assignments_projection table...");
+    const { error: deleteError } = await supabase
       .from("algolia_source_assignments_projection")
       .delete()
-      .neq("id_fe", "impossible-uuid-to-match-all");
+      .gte("id_fe", "");  // Condition toujours vraie pour tout supprimer
 
-    if (truncateError) {
-      console.error("Warning: Failed to clear projection table:", truncateError);
+    if (deleteError) {
+      console.error("Warning: Failed to clear projection table:", deleteError);
+      // Ne pas faire échouer la requête, continuer quand même
+    } else {
+      console.log("Projection table cleared successfully");
     }
 
     // 4. Remplir la projection avec tous les records de la source (avec pagination)
@@ -121,21 +135,28 @@ serve(async (req) => {
     const pageSize = 1000;
     let hasMore = true;
 
+    console.log(`Fetching records for source: ${source_name}`);
+
     while (hasMore) {
       const { data: projectionData, error: projectionError } = await supabase
         .from("emission_factors_all_search")
-        .select("ID_FE, Source, assigned_workspace_ids")
+        .select('"ID_FE", "Source", assigned_workspace_ids')
         .eq("Source", source_name)
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       if (projectionError) {
-        return new Response(JSON.stringify({ error: `Failed to fetch projection data: ${projectionError.message}` }), {
+        console.error("Projection fetch error:", projectionError);
+        return new Response(JSON.stringify({ 
+          error: `Failed to fetch projection data: ${projectionError.message}`,
+          details: projectionError 
+        }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
       if (projectionData && projectionData.length > 0) {
+        console.log(`Fetched page ${page}, records: ${projectionData.length}`);
         allRecords = allRecords.concat(projectionData);
         page++;
         hasMore = projectionData.length === pageSize;
@@ -144,16 +165,21 @@ serve(async (req) => {
       }
     }
 
+    console.log(`Total records fetched: ${allRecords.length}`);
+
     if (allRecords.length > 0) {
       const recordsToInsert = allRecords.map((row: any) => ({
-        id_fe: row.ID_FE,
-        source_name: row.Source,
+        id_fe: row.ID_FE || row["ID_FE"],
+        source_name: row.Source || source_name,
         assigned_workspace_ids: row.assigned_workspace_ids || [],
         updated_at: new Date().toISOString()
       }));
 
+      console.log(`Prepared ${recordsToInsert.length} records for insertion`);
+
       // Insérer par batches de 1000
       const batchSize = 1000;
+      let insertedCount = 0;
       for (let i = 0; i < recordsToInsert.length; i += batchSize) {
         const batch = recordsToInsert.slice(i, i + batchSize);
         const { error: insertError } = await supabase
@@ -162,8 +188,13 @@ serve(async (req) => {
 
         if (insertError) {
           console.error(`Failed to insert batch ${i / batchSize + 1}:`, insertError);
+        } else {
+          insertedCount += batch.length;
+          console.log(`Inserted batch ${i / batchSize + 1}: ${batch.length} records (total: ${insertedCount})`);
         }
       }
+    } else {
+      console.log("No records found for this source");
     }
 
     // 5. Déclencher la Task Algolia via API REST directe

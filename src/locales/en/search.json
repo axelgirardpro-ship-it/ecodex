@@ -4,7 +4,9 @@
     "reset": "Reset",
     "origin": "Origin",
     "origin_public": "Shared base",
-    "origin_private": "Private base"
+    "origin_private": "Private base",
+    "source_locked": "Paid source",
+    "source_locked_tooltip": "Paid database to activate"
   },
   "favoris": {
     "searchPlaceholder": "Search your {{count}} favorites...",

@@ -1,26 +1,52 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+
+interface SourceMetadata {
+  access_level: 'free' | 'paid';
+  is_global: boolean;
+}
 
 export const useEmissionFactorAccess = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const [assignedSources, setAssignedSources] = useState<string[]>([]);
   const [freeSources, setFreeSources] = useState<string[]>([]);
+  const [sourcesMetadata, setSourcesMetadata] = useState<Map<string, SourceMetadata>>(new Map());
 
   useEffect(() => {
     const fetchSources = async () => {
       if (!user || !currentWorkspace) return;
 
       try {
-        const { data: freeData } = await supabase
+        // Récupérer toutes les sources avec leurs métadonnées (free/paid)
+        const { data: allSourcesData } = await supabase
           .from('fe_sources')
-          .select('source_name')
-          .eq('access_level', 'free')
+          .select('source_name, access_level, is_global')
           .eq('is_global', true);
-        if (freeData) setFreeSources(freeData.map(s => s.source_name));
 
+        if (allSourcesData) {
+          // Créer la map des métadonnées
+          const metadataMap = new Map<string, SourceMetadata>();
+          const freeSourcesList: string[] = [];
+
+          allSourcesData.forEach(source => {
+            metadataMap.set(source.source_name, {
+              access_level: source.access_level as 'free' | 'paid',
+              is_global: source.is_global
+            });
+
+            if (source.access_level === 'free') {
+              freeSourcesList.push(source.source_name);
+            }
+          });
+
+          setSourcesMetadata(metadataMap);
+          setFreeSources(freeSourcesList);
+        }
+
+        // Récupérer les sources assignées au workspace
         const { data: assignedSourcesData } = await supabase
           .from('fe_source_workspace_assignments')
           .select('source_name')
@@ -54,18 +80,30 @@ export const useEmissionFactorAccess = () => {
 
   const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string) => {
     if (isWorkspaceSpecific) return { variant: "secondary" as const, label: "Workspace" };
-    // Facultatif: pas de label paid/free désormais
     return null;
   }, []);
+
+  // Nouvelle fonction pour vérifier si une source est verrouillée (payante et non assignée)
+  const isSourceLocked = useCallback((sourceName: string): boolean => {
+    const metadata = sourcesMetadata.get(sourceName);
+    if (!metadata) return false; // Source inconnue = non verrouillée par défaut
+
+    const isPaid = metadata.access_level === 'paid';
+    const isAssigned = assignedSources.includes(sourceName);
+
+    return isPaid && !isAssigned;
+  }, [sourcesMetadata, assignedSources]);
 
   return {
     hasAccess,
     shouldBlurPaidContent,
     getSourceLabel,
     canUseFavorites,
+    isSourceLocked,
     user,
     currentWorkspace,
     freeSources,
     assignedSources,
+    sourcesMetadata,
   };
 };

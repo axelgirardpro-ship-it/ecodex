@@ -4,7 +4,9 @@
     "reset": "Réinitialiser",
     "origin": "Origine",
     "origin_public": "Base commune",
-    "origin_private": "Base personnelle"
+    "origin_private": "Base personnelle",
+    "source_locked": "Source payante",
+    "source_locked_tooltip": "Base payante à activer"
   },
   "favoris": {
     "searchPlaceholder": "Rechercher dans vos {{count}} favoris...",
