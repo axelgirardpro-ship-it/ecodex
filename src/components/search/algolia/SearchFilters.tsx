@@ -156,33 +156,33 @@ const RefinementList: React.FC<RefinementListProps> = ({
                     disabled={isLocked}
                     onCheckedChange={() => !isLocked && refine(item.value)}
                   />
-                  <label
-                    htmlFor={`${attribute}-${item.value}`}
-                    className={`text-sm flex-1 truncate flex items-center gap-1.5 ${
-                      isLocked 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'cursor-pointer'
-                    }`}
-                    title={isLocked ? undefined : item.label}
-                  >
-                    {isLocked && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center cursor-help">
-                            <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  {isLocked ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0 cursor-help opacity-50">
+                          <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm truncate">
+                            {item.label} <span className="text-xs text-gray-500">({item.count})</span>
                           </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-xs">
-                          <p className="text-xs">
-                            {t('search:filters.source_locked_tooltip')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    <span className="truncate">
-                      {item.label} <span className="text-xs text-gray-500">({item.count})</span>
-                    </span>
-                  </label>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[200px]">
+                        <p className="text-xs font-medium">
+                          {t('search:filters.source_locked_tooltip')}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <label
+                      htmlFor={`${attribute}-${item.value}`}
+                      className="text-sm flex-1 min-w-0 cursor-pointer flex items-center gap-1.5"
+                      title={item.label}
+                    >
+                      <span className="truncate">
+                        {item.label} <span className="text-xs text-gray-500">({item.count})</span>
+                      </span>
+                    </label>
+                  )}
                 </div>
               );
             })
