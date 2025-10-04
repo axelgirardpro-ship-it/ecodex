@@ -166,7 +166,12 @@ const RefinementList: React.FC<RefinementListProps> = ({
                           </span>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[200px]">
+                      <TooltipContent 
+                        side="top" 
+                        align="start" 
+                        sideOffset={8}
+                        className="max-w-[200px]"
+                      >
                         <p className="text-xs font-medium">
                           {t('search:filters.source_locked_tooltip')}
                         </p>

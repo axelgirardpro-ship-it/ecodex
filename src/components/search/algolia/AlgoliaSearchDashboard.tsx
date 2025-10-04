@@ -75,7 +75,7 @@ const AlgoliaSearchContent: React.FC = () => {
       : ['Nom_fr', 'Description_fr', 'Commentaires_fr'];
 
     const base = {
-      hitsPerPage: 36,
+      hitsPerPage: 100, // Augmenté pour afficher tous les hits pertinents d'Algolia
       ruleContexts: [`origin:${origin}`] as string[],
       attributesToRetrieve: [...commonAttributes, ...localized, ...fallbackAttributes] as string[],
       attributesToHighlight: highlightAttributes as string[],
