@@ -163,15 +163,17 @@ const RefinementList: React.FC<RefinementListProps> = ({
                         ? 'opacity-50 cursor-not-allowed' 
                         : 'cursor-pointer'
                     }`}
-                    title={item.label}
+                    title={isLocked ? undefined : item.label}
                   >
                     {isLocked && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="inline-flex items-center cursor-help">
+                            <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          </span>
                         </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p className="text-xs max-w-xs">
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="text-xs">
                             {t('search:filters.source_locked_tooltip')}
                           </p>
                         </TooltipContent>
