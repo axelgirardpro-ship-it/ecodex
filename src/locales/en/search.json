@@ -4,7 +4,9 @@
     "reset": "Reset",
     "origin": "Origin",
     "origin_public": "Shared base",
-    "origin_private": "Private base"
+    "origin_private": "Private base",
+    "source_locked": "Paid source",
+    "source_locked_tooltip": "This paid source is not assigned to your workspace. Contact your administrator to access it."
   },
   "favoris": {
     "searchPlaceholder": "Search your {{count}} favorites...",
