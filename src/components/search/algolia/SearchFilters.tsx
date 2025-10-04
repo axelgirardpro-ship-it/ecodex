@@ -153,18 +153,20 @@ const RefinementList: React.FC<RefinementListProps> = ({
                   <Checkbox
                     id={`${attribute}-${item.value}`}
                     checked={item.isRefined}
-                    disabled={isLocked}
-                    onCheckedChange={() => !isLocked && refine(item.value)}
+                    onCheckedChange={() => refine(item.value)}
                   />
                   {isLocked ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0 cursor-help opacity-50">
-                          <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm truncate">
+                        <label
+                          htmlFor={`${attribute}-${item.value}`}
+                          className="text-sm flex-1 min-w-0 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Lock className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                          <span className="truncate">
                             {item.label} <span className="text-xs text-gray-500">({item.count})</span>
                           </span>
-                        </div>
+                        </label>
                       </TooltipTrigger>
                       <TooltipContent 
                         side="top" 
