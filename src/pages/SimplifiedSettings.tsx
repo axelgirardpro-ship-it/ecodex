@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { WorkspaceUsersManager } from "@/components/workspace/WorkspaceUsersManager";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -21,6 +22,7 @@ const Settings = () => {
   const { user, signOut } = useAuth();
   const { userProfile, loading: userLoading } = useUser();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
+  const { planType } = usePermissions();
 
   const { toast } = useToast();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -123,7 +125,7 @@ const Settings = () => {
                   <div>
                     <Label className="text-sm font-medium">{t('account.workspacePlan')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {userProfile?.plan_type || t('account.planDefault')}
+                      {planType || currentWorkspace?.plan_type || 'Freemium'}
                     </p>
               </div>
             </div>
