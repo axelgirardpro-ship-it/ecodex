@@ -76,7 +76,7 @@ export const useEmissionFactorAccess = () => {
   const canUseFavorites = useCallback(() => {
     if (!user || !currentWorkspace) return false;
     return currentWorkspace.plan_type === 'pro';
-  }, [user, currentWorkspace?.id, currentWorkspace?.plan_type]);
+  }, [user, currentWorkspace]);
 
   const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string) => {
     if (isWorkspaceSpecific) return { variant: "secondary" as const, label: "Workspace" };

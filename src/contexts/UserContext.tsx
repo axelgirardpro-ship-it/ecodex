@@ -11,7 +11,6 @@ interface UserProfile {
   position?: string;
   phone?: string;
   email: string;
-  plan_type?: string;
   subscribed?: boolean;
   role?: string;
 }
@@ -108,7 +107,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         position: userData?.position,
         phone: userData?.phone,
         email: userData?.email || user.email || '',
-        plan_type: userData?.plan_type,
         subscribed: userData?.subscribed,
         role: roleData?.role,
       };

@@ -10,7 +10,8 @@ export const usePermissions = () => {
   const { currentWorkspace } = useWorkspace();
 
   // Can import data: admin on Pro workspace, or supra_admin
-  const planType = currentWorkspace?.plan_type || userProfile?.plan_type;
+  // Note: plan_type comes from workspace, not from user profile
+  const planType = currentWorkspace?.plan_type || 'freemium';
   const isPro = planType === 'pro';
   const canImportData = isSupraAdmin || (isPro && userProfile?.role === 'admin');
   
