@@ -18,7 +18,6 @@ export const useGlobalStateDebug = (componentName: string) => {
       userProfile: userProfile ? {
         role: userProfile.role,
         workspace_id: userProfile.workspace_id,
-        plan_type: userProfile.plan_type,
       } : null,
       currentWorkspace: currentWorkspace ? {
         id: currentWorkspace.id,

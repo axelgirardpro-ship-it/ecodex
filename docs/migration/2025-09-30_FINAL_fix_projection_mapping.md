@@ -194,3 +194,4 @@ Les fonctions de projection sont maintenant correctes et complètes. Un simple `
 
 **Note** : Les doublons historiques seront automatiquement dédupliqués lors du réimport grâce à la contrainte `ON CONFLICT (factor_key) DO UPDATE` dans `run_import_from_staging()`.
 
+

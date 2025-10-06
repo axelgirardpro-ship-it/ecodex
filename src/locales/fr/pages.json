@@ -86,8 +86,8 @@
     "datasetsSection": {
       "title": "Toutes les bases de données sur une seule plateforme",
       "tabs": [
-        { "id": "standards", "label": "Datasets standards" },
-        { "id": "premium", "label": "Datasets premium" }
+        { "id": "free", "label": "Datasets gratuits" },
+        { "id": "paid", "label": "Datasets payants" }
       ]
     },
     "expertSection": {
@@ -111,29 +111,29 @@
     "pricing": {
       "title": "Un prix qui s'adapte à vos besoins",
       "plans": {
-        "standard": {
-          "name": "Standard",
+        "freemium": {
+          "name": "Freemium",
           "startingFrom": "À partir de",
-          "price": "850€",
+          "price": "0€",
           "priceUnit": "/an",
-          "description": "Profitez des datasets standards et du moteur de recherche",
+          "description": "Profitez des datasets gratuits et du moteur de recherche",
           "features": [
             "Accès au moteur de recherche",
-            "Datasets standards (165k FE)",
+            "Datasets gratuits (165k FE)",
             "Mises à jour hebdomadaires"
           ],
           "cta": "En savoir plus"
         },
-        "premium": {
-          "name": "Premium",
+        "pro": {
+          "name": "Pro",
           "startingFrom": "À partir de",
           "price": "3000€",
           "priceUnit": "/an",
-          "description": "Accédez aux bases standards et premium et aux exports de données",
+          "description": "Accédez aux bases gratuites et payantes et aux exports de données",
           "features": [
             "Accès au moteur de recherche",
-            "Datasets standards (165k FE)",
-            "Datasets premium (90k FE)",
+            "Datasets gratuits (165k FE)",
+            "Datasets payants (90k FE)",
             "Mises à jour hebdomadaires",
             "Gestion des favoris",
             "Export des données",
@@ -407,9 +407,8 @@
       "title": "Facturation",
       "currentPlan": "Plan actuel",
       "plans": {
-        "premium": "Plan Premium - Illimité",
-        "standard": "Plan Standard - 100 recherches/mois",
-        "freemium": "Plan Gratuit - 10 recherches/mois"
+        "pro": "Plan Pro - Illimité",
+        "freemium": "Plan Freemium - 10 recherches/mois"
       },
       "upgrade": "Passer sur un plan payant",
       "upgradeSubject": "demande de plan payant",

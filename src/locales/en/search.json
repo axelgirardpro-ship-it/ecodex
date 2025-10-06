@@ -4,7 +4,9 @@
     "reset": "Reset",
     "origin": "Origin",
     "origin_public": "Shared base",
-    "origin_private": "Private base"
+    "origin_private": "Private base",
+    "source_locked": "Paid source",
+    "source_locked_tooltip": "Paid database to activate"
   },
   "favoris": {
     "searchPlaceholder": "Search your {{count}} favorites...",
@@ -51,7 +53,7 @@
     "add_to_favorites": "Add to Favorites",
     "export": "Export",
     "locked_content_not_selectable": "Locked content: not selectable",
-    "feature_premium_favorites": "Feature available only with Premium plan",
+    "feature_pro_favorites": "Feature available only with Pro plan",
     "blurred_content_not_addable_to_favorites": "Blurred content: not addable to favorites",
     "locked_content_not_addable_to_favorites": "Locked content: not addable to favorites",
     "no_selection": "No selection",

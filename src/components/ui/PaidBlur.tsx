@@ -1,11 +1,11 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Crown, Unlock } from 'lucide-react';
+import { Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-interface PremiumBlurProps {
+interface PaidBlurProps {
   isBlurred?: boolean;
   children: React.ReactNode;
   className?: string;
@@ -13,16 +13,16 @@ interface PremiumBlurProps {
   showBadge?: boolean;
 }
 
-export const PremiumBlur = ({ 
+export const PaidBlur = ({ 
   isBlurred = false, 
   children, 
   className,
   showUpgradeButton = false,
   showBadge = true
-}: PremiumBlurProps) => {
+}: PaidBlurProps) => {
   const { currentWorkspace } = useWorkspace();
 
-  // Le plan du workspace ne doit pas bypass le blur premium
+  // Le plan du workspace ne doit pas bypass le blur des sources payantes
   if (!isBlurred) {
     return <>{children}</>;
   }
@@ -36,8 +36,8 @@ export const PremiumBlur = ({
         <div className="text-center space-y-2">
           {showBadge && (
             <Badge variant="default" className="bg-[#4ABEA1] text-white border-0">
-              <Crown className="w-3 h-3 mr-1" />
-              Base payante
+              <Lock className="w-3 h-3 mr-1" />
+              Source Payante
             </Badge>
           )}
           {showUpgradeButton && (
@@ -55,3 +55,4 @@ export const PremiumBlur = ({
     </div>
   );
 };
+

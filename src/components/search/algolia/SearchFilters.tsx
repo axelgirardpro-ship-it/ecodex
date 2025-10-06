@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Lock } from 'lucide-react';
 import { useOrigin } from '@/components/search/algolia/SearchProvider';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/providers/LanguageProvider';
 
@@ -79,86 +80,123 @@ interface RefinementListProps {
   limit?: number;
 }
 
+/**
+ * RefinementList avec filtrage côté client
+ * Solution simple et fonctionnelle en attendant une configuration Algolia optimale
+ * 
+ * FEATURE: Affiche un cadenas sur les sources payantes non assignées au workspace
+ */
 const RefinementList: React.FC<RefinementListProps> = ({
   attribute,
   title,
   searchable = false,
-  limit = 100
+  limit = 500
 }) => {
-  const { items, refine, searchForItems } = useRefinementList({
+  const { items, refine } = useRefinementList({
     attribute,
     limit
   });
 
-  // Debug pour comprendre pourquoi les items sont vides
-  React.useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log(`[RefinementList ${attribute}] items:`, items.length, items.slice(0, 3));
-    }
-  }, [items, attribute]);
-
   const [searchQuery, setSearchQuery] = React.useState('');
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useTranslation();
+  
+  // Récupérer les informations d'accès aux sources (seulement pour le filtre "Source")
+  const { isSourceLocked } = useEmissionFactorAccess();
+  const isSourceFilter = attribute === 'Source';
+
+  // Filtrer les items localement basé sur la requête de recherche
+  const filteredItems = React.useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter(item => 
+      item.label.toLowerCase().includes(query)
+    );
+  }, [items, searchQuery]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (!searchable || !searchForItems) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 2) return; // seuil mini
-    debounceRef.current = setTimeout(() => {
-      searchForItems(query);
-    }, 300);
+    setSearchQuery(e.target.value);
   };
 
-  React.useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, []);
-
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{title}</span>
-        <span className="text-xs text-gray-500">
-          {items.filter(item => item.isRefined).length > 0 &&
-            `(${items.filter(item => item.isRefined).length})`
-          }
-        </span>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">{title}</span>
+          <span className="text-xs text-gray-500">
+            {items.filter(item => item.isRefined).length > 0 &&
+              `(${items.filter(item => item.isRefined).length})`
+            }
+          </span>
+        </div>
 
-      {searchable && (
-        <Input
-          type="text"
-          placeholder={title}
-          value={searchQuery}
-          onChange={handleSearch}
-          className="text-xs"
-        />
-      )}
-
-      <div className="max-h-48 overflow-y-auto space-y-1">
-        {items.length === 0 ? (
-          <div className="text-xs text-gray-400">-</div>
-        ) : (
-          items.map(item => (
-            <div key={item.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`${attribute}-${item.value}`}
-                checked={item.isRefined}
-                onCheckedChange={() => refine(item.value)}
-              />
-              <label
-                htmlFor={`${attribute}-${item.value}`}
-                className="text-sm cursor-pointer flex-1 truncate"
-                title={item.label}
-              >
-                {item.label} ({item.count})
-              </label>
-            </div>
-          ))
+        {searchable && (
+          <Input
+            type="text"
+            placeholder={`Rechercher ${title.toLowerCase()}...`}
+            value={searchQuery}
+            onChange={handleSearch}
+            className="text-xs h-8"
+          />
         )}
+
+        <div className="max-h-48 overflow-y-auto space-y-1">
+          {filteredItems.length === 0 ? (
+            <div className="text-xs text-gray-400">
+              {searchQuery ? 'Aucun résultat' : '-'}
+            </div>
+          ) : (
+            filteredItems.map(item => {
+              const isLocked = isSourceFilter && isSourceLocked(item.value);
+              
+              return (
+                <div key={item.value} className="flex items-center space-x-2 py-0.5">
+                  <Checkbox
+                    id={`${attribute}-${item.value}`}
+                    checked={item.isRefined}
+                    onCheckedChange={() => refine(item.value)}
+                  />
+                  {isLocked ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label
+                          htmlFor={`${attribute}-${item.value}`}
+                          className="text-sm flex-1 min-w-0 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Lock className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                          <span className="truncate">
+                            {item.label} <span className="text-xs text-gray-500">({item.count})</span>
+                          </span>
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="top" 
+                        align="start" 
+                        sideOffset={8}
+                        className="max-w-[200px]"
+                      >
+                        <p className="text-xs font-medium">
+                          {t('search:filters.source_locked_tooltip')}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <label
+                      htmlFor={`${attribute}-${item.value}`}
+                      className="text-sm flex-1 min-w-0 cursor-pointer flex items-center gap-1.5"
+                      title={item.label}
+                    >
+                      <span className="truncate">
+                        {item.label} <span className="text-xs text-gray-500">({item.count})</span>
+                      </span>
+                    </label>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 
@@ -166,7 +204,7 @@ const RefinementList: React.FC<RefinementListProps> = ({
  * Composant de sélection d'origine avec auto-refresh
  * 
  * FONCTIONNEMENT :
- * - 'public': Base commune (données publiques + premium selon assignations)
+ * - 'public': Base commune (données gratuites + payantes selon assignations)
  * - 'private': Base personnelle (données importées par le workspace)
  * - Auto-refresh: changement d'origine relance automatiquement la recherche
  */

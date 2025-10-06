@@ -57,7 +57,7 @@ export async function getAdminContacts(workspaceId: string | 'all', page = 1, pa
   return { items: data?.data ?? [], total: data?.total ?? 0 }
 }
 
-export async function updateWorkspacePlan(workspaceId: string, newPlan: 'freemium'|'standard'|'premium') {
+export async function updateWorkspacePlan(workspaceId: string, newPlan: 'freemium'|'pro') {
   const { data, error } = await invokeWithAuth('update-user-plan-role', {
     body: { action: 'update_workspace_plan', workspaceId, newPlan }
   })
