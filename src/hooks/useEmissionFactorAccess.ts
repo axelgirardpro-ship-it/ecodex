@@ -74,8 +74,10 @@ export const useEmissionFactorAccess = () => {
   }, [assignedSources]);
 
   const canUseFavorites = useCallback(() => {
+    // Les favoris sont disponibles pour tous les plans (Freemium et Pro)
+    // La limite de quotas est gérée par useQuotas
     if (!user || !currentWorkspace) return false;
-    return currentWorkspace.plan_type === 'pro';
+    return true; // Tous les plans ont accès aux favoris
   }, [user, currentWorkspace]);
 
   const getSourceLabel = useCallback((isWorkspaceSpecific: boolean, source: string) => {
