@@ -76,15 +76,15 @@ serve(async (req) => {
       workspacesQuery = workspacesQuery.eq('plan_type', 'freemium');
       console.log('Filtering for freemium plans');
     } else if (planFilter === 'paid') {
-      workspacesQuery = workspacesQuery.in('plan_type', ['standard', 'premium']);
-      console.log('Filtering for paid plans');
+      workspacesQuery = workspacesQuery.eq('plan_type', 'pro');
+      console.log('Filtering for paid plans (pro)');
     } else if (planFilter === 'all') {
       console.log('Getting all workspaces');
       // No filter for 'all'
     } else {
       // Default to paid plans for invalid filter
-      workspacesQuery = workspacesQuery.in('plan_type', ['standard', 'premium']);
-      console.log('Invalid filter, defaulting to paid plans');
+      workspacesQuery = workspacesQuery.eq('plan_type', 'pro');
+      console.log('Invalid filter, defaulting to paid plans (pro)');
     }
 
     console.log('Final filter applied:', planFilter);
