@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuotaActions } from '@/hooks/useQuotaActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 import { useTranslation } from 'react-i18next';
@@ -241,6 +242,7 @@ export const SearchResults: React.FC = () => {
         <div className="mt-1 text-xs font-light text-muted-foreground">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
             components={{
               a: ({ href, children, ...props }) => (
                 <a
@@ -257,6 +259,15 @@ export const SearchResults: React.FC = () => {
                 <p className="text-xs font-light leading-relaxed" {...props}>
                   {children}
                 </p>
+              ),
+              strong: ({ children, ...props }) => (
+                <strong className="font-bold" {...props}>{children}</strong>
+              ),
+              em: ({ children, ...props }) => (
+                <em className="italic" {...props}>{children}</em>
+              ),
+              mark: ({ children, ...props }) => (
+                <mark className="bg-yellow-200 px-1 rounded" {...props}>{children}</mark>
               )
             }}
           >
@@ -620,11 +631,9 @@ export const SearchResults: React.FC = () => {
                             </PaidBlur>
                             <div className="mt-2">
                                 <span className="text-sm font-semibold text-foreground">{t('unit')}</span>
-                                <PaidBlur isBlurred={shouldBlur} showBadge={false}>
                                   <p className="text-sm font-light">
                                     {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
                                   </p>
-                                </PaidBlur>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 gap-3">
@@ -682,21 +691,196 @@ export const SearchResults: React.FC = () => {
 
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {renderMarkdownField(t('description'), getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']))}
-                                {renderMarkdownField(t('commentary'), getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']))}
-                                {renderMarkdownField(t('contributor'), getLocalizedValue(hit, 'Contributeur', 'Contributeur_en'))}
-                                {renderMarkdownField(t('methodology'), getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en'))}
-                                {renderTextField(t('data_type'), getLocalizedValue(hit, 'Type_de_données', 'Type_de_données_en'))}
-                                {renderTextField(t('uncertainty'), hit.Incertitude)}
+                              {getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']) && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('description')}</span>
+                                  <div className="mt-1 text-xs font-light text-muted-foreground">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>
+                                            {children}
+                                          </p>
+                                        ),
+                                        strong: ({ children, ...props }) => (
+                                          <strong className="font-bold" {...props}>{children}</strong>
+                                        ),
+                                        em: ({ children, ...props }) => (
+                                          <em className="italic" {...props}>{children}</em>
+                                        ),
+                                        mark: ({ children, ...props }) => (
+                                          <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                        )
+                                      }}
+                                    >
+                                      {(() => {
+                                        const highlighted = getHighlightedText(hit as any, 'Description');
+                                        return highlighted.__html || getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']);
+                                      })()}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
+                              {getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']) && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('commentary')}</span>
+                                  <div className="mt-1 text-xs font-light text-muted-foreground">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>
+                                            {children}
+                                          </p>
+                                        ),
+                                        strong: ({ children, ...props }) => (
+                                          <strong className="font-bold" {...props}>{children}</strong>
+                                        ),
+                                        em: ({ children, ...props }) => (
+                                          <em className="italic" {...props}>{children}</em>
+                                        ),
+                                        mark: ({ children, ...props }) => (
+                                          <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                        )
+                                      }}
+                                    >
+                                      {(() => {
+                                        const highlighted = getHighlightedText(hit as any, 'Commentaires');
+                                        return highlighted.__html || getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']);
+                                      })()}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
+                              {getLocalizedValue(hit, 'Contributeur', 'Contributeur_en') && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('contributor')}</span>
+                                  <div className="mt-1 text-xs font-light text-muted-foreground">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>
+                                            {children}
+                                          </p>
+                                        ),
+                                        strong: ({ children, ...props }) => (
+                                          <strong className="font-bold" {...props}>{children}</strong>
+                                        ),
+                                        em: ({ children, ...props }) => (
+                                          <em className="italic" {...props}>{children}</em>
+                                        ),
+                                        mark: ({ children, ...props }) => (
+                                          <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                        )
+                                      }}
+                                    >
+                                      {(() => {
+                                        const highlighted = getHighlightedText(hit as any, 'Contributeur');
+                                        return highlighted.__html || getLocalizedValue(hit, 'Contributeur', 'Contributeur_en');
+                                      })()}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
+                              {getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en') && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('methodology')}</span>
+                                  <div className="mt-1 text-xs font-light text-muted-foreground">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        a: ({ href, children, ...props }) => (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        p: ({ children, ...props }) => (
+                                          <p className="text-xs font-light leading-relaxed" {...props}>
+                                            {children}
+                                          </p>
+                                        ),
+                                        strong: ({ children, ...props }) => (
+                                          <strong className="font-bold" {...props}>{children}</strong>
+                                        ),
+                                        em: ({ children, ...props }) => (
+                                          <em className="italic" {...props}>{children}</em>
+                                        ),
+                                        mark: ({ children, ...props }) => (
+                                          <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                        )
+                                      }}
+                                    >
+                                      {(() => {
+                                        const highlighted = getHighlightedText(hit as any, 'Méthodologie');
+                                        return highlighted.__html || getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en');
+                                      })()}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
+                              {getLocalizedValue(hit, 'Type_de_données', 'Type_de_données_en') && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('data_type')}</span>
+                                  <p
+                                    className="mt-1 text-xs font-light text-muted-foreground"
+                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Type de données')}
+                                  />
+                                </div>
+                              )}
+                              {hit.Incertitude && (
+                                <div>
+                                  <span className="text-sm font-semibold text-foreground">{t('uncertainty')}</span>
+                                  <p
+                                    className="mt-1 text-xs font-light text-muted-foreground"
+                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Incertitude')}
+                                  />
                               </div>
-                              <div>
-                                <span className="text-sm font-semibold text-foreground">{t('sector')}</span>
-                                <div
-                                  className="text-xs font-light mt-1 text-muted-foreground"
-                                  dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Secteur')}
-                                />
-                              </div>
+                              )}
                           </div>
                         )}
                         </div>

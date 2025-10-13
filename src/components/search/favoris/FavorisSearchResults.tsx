@@ -3,6 +3,7 @@ import { useHits, usePagination, Highlight } from 'react-instantsearch';
 import { Copy, Download, Heart, Trash2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -353,11 +354,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                           </PaidBlur>
                           <div className="mt-2">
                             <span className="text-sm font-semibold text-foreground">{tResults('unit')}</span>
-                            <PaidBlur isBlurred={shouldBlur} showBadge={false}>
-                              <p className="text-sm font-light">
-                                {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
-                              </p>
-                            </PaidBlur>
+                            <p className="text-sm font-light">
+                              {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
+                            </p>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-3">
@@ -414,6 +413,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
                                       <a
@@ -431,26 +431,29 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                         {children}
                                       </p>
                                     ),
+                                    strong: ({ children, ...props }) => (
+                                      <strong className="font-bold" {...props}>{children}</strong>
+                                    ),
+                                    em: ({ children, ...props }) => (
+                                      <em className="italic" {...props}>{children}</em>
+                                    ),
+                                    mark: ({ children, ...props }) => (
+                                      <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                    )
                                   }}
                                 >
-                                  {((hit as any).Description_fr || (hit as any).Description_en) as string}
+                                  {getHighlightedText(hit, 'Description') || ((hit as any).Description_fr || (hit as any).Description_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>
                           ) : null}
-                          <div>
-                            <span className="text-sm font-semibold text-foreground">Secteur</span>
-                            <div className="text-xs font-light mt-1 text-muted-foreground">
-                              <Highlight
-                                hit={hit as any}
-                                attribute={(currentLang === 'fr' ? 'Secteur_fr' : 'Secteur_en') as any}
-                              />
-                            </div>
-                          </div>
                           {hit.Incertitude && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Incertitude</span>
-                              <p className="text-sm font-light mt-1">{hit.Incertitude}</p>
+                              <p
+                                className="text-sm font-light mt-1"
+                                dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Incertitude') }}
+                              />
                             </div>
                           )}
                           {((hit as any).Contributeur || (hit as any).Contributeur_en) && (
@@ -461,6 +464,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
                                       <a
@@ -478,9 +482,18 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                         {children}
                                       </p>
                                     ),
+                                    strong: ({ children, ...props }) => (
+                                      <strong className="font-bold" {...props}>{children}</strong>
+                                    ),
+                                    em: ({ children, ...props }) => (
+                                      <em className="italic" {...props}>{children}</em>
+                                    ),
+                                    mark: ({ children, ...props }) => (
+                                      <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                    )
                                   }}
                                 >
-                                  {(currentLang === 'fr' ? (hit as any).Contributeur : (hit as any).Contributeur_en) as string}
+                                  {getHighlightedText(hit, 'Contributeur') || (currentLang === 'fr' ? (hit as any).Contributeur : (hit as any).Contributeur_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>
@@ -490,27 +503,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               <span className="text-sm font-semibold text-foreground">
                                 {currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}
                               </span>
-                              <p className="text-xs font-light mt-1">
-                                {currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en}
-                              </p>
-                            </div>
-                          )}
-                          {((hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en']) && (
-                            <div>
-                              <span className="text-sm font-semibold text-foreground">
-                                {currentLang === 'fr' ? 'Type de données' : 'Data Type'}
-                              </span>
-                              <p className="text-xs font-light mt-1">
-                                {currentLang === 'fr' ? (hit as any)['Type_de_données'] : (hit as any)['Type_de_données_en']}
-                              </p>
-                            </div>
-                          )}
-                          {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (
-                            <div>
-                              <span className="text-sm font-semibold text-foreground">Commentaires</span>
                               <div className="text-xs mt-1 text-break-words">
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
                                   components={{
                                     a: ({ href, children, ...props }) => (
                                       <a
@@ -528,9 +524,69 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                         {children}
                                       </p>
                                     ),
+                                    strong: ({ children, ...props }) => (
+                                      <strong className="font-bold" {...props}>{children}</strong>
+                                    ),
+                                    em: ({ children, ...props }) => (
+                                      <em className="italic" {...props}>{children}</em>
+                                    ),
+                                    mark: ({ children, ...props }) => (
+                                      <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                    )
                                   }}
                                 >
-                                  {((hit as any).Commentaires_fr || (hit as any).Commentaires_en) as string}
+                                  {getHighlightedText(hit, 'Méthodologie') || (currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en) as string}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          )}
+                          {((hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en']) && (
+                            <div>
+                              <span className="text-sm font-semibold text-foreground">
+                                {currentLang === 'fr' ? 'Type de données' : 'Data Type'}
+                              </span>
+                              <p
+                                className="text-xs font-light mt-1"
+                                dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Type de données') }}
+                              />
+                            </div>
+                          )}
+                          {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (
+                            <div>
+                              <span className="text-sm font-semibold text-foreground">Commentaires</span>
+                              <div className="text-xs mt-1 text-break-words">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
+                                  components={{
+                                    a: ({ href, children, ...props }) => (
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                        {...props}
+                                      >
+                                        {children}
+                                      </a>
+                                    ),
+                                    p: ({ children, ...props }) => (
+                                      <p className="text-xs font-light leading-relaxed" {...props}>
+                                        {children}
+                                      </p>
+                                    ),
+                                    strong: ({ children, ...props }) => (
+                                      <strong className="font-bold" {...props}>{children}</strong>
+                                    ),
+                                    em: ({ children, ...props }) => (
+                                      <em className="italic" {...props}>{children}</em>
+                                    ),
+                                    mark: ({ children, ...props }) => (
+                                      <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                    )
+                                  }}
+                                >
+                                  {getHighlightedText(hit, 'Commentaires') || ((hit as any).Commentaires_fr || (hit as any).Commentaires_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>

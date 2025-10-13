@@ -94,3 +94,5 @@ npm run deploy
 ## 🎉 Remerciements
 
 Merci à l'équipe pour avoir identifié ce problème et permis d'améliorer l'expérience utilisateur pour tous les plans.
+
+

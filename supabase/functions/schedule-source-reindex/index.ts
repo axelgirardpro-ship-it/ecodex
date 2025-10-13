@@ -1,5 +1,14 @@
+/// <reference path="../types/esm-sh.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Déclaration globale pour Deno
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +60,8 @@ serve(async (req) => {
     const body = await req.json();
     const { source_name, workspace_id, action } = body;
 
+    console.log(`[START] Action: ${action}, Source: ${source_name}, Workspace: ${workspace_id}`);
+
     if (!source_name || !workspace_id || !action) {
       return new Response(JSON.stringify({ error: "Missing required fields: source_name, workspace_id, action" }), {
         status: 400,
@@ -65,45 +76,83 @@ serve(async (req) => {
       });
     }
 
+    // Validation: Récupérer le nom exact de la source (recherche SQL brute pour être sûr)
+    console.log(`[VALIDATION] Checking if source exists: ${source_name}`);
+    
+    // Utiliser une requête SQL brute avec ILIKE pour la recherche insensible à la casse
+    const { data: sourceCheckData, error: sourceCheckError } = await supabase.rpc('get_exact_source_name', {
+      p_source_name: source_name
+    });
+
+    if (sourceCheckError) {
+      console.error("Error checking source:", sourceCheckError);
+      return new Response(JSON.stringify({ 
+        error: `Error checking source: ${sourceCheckError.message}`,
+        details: sourceCheckError 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (!sourceCheckData || sourceCheckData.length === 0) {
+      console.error("Source not found in fe_sources");
+      return new Response(JSON.stringify({ 
+        error: `Source "${source_name}" not found in fe_sources`
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Utiliser le nom exact de la source tel qu'enregistré dans la DB
+    const exactSourceName = sourceCheckData[0].source_name || source_name;
+    console.log(`✓ Source found with exact name: ${exactSourceName}`);
+
     // 1. Mettre à jour fe_source_workspace_assignments
+    console.log(`[STEP 1] Updating fe_source_workspace_assignments...`)
     if (action === "assign") {
       const { error: assignError } = await supabase
         .from("fe_source_workspace_assignments")
         .upsert({
-          source_name,
+          source_name: exactSourceName,
           workspace_id,
           created_at: new Date().toISOString()
         });
 
       if (assignError) {
+        console.error("Assignment error:", assignError);
         return new Response(JSON.stringify({ error: `Failed to assign: ${assignError.message}` }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+      console.log("✓ Assignment successful");
     } else {
       const { error: unassignError } = await supabase
         .from("fe_source_workspace_assignments")
         .delete()
-        .eq("source_name", source_name)
+        .eq("source_name", exactSourceName)
         .eq("workspace_id", workspace_id);
 
       if (unassignError) {
+        console.error("Unassignment error:", unassignError);
         return new Response(JSON.stringify({ error: `Failed to unassign: ${unassignError.message}` }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+      console.log("✓ Unassignment successful");
     }
 
-    // 2. Rafraîchir la projection principale
-    console.log(`Calling refresh_ef_all_for_source for: ${source_name}`);
+    // 2. Rafraîchir la projection principale (via SQL pour performance)
+    console.log(`[STEP 2] Calling refresh_ef_all_for_source for: ${exactSourceName}`);
     const { error: refreshError } = await supabase.rpc("refresh_ef_all_for_source", {
-      p_source: source_name
+      p_source: exactSourceName
     });
 
     if (refreshError) {
-      console.error("Error: refresh_ef_all_for_source failed:", refreshError);
+      console.error("✗ Error: refresh_ef_all_for_source failed:", refreshError);
       return new Response(JSON.stringify({ 
         error: `Failed to refresh projection: ${refreshError.message}`,
         details: refreshError 
@@ -112,134 +161,96 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
-    console.log("refresh_ef_all_for_source completed successfully");
+    console.log("✓ refresh_ef_all_for_source completed successfully");
 
-    // 3. Supprimer tous les records de la projection Algolia pour réinitialisation complète
-    // On utilise un DELETE massif au lieu de TRUNCATE (pas de permissions)
-    console.log("Clearing algolia_source_assignments_projection table...");
-    const { error: deleteError } = await supabase
-      .from("algolia_source_assignments_projection")
-      .delete()
-      .gte("id_fe", "");  // Condition toujours vraie pour tout supprimer
+    // 3. Préparer les données Algolia via fonction SQL optimisée
+    console.log("[STEP 3] Preparing Algolia sync data...");
+    const { error: prepError } = await supabase.rpc("trigger_algolia_sync_for_source", {
+      p_source: exactSourceName
+    });
 
-    if (deleteError) {
-      console.error("Warning: Failed to clear projection table:", deleteError);
-      // Ne pas faire échouer la requête, continuer quand même
+    if (prepError) {
+      console.error("⚠ Warning: Failed to prepare Algolia data:", prepError);
+      // Ne pas bloquer - continuer quand même
     } else {
-      console.log("Projection table cleared successfully");
+      console.log("✓ Algolia data prepared in projection table");
     }
 
-    // 4. Remplir la projection avec tous les records de la source (avec pagination)
-    let allRecords: any[] = [];
-    let page = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-
-    console.log(`Fetching records for source: ${source_name}`);
-
-    while (hasMore) {
-      const { data: projectionData, error: projectionError } = await supabase
-        .from("emission_factors_all_search")
-        .select('"ID_FE", "Source", assigned_workspace_ids')
-        .eq("Source", source_name)
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (projectionError) {
-        console.error("Projection fetch error:", projectionError);
-        return new Response(JSON.stringify({ 
-          error: `Failed to fetch projection data: ${projectionError.message}`,
-          details: projectionError 
+    // 4. Déclencher la Task Algolia (f3cd3fd0-2db4-49fa-be67-6bd88cbc5950)
+    // Cette task lit automatiquement depuis algolia_source_assignments_projection
+    console.log("[STEP 4] Triggering Algolia Task...");
+    
+    try {
+      const ALGOLIA_APP_ID = Deno.env.get("ALGOLIA_APP_ID");
+      const ALGOLIA_ADMIN_KEY = Deno.env.get("ALGOLIA_ADMIN_KEY");
+      
+      if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
+        console.error("✗ Algolia credentials not configured");
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Source ${exactSourceName} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}.`,
+          algolia_sync: "skipped",
+          warning: "Algolia credentials not configured"
         }), {
-          status: 500,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
-      if (projectionData && projectionData.length > 0) {
-        console.log(`Fetched page ${page}, records: ${projectionData.length}`);
-        allRecords = allRecords.concat(projectionData);
-        page++;
-        hasMore = projectionData.length === pageSize;
-      } else {
-        hasMore = false;
-      }
-    }
+      const taskId = "f3cd3fd0-2db4-49fa-be67-6bd88cbc5950";
+      const taskUrl = `https://data.eu.algolia.com/2/tasks/${taskId}/run`;
+      
+      const taskResponse = await fetch(taskUrl, {
+        method: "POST",
+        headers: {
+          "x-algolia-application-id": ALGOLIA_APP_ID,
+          "x-algolia-api-key": ALGOLIA_ADMIN_KEY,
+          "accept": "application/json",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({ runMetadata: {} })
+      });
 
-    console.log(`Total records fetched: ${allRecords.length}`);
-
-    if (allRecords.length > 0) {
-      const recordsToInsert = allRecords.map((row: any) => ({
-        id_fe: row.ID_FE || row["ID_FE"],
-        source_name: row.Source || source_name,
-        assigned_workspace_ids: row.assigned_workspace_ids || [],
-        updated_at: new Date().toISOString()
-      }));
-
-      console.log(`Prepared ${recordsToInsert.length} records for insertion`);
-
-      // Insérer par batches de 1000
-      const batchSize = 1000;
-      let insertedCount = 0;
-      for (let i = 0; i < recordsToInsert.length; i += batchSize) {
-        const batch = recordsToInsert.slice(i, i + batchSize);
-        const { error: insertError } = await supabase
-          .from("algolia_source_assignments_projection")
-          .insert(batch);
-
-        if (insertError) {
-          console.error(`Failed to insert batch ${i / batchSize + 1}:`, insertError);
-        } else {
-          insertedCount += batch.length;
-          console.log(`Inserted batch ${i / batchSize + 1}: ${batch.length} records (total: ${insertedCount})`);
-        }
-      }
-    } else {
-      console.log("No records found for this source");
-    }
-
-    // 5. Déclencher la Task Algolia via API REST directe
-    const taskId = "f3cd3fd0-2db4-49fa-be67-6bd88cbc5950";
-    const ALGOLIA_APP_ID = Deno.env.get("ALGOLIA_APP_ID") || "";
-    const ALGOLIA_ADMIN_KEY = Deno.env.get("ALGOLIA_ADMIN_KEY") || "";
-    
-    let taskTriggered = false;
-    if (ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY) {
-      try {
-        const taskUrl = `https://data.eu.algolia.com/2/tasks/${taskId}/run`;
-        const taskResponse = await fetch(taskUrl, {
-          method: "POST",
-          headers: {
-            "x-algolia-application-id": ALGOLIA_APP_ID,
-            "x-algolia-api-key": ALGOLIA_ADMIN_KEY,
-            "accept": "application/json",
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({ runMetadata: {} })
+      if (!taskResponse.ok) {
+        const errorText = await taskResponse.text();
+        console.error("✗ Algolia task failed:", taskResponse.status, errorText);
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Source ${exactSourceName} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}.`,
+          algolia_sync: "failed",
+          algolia_error: `HTTP ${taskResponse.status}: ${errorText}`
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-        
-        if (taskResponse.ok) {
-          taskTriggered = true;
-          console.log("Algolia task triggered successfully");
-        } else {
-          const errorText = await taskResponse.text();
-          console.error("Failed to trigger Algolia task:", errorText);
-        }
-      } catch (e) {
-        console.error("Error triggering Algolia task:", String(e));
       }
-    }
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: `Source ${source_name} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}`,
-      algolia_sync: taskTriggered ? "scheduled" : "failed",
-      records_prepared: allRecords.length
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+      console.log("✓ Algolia Task triggered successfully");
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Source ${exactSourceName} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}. Algolia sync in progress.`,
+        algolia_sync: "triggered"
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+
+    } catch (error) {
+      console.error("✗ Exception triggering Algolia:", error);
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Source ${exactSourceName} ${action === "assign" ? "assigned to" : "unassigned from"} workspace ${workspace_id}.`,
+        algolia_sync: "failed",
+        algolia_error: String(error)
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
 
   } catch (error) {
+    console.error("[ERROR] Unhandled exception:", error);
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
