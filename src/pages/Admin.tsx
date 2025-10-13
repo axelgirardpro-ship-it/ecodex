@@ -13,9 +13,6 @@ import { WorkspacesTable } from "@/components/admin/WorkspacesTable";
 import { ContactsTable } from "@/components/admin/ContactsTable";
 import { SourcesPanel } from "@/components/admin/SourcesPanel";
 import { FeSourcesProvider } from '@/contexts/FeSourcesContext'
-import { CreateSupraAdmin } from "@/components/admin/CreateSupraAdmin";
-import { OrphanUsersRepair } from "@/components/admin/OrphanUsersRepair";
-import { AdminImportsPanel } from "@/components/admin/AdminImportsPanel";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -98,20 +95,6 @@ const Admin = () => {
           <FeSourcesProvider>
             <SourcesPanel />
           </FeSourcesProvider>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Import de la base (FR)</h2>
-            <AdminImportsPanel />
-          </div>
-
-          {/* Supra Admin Creation */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Gestion des Comptes Admin</h2>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <CreateSupraAdmin />
-              <OrphanUsersRepair />
-            </div>
-          </div>
         </div>
 
         {/* Debug Info */}
