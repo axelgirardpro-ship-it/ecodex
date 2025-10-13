@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Styles pour les balises de highlight Algolia */
+mark {
+  background-color: #e9d5ff; /* purple-200 */
+  padding: 0.125rem 0.25rem; /* px-1 */
+  border-radius: 0.25rem; /* rounded */
+  font-weight: inherit;
+}
+
 @layer base {
   :root {
     /* Ecodex Design System - Nouvelle charte graphique */

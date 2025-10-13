@@ -146,3 +146,7 @@ Après ces corrections, l'utilisateur `guillaumears44@gmail.com` verra correctem
 - **Rôle** : admin ✅
 
 Et tous les autres utilisateurs verront également leur plan correct basé sur leur workspace.
+
+
+
+

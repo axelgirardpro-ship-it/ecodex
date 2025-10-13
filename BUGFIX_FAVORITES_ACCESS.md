@@ -234,3 +234,7 @@ favorites_limit: 10 (freemium) | null (pro)
 3. **Vérifier les quotas**
    - Ouvrir la page Paramètres
    - Vérifier que le widget de quotas affiche les bonnes limites
+
+
+
+
