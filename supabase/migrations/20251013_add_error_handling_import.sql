@@ -238,7 +238,7 @@ BEGIN
 
   -- Appel Algolia
   BEGIN
-    PERFORM public.run_algolia_data_task('419f86b4-4c35-4608-8a88-b8343a457a3a'::uuid, 'eu');
+    PERFORM public.run_algolia_data_task('55278ecb-f8dc-43d8-8fe6-aff7057b69d0'::uuid, 'eu');
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
     PERFORM public.log_import_error('Algolia sync', v_error_message, SQLERRM);

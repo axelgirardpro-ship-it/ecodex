@@ -118,7 +118,7 @@ DECLARE
   v_inserted integer := 0;
   v_error_message text;
   v_missing_sources text[];
-  v_algolia_task_id uuid := '419f86b4-4c35-4608-8a88-b8343a457a3a';
+  v_algolia_task_id uuid := '55278ecb-f8dc-43d8-8fe6-aff7057b69d0';
 BEGIN
   -- Validation : vérifier que staging_emission_factors n'est pas vide
   SELECT count(*) INTO v_total FROM public.staging_emission_factors;
