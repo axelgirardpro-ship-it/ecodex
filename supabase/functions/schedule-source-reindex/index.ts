@@ -145,23 +145,18 @@ serve(async (req) => {
       console.log("✓ Unassignment successful");
     }
 
-    // 2. Rafraîchir la projection principale (via SQL pour performance)
-    console.log(`[STEP 2] Calling refresh_ef_all_for_source for: ${exactSourceName}`);
-    const { error: refreshError } = await supabase.rpc("refresh_ef_all_for_source", {
+    // 2. Planifier le rafraîchissement asynchrone de la projection (évite les timeouts)
+    console.log(`[STEP 2] Scheduling async projection refresh for: ${exactSourceName}`);
+    const { error: scheduleError } = await supabase.rpc("schedule_source_refresh", {
       p_source: exactSourceName
     });
 
-    if (refreshError) {
-      console.error("✗ Error: refresh_ef_all_for_source failed:", refreshError);
-      return new Response(JSON.stringify({ 
-        error: `Failed to refresh projection: ${refreshError.message}`,
-        details: refreshError 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    if (scheduleError) {
+      console.warn("⚠ Warning: Failed to schedule projection refresh:", scheduleError);
+      // Ne pas bloquer - continuer quand même car les données sont déjà assignées
+    } else {
+      console.log("✓ Async projection refresh scheduled via pg_notify");
     }
-    console.log("✓ refresh_ef_all_for_source completed successfully");
 
     // 3. Préparer les données Algolia via fonction SQL optimisée
     console.log("[STEP 3] Preparing Algolia sync data...");

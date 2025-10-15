@@ -69,9 +69,15 @@ export const useEmissionFactorAccess = () => {
   }, [user]);
 
   const shouldBlurPaidContent = useCallback((source: string) => {
-    // Nouvelle règle unique: full seulement si la source est assignée au workspace
+    const metadata = sourcesMetadata.get(source);
+    if (!metadata) return false; // Source inconnue = pas de blur par défaut
+    
+    // Si la source est 'free', jamais de blur (accessible à tous)
+    if (metadata.access_level === 'free') return false;
+    
+    // Si 'paid', blur uniquement si non-assignée au workspace
     return !assignedSources.includes(source);
-  }, [assignedSources]);
+  }, [sourcesMetadata, assignedSources]);
 
   const canUseFavorites = useCallback(() => {
     // Les favoris sont disponibles pour tous les plans (Freemium et Pro)
