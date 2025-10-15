@@ -27,3 +27,4 @@ COMMENT ON FUNCTION public.tr_refresh_projection_assignments IS
 'Trigger function qui notifie de manière asynchrone les changements d''assignation de sources. '
 'Utilisé par les triggers trg_assignments_refresh_projection_ins/upd/del.';
 
+

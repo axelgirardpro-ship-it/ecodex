@@ -52,3 +52,4 @@ DROP FUNCTION IF EXISTS public.cleanup_free_source_assignments_batch();
 COMMENT ON TABLE public.fe_source_workspace_assignments IS 
 'Table des assignations de sources aux workspaces. Les sources ''free'' ne doivent PAS avoir d''assignations car elles sont accessibles à tous.';
 
+

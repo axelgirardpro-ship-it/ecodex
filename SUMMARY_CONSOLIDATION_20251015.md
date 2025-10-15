@@ -259,3 +259,4 @@ Pour toute question sur cette consolidation ou le contenu des documents :
 **Documents consolidés** : 8 fichiers → 4 fichiers structurés  
 **Gain de clarté** : 🚀 Significatif
 
+

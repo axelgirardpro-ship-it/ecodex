@@ -23,3 +23,4 @@ FROM fe_source_workspace_assignments fsa
 JOIN fe_sources fs ON fs.source_name = fsa.source_name
 WHERE fs.access_level = 'free';
 
+

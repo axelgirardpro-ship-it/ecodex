@@ -85,3 +85,4 @@ USING (
 COMMENT ON COLUMN public.fe_sources.access_level IS 
 'Access level for the source: ''free'' for publicly accessible sources, ''paid'' for sources requiring explicit workspace assignment';
 
+
