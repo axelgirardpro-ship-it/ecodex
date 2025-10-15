@@ -148,7 +148,7 @@ begin
   analyze public.emission_factors_all_search;
 
   -- Déclencher ingestion Algolia (EU) après succès
-  perform public.run_algolia_data_task('419f86b4-4c35-4608-8a88-b8343a457a3a'::uuid, 'eu');
+  perform public.run_algolia_data_task('55278ecb-f8dc-43d8-8fe6-aff7057b69d0'::uuid, 'eu');
 
   return json_build_object(
     'inserted_or_updated', v_inserted,
