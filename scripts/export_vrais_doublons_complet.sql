@@ -7,10 +7,10 @@ WITH prepared_data AS (
     "ID",
     coalesce(nullif(btrim("Nom"), ''), nullif(btrim("Nom_en"), '')) AS "Nom",
     nullif(btrim("Nom_en"), '') AS "Nom_en",
-    public.safe_to_numeric(nullif(btrim("FE"), '')) AS "FE",
+    "FE",
     coalesce(nullif(btrim("Unité donnée d'activité"), ''), nullif(btrim("Unite_en"), '')) AS "Unite",
     nullif(btrim("Source"), '') AS "Source",
-    public.safe_to_int(nullif(btrim("Date"), '')) AS "Date",
+    "Date",
     coalesce(nullif(btrim("Périmètre"), ''), nullif(btrim("Périmètre_en"), '')) AS "Perimetre",
     coalesce(nullif(btrim("Localisation"), ''), nullif(btrim("Localisation_en"), '')) AS "Localisation",
     nullif(btrim("Contributeur"), '') AS "Contributeur",
@@ -22,8 +22,8 @@ WITH prepared_data AS (
       coalesce(nullif(btrim("Périmètre"), ''), nullif(btrim("Périmètre_en"), '')),
       coalesce(nullif(btrim("Localisation"), ''), nullif(btrim("Localisation_en"), '')),
       NULL, NULL,
-      public.safe_to_numeric(nullif(btrim("FE"), '')),
-      public.safe_to_int(nullif(btrim("Date"), ''))
+      "FE"::numeric,
+      "Date"::int
     ) AS factor_key,
     ROW_NUMBER() OVER (PARTITION BY 
       public.calculate_factor_key(
@@ -33,14 +33,14 @@ WITH prepared_data AS (
         coalesce(nullif(btrim("Périmètre"), ''), nullif(btrim("Périmètre_en"), '')),
         coalesce(nullif(btrim("Localisation"), ''), nullif(btrim("Localisation_en"), '')),
         NULL, NULL,
-        public.safe_to_numeric(nullif(btrim("FE"), '')),
-        public.safe_to_int(nullif(btrim("Date"), ''))
+        "FE"::numeric,
+        "Date"::int
       )
       ORDER BY "ID"
     ) AS row_num
   FROM staging_emission_factors
-  WHERE nullif(btrim("FE"), '') IS NOT NULL
-    AND nullif(btrim("Unité donnée d'activité"), '') IS NOT NULL
+  WHERE "FE" IS NOT NULL
+    AND coalesce(nullif(btrim("Unité donnée d'activité"), ''), nullif(btrim("Unite_en"), '')) IS NOT NULL
 ),
 duplicates AS (
   SELECT 
