@@ -177,9 +177,9 @@ export const SourceWorkspaceAssignments = () => {
           </TableHeader>
           <TableBody>
             {sources.map((s)=>{
-              const enabled = (s.access_level === 'free') || assignedSet.has(s.source_name)
+              const isFree = s.access_level === 'free'
+              const enabled = isFree || assignedSet.has(s.source_name)
               const busy = !!rowBusy[s.source_name]
-              const paid = s.access_level === 'paid'
               return (
                 <TableRow key={s.source_name}>
                   <TableCell>
@@ -192,20 +192,30 @@ export const SourceWorkspaceAssignments = () => {
                     <Badge variant={getSourceBadgeVariant(s.access_level)}>{s.access_level}</Badge>
                   </TableCell>
                   <TableCell>
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                    {isFree ? (
+                      <Badge variant="outline" className="text-green-600 border-green-600">
+                        Toujours activée
+                      </Badge>
+                    ) : busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
                       <Checkbox 
                         checked={enabled}
-                        onCheckedChange={() => paid && toggle(s.source_name, true)}
-                        disabled={!selectedWorkspaceId || !paid}
+                        onCheckedChange={() => toggle(s.source_name, true)}
+                        disabled={!selectedWorkspaceId}
                       />
                     )}
                   </TableCell>
                   <TableCell>
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                    {isFree ? (
+                      <span className="text-xs text-muted-foreground">N/A</span>
+                    ) : busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
                       <Checkbox 
                         checked={!enabled}
-                        onCheckedChange={() => paid && toggle(s.source_name, false)}
-                        disabled={!selectedWorkspaceId || !paid}
+                        onCheckedChange={() => toggle(s.source_name, false)}
+                        disabled={!selectedWorkspaceId}
                       />
                     )}
                   </TableCell>
