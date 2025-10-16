@@ -194,7 +194,11 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
     };
   }, [user, canUseFavorites, refreshFavorites]);
 
-  // Realtime: synchroniser automatiquement les favoris de l'utilisateur
+  // Realtime: DÉSACTIVÉ temporairement pour éliminer les erreurs console
+  // Les favoris se mettent à jour automatiquement après add/remove via l'état local
+  // et via le refresh automatique (TTL cache)
+  // Réactiver quand la configuration Supabase Realtime sera corrigée
+  /*
   useEffect(() => {
     if (!user || !canUseFavorites()) return;
 
@@ -229,6 +233,7 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
       supabase.removeChannel(channel);
     };
   }, [user, canUseFavorites, mapDbToEmissionFactor]);
+  */
 
   return (
     <FavoritesContext.Provider value={{

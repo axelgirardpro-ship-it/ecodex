@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
+import { useDebouncedCallback } from './useDebouncedCallback';
 
 export type PlanType = 'freemium' | 'pro';
 
@@ -30,7 +31,7 @@ export const useQuotaSync = () => {
   const { user } = useAuth();
   const { planType, isSupraAdmin } = usePermissions();
 
-  const syncUserQuotas = useCallback(async () => {
+  const syncUserQuotasImmediate = useCallback(async () => {
     if (!user) return;
 
     // Déterminer le plan effectif (supra_admin = pro)
@@ -73,6 +74,9 @@ export const useQuotaSync = () => {
       console.error('Erreur lors de la synchronisation des quotas:', error);
     }
   }, [user, planType, isSupraAdmin]);
+
+  // Debounce de 5 secondes pour éviter les upserts répétés
+  const syncUserQuotas = useDebouncedCallback(syncUserQuotasImmediate, 5000);
 
   useEffect(() => {
     if (user && planType !== undefined) {

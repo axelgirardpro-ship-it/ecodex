@@ -60,8 +60,10 @@ export const SourceWorkspaceAssignments = () => {
     }
   }, [selectedWorkspaceId, fetchAssignments]);
 
-  // Subscription Realtime optimisée
-  useWorkspaceAssignmentsRealtime(selectedWorkspaceId, handleAssignmentUpdate);
+  // Subscription Realtime DÉSACTIVÉE temporairement
+  // Les mises à jour se font via refresh manuel après assignation/désassignation
+  // Réactiver quand la configuration Supabase Realtime sera corrigée
+  // useWorkspaceAssignmentsRealtime(selectedWorkspaceId, handleAssignmentUpdate);
 
   useEffect(() => { setSources((ctxSources || []) as any) }, [ctxSources])
 

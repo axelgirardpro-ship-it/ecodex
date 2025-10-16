@@ -1,67 +1,76 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from '@/lib/queryKeys';
 
 interface SourceMetadata {
   access_level: 'free' | 'paid';
   is_global: boolean;
 }
 
+// Fonctions de fetch isolées pour React Query
+const fetchGlobalSources = async () => {
+  const { data, error } = await supabase
+    .from('fe_sources')
+    .select('source_name, access_level, is_global')
+    .eq('is_global', true);
+  if (error) throw error;
+  return data;
+};
+
+const fetchWorkspaceAssignments = async (workspaceId: string) => {
+  const { data, error } = await supabase
+    .from('fe_source_workspace_assignments')
+    .select('source_name')
+    .eq('workspace_id', workspaceId);
+  if (error) throw error;
+  return data;
+};
+
 export const useEmissionFactorAccess = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const [assignedSources, setAssignedSources] = useState<string[]>([]);
-  const [freeSources, setFreeSources] = useState<string[]>([]);
-  const [sourcesMetadata, setSourcesMetadata] = useState<Map<string, SourceMetadata>>(new Map());
 
-  useEffect(() => {
-    const fetchSources = async () => {
-      if (!user || !currentWorkspace) return;
+  // Query pour sources globales (cache long car données statiques)
+  const { data: globalSourcesData } = useQuery({
+    queryKey: queryKeys.sources.global,
+    queryFn: fetchGlobalSources,
+    staleTime: 300000, // 5 minutes (données statiques)
+    gcTime: 600000, // 10 minutes
+  });
 
-      try {
-        // Récupérer toutes les sources avec leurs métadonnées (free/paid)
-        const { data: allSourcesData } = await supabase
-          .from('fe_sources')
-          .select('source_name, access_level, is_global')
-          .eq('is_global', true);
+  // Query pour assignments workspace
+  const { data: assignmentsData } = useQuery({
+    queryKey: queryKeys.sources.workspace(currentWorkspace?.id || ''),
+    queryFn: () => fetchWorkspaceAssignments(currentWorkspace!.id),
+    enabled: !!currentWorkspace?.id,
+    staleTime: 60000, // 1 minute
+    gcTime: 120000,
+  });
 
-        if (allSourcesData) {
-          // Créer la map des métadonnées
-          const metadataMap = new Map<string, SourceMetadata>();
-          const freeSourcesList: string[] = [];
+  // Calcul des états dérivés (identique à l'original)
+  const sourcesMetadata = useMemo(() => {
+    const map = new Map<string, SourceMetadata>();
+    globalSourcesData?.forEach(source => {
+      map.set(source.source_name, {
+        access_level: source.access_level as 'free' | 'paid',
+        is_global: source.is_global
+      });
+    });
+    return map;
+  }, [globalSourcesData]);
 
-          allSourcesData.forEach(source => {
-            metadataMap.set(source.source_name, {
-              access_level: source.access_level as 'free' | 'paid',
-              is_global: source.is_global
-            });
+  const freeSources = useMemo(() => {
+    return globalSourcesData
+      ?.filter(s => s.access_level === 'free')
+      .map(s => s.source_name) || [];
+  }, [globalSourcesData]);
 
-            if (source.access_level === 'free') {
-              freeSourcesList.push(source.source_name);
-            }
-          });
-
-          setSourcesMetadata(metadataMap);
-          setFreeSources(freeSourcesList);
-        }
-
-        // Récupérer les sources assignées au workspace
-        const { data: assignedSourcesData } = await supabase
-          .from('fe_source_workspace_assignments')
-          .select('source_name')
-          .eq('workspace_id', currentWorkspace.id);
-
-        if (assignedSourcesData) {
-          setAssignedSources(assignedSourcesData.map(s => s.source_name));
-        }
-      } catch (error) {
-        console.error('Error fetching source data:', error);
-      }
-    };
-
-    fetchSources();
-  }, [user, currentWorkspace]);
+  const assignedSources = useMemo(() => {
+    return assignmentsData?.map(s => s.source_name) || [];
+  }, [assignmentsData]);
 
   const hasAccess = useCallback((source: string) => {
     if (!user) return false;
