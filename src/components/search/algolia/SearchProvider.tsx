@@ -130,12 +130,13 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
             const baseParams = r?.params || {};
             const computedOrigin = resolveOrigin(baseParams) || originRef.current;
 
-            console.log('DEBUG SearchProvider:', { 
-              currentWorkspaceId: currentWorkspace?.id, 
-              workspaceIdRef: workspaceIdRef.current,
-              computedOrigin,
-              language: languageRef.current
-            });
+            // Logs désactivés pour console propre
+            // console.log('DEBUG SearchProvider:', { 
+            //   currentWorkspaceId: currentWorkspace?.id, 
+            //   workspaceIdRef: workspaceIdRef.current,
+            //   computedOrigin,
+            //   language: languageRef.current
+            // });
             return {
               ...r,
               origin: computedOrigin,

@@ -19,7 +19,8 @@ class AlgoliaAutoInitializer {
   }
 
   private async performInitialization(): Promise<void> {
-    console.log('🚀 Initialisation du système Algolia optimisé...');
+    // Logs désactivés pour console propre
+    // if (import.meta.env.DEV) console.log('🚀 Initialisation du système Algolia optimisé...');
 
     try {
       // 1. Configurer le monitoring
@@ -44,11 +45,13 @@ class AlgoliaAutoInitializer {
       this.recordSuccessfulInit();
 
       this.initialized = true;
-      console.log('✅ Système Algolia optimisé initialisé avec succès');
+      // Logs désactivés pour console propre
+      // if (import.meta.env.DEV) console.log('✅ Système Algolia optimisé initialisé avec succès');
 
-      if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-        console.log('📊 Configuration active:', currentConfig);
-      }
+      // Logs désactivés pour console propre
+      // if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+      //   console.log('📊 Configuration active:', currentConfig);
+      // }
 
     } catch (error) {
       console.error('❌ Erreur lors de l\'initialisation Algolia:', error);
@@ -60,35 +63,38 @@ class AlgoliaAutoInitializer {
   private initializeMonitoring(): void {
     // Configurer les seuils d'alerte
     performanceMonitor.onAlert((alert) => {
-      console.warn(`🚨 Alerte Algolia [${alert.severity}]:`, alert.message);
+      // Logs désactivés pour console propre
+      // console.warn(`🚨 Alerte Algolia [${alert.severity}]:`, alert.message);
       if (!import.meta.env.DEV) {
         this.sendToMonitoringService(alert);
       }
     });
 
-    if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-      if (!this.metricsTimer) {
-        this.metricsTimer = setInterval(() => {
-          const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
-          if (blockedUntil && Date.now() < blockedUntil) return;
-          const metrics = performanceMonitor.getMetrics();
-          console.log('📈 Métriques Algolia:', {
-            requests: metrics.totalRequests,
-            successRate: ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(1) + '%',
-            cacheHit: metrics.cacheHitRate.toFixed(1) + '%',
-            avgTime: metrics.averageResponseTime.toFixed(0) + 'ms',
-            savings: metrics.totalRequestsSaved
-          });
-        }, 30000);
-      }
-    }
+    // Métriques périodiques désactivées pour console propre
+    // if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+    //   if (!this.metricsTimer) {
+    //     this.metricsTimer = setInterval(() => {
+    //       const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
+    //       if (blockedUntil && Date.now() < blockedUntil) return;
+    //       const metrics = performanceMonitor.getMetrics();
+    //       console.log('📈 Métriques Algolia:', {
+    //         requests: metrics.totalRequests,
+    //         successRate: ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(1) + '%',
+    //         cacheHit: metrics.cacheHitRate.toFixed(1) + '%',
+    //         avgTime: metrics.averageResponseTime.toFixed(0) + 'ms',
+    //         savings: metrics.totalRequestsSaved
+    //       });
+    //     }, 30000);
+    //   }
+    // }
   }
 
   private initializeCache(): void {
     algoliaCache.autoTune();
-    if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-      console.log('💾 Cache Algolia configuré:', algoliaCache.getCacheStats());
-    }
+    // Logs désactivés pour console propre
+    // if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+    //   console.log('💾 Cache Algolia configuré:', algoliaCache.getCacheStats());
+    // }
   }
 
   private startAutoTuning(): void {
@@ -96,11 +102,13 @@ class AlgoliaAutoInitializer {
       try {
         const adjustments = performanceMonitor.autoTune();
         algoliaCache.autoTune();
-        if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-          console.log('🔧 Auto-tuning appliqué:', adjustments);
-        }
+        // Logs désactivés pour console propre
+        // if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+        //   console.log('🔧 Auto-tuning appliqué:', adjustments);
+        // }
       } catch (error) {
-        console.warn('⚠️ Erreur auto-tuning:', error);
+        // Logs désactivés pour console propre
+        // console.warn('⚠️ Erreur auto-tuning:', error);
       }
     }, 5 * 60 * 1000);
   }
@@ -111,16 +119,17 @@ class AlgoliaAutoInitializer {
       if (blockedUntil && Date.now() < blockedUntil) return;
       const metrics = performanceMonitor.getMetrics();
       const cacheStats = algoliaCache.getCacheStats();
-      if (metrics.cacheHitRate < currentConfig.monitoring.alertThresholds.cacheHitRatePercent) {
-        if (this.shouldLogAlert('cacheHitRate')) console.warn(`⚠️ Cache hit rate faible: ${metrics.cacheHitRate.toFixed(1)}%`);
-      }
-      if (metrics.averageResponseTime > currentConfig.monitoring.alertThresholds.responseTimeMs) {
-        if (this.shouldLogAlert('responseTime')) console.warn(`⚠️ Temps de réponse élevé: ${metrics.averageResponseTime.toFixed(0)}ms`);
-      }
-      const errorRate = (metrics.failedRequests / Math.max(metrics.totalRequests, 1)) * 100;
-      if (errorRate > currentConfig.monitoring.alertThresholds.errorRatePercent) {
-        if (this.shouldLogAlert('errorRate')) console.warn(`⚠️ Taux d'erreur élevé: ${errorRate.toFixed(1)}%`);
-      }
+      // Logs désactivés pour console propre
+      // if (metrics.cacheHitRate < currentConfig.monitoring.alertThresholds.cacheHitRatePercent) {
+      //   if (this.shouldLogAlert('cacheHitRate')) console.warn(`⚠️ Cache hit rate faible: ${metrics.cacheHitRate.toFixed(1)}%`);
+      // }
+      // if (metrics.averageResponseTime > currentConfig.monitoring.alertThresholds.responseTimeMs) {
+      //   if (this.shouldLogAlert('responseTime')) console.warn(`⚠️ Temps de réponse élevé: ${metrics.averageResponseTime.toFixed(0)}ms`);
+      // }
+      // const errorRate = (metrics.failedRequests / Math.max(metrics.totalRequests, 1)) * 100;
+      // if (errorRate > currentConfig.monitoring.alertThresholds.errorRatePercent) {
+      //   if (this.shouldLogAlert('errorRate')) console.warn(`⚠️ Taux d'erreur élevé: ${errorRate.toFixed(1)}%`);
+      // }
       if (metrics.cacheHitRate < 30) {
         algoliaCache.autoTune();
       }
@@ -207,7 +216,8 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     cache: algoliaCache,
     config: currentConfig
   };
-  console.log('🔧 Outils de debug Algolia disponibles dans window.algoliaOptimizations');
+  // Logs désactivés pour console propre
+  // console.log('🔧 Outils de debug Algolia disponibles dans window.algoliaOptimizations');
 }
 
 export default algoliaAutoInit;

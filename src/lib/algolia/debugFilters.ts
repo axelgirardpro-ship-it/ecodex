@@ -14,12 +14,13 @@ export function debugFacetFilters(label: string, filters: FacetFilters, context?
     return;
   }
 
-  try {
-    // eslint-disable-next-line no-console
-    console.debug(`[Algolia][Filters] ${label}`, { filters, ...(context || {}) });
-  } catch {
-    // no-op
-  }
+  // Logs désactivés pour console propre
+  // try {
+  //   // eslint-disable-next-line no-console
+  //   console.debug(`[Algolia][Filters] ${label}`, { filters, ...(context || {}) });
+  // } catch {
+  //   // no-op
+  // }
 }
 
 export function analyzeFilterConflicts(filters: FacetFilters): void {

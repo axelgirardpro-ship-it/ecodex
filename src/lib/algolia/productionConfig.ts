@@ -238,8 +238,9 @@ if (configErrors.length > 0 && import.meta.env.DEV) {
   console.warn('⚠️ Erreurs de configuration Algolia:', configErrors);
 }
 
-if (import.meta.env.DEV && ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
-  console.log('🔧 Configuration Algolia active:', currentConfig);
-}
+// Logs désactivés pour console propre
+// if (import.meta.env.DEV && ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
+//   console.log('🔧 Configuration Algolia active:', currentConfig);
+// }
 
 export default currentConfig;

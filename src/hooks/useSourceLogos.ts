@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface SourceLogo {
   source: string;
@@ -15,59 +17,43 @@ const DEFAULT_LOGOS: Record<string, string> = {
   // Ajoutez ici d'autres sources avec leurs logos par défaut
 };
 
-export const useSourceLogos = () => {
-  const [logos, setLogos] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+const fetchSourceLogos = async () => {
+  const { data: files, error } = await supabase.storage
+    .from('source-logos')
+    .list();
 
-  useEffect(() => {
-    const fetchLogos = async () => {
-      try {
-        // quiet logs
-        // Get list of files in the source-logos bucket
-        const { data: files, error } = await supabase.storage
-          .from('source-logos')
-          .list();
+  if (error) {
+    console.error('Error fetching source logos:', error);
+    return DEFAULT_LOGOS;
+  }
 
-        if (error) {
-          console.error('❌ Error fetching source logos:', error);
-          // Use default logos as fallback
-          setLogos(DEFAULT_LOGOS);
-          return;
-        }
+  const logoMap: Record<string, string> = { ...DEFAULT_LOGOS };
 
-        // quiet logs
-        const logoMap: Record<string, string> = { ...DEFAULT_LOGOS };
+  for (const file of files || []) {
+    if (file.name && file.name !== '.emptyFolderPlaceholder') {
+      const { data } = supabase.storage
+        .from('source-logos')
+        .getPublicUrl(file.name);
 
-        // For each file, get the public URL and extract source name
-        for (const file of files || []) {
-          if (file.name && file.name !== '.emptyFolderPlaceholder') {
-            const { data } = supabase.storage
-              .from('source-logos')
-              .getPublicUrl(file.name);
-
-            if (data?.publicUrl) {
-              // Extract source name from filename (remove extension)
-              const sourceName = file.name.replace(/\.(jpg|jpeg|png|svg|webp)$/i, '');
-              // quiet logs
-              logoMap[sourceName] = data.publicUrl;
-            }
-          }
-        }
-
-        // quiet logs
-        setLogos(logoMap);
-      } catch (error) {
-        console.error('❌ Error in fetchLogos:', error);
-        setLogos(DEFAULT_LOGOS);
-      } finally {
-        setLoading(false);
+      if (data?.publicUrl) {
+        const sourceName = file.name.replace(/\.(jpg|jpeg|png|svg|webp)$/i, '');
+        logoMap[sourceName] = data.publicUrl;
       }
-    };
+    }
+  }
 
-    fetchLogos();
-  }, []);
+  return logoMap;
+};
 
-  const getSourceLogo = (source: string): string | null => {
+export const useSourceLogos = () => {
+  const { data: logos = {}, isLoading: loading } = useQuery({
+    queryKey: queryKeys.logos.all,
+    queryFn: fetchSourceLogos,
+    staleTime: 86400000, // 24 heures (données statiques)
+    gcTime: 86400000,
+  });
+
+  const getSourceLogo = useCallback((source: string): string | null => {
     if (!source) return null;
     
     // Try exact match first
@@ -80,7 +66,7 @@ export const useSourceLogos = () => {
     );
     
     return matchingKey ? logos[matchingKey] : null;
-  };
+  }, [logos]);
 
   return {
     getSourceLogo,
