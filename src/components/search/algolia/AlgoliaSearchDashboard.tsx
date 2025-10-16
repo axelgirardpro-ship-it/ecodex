@@ -15,13 +15,13 @@ const AlgoliaSearchContent: React.FC = () => {
   const configureProps = React.useMemo(() => {
     const commonAttributes = [
       'objectID',
+      'scope',
+      'access_level',
       'Source',
       'Date',
       'FE',
       'Incertitude',
-      'dataset_name',
       'workspace_id',
-      'import_type',
       'is_blurred'
     ];
 
