@@ -287,7 +287,7 @@ BEGIN
 
   -- Appeler Algolia avec le nouveau Task ID
   BEGIN
-    PERFORM public.run_algolia_data_task('55278ecb-f8dc-43d8-8fe6-aff7057b69d0'::uuid, 'eu');
+    PERFORM public.run_algolia_data_task('fc05a7e0-43f7-4af1-a172-c89a2e051756'::uuid, 'eu');
   EXCEPTION WHEN OTHERS THEN
     PERFORM public.log_import_error('Algolia', SQLERRM, NULL);
   END;
@@ -316,7 +316,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-COMMENT ON FUNCTION public.run_import_from_staging() IS 'Import depuis staging_emission_factors - inclut les scores Algolia (localization_score, perimeter_score, base_score, unit_score) - Task ID Algolia: 55278ecb-f8dc-43d8-8fe6-aff7057b69d0';
+COMMENT ON FUNCTION public.run_import_from_staging() IS 'Import depuis staging_emission_factors - inclut les scores Algolia (localization_score, perimeter_score, base_score, unit_score) - Task ID Algolia: fc05a7e0-43f7-4af1-a172-c89a2e051756';
 
 -- ============================================================================
 -- 3. Mettre à jour la fonction rebuild_emission_factors_all_search()
