@@ -134,7 +134,7 @@ BEGIN
   ANALYZE public.emission_factors_all_search;
 
   -- Appeler Algolia après rebuild
-  PERFORM public.run_algolia_data_task('55278ecb-f8dc-43d8-8fe6-aff7057b69d0'::uuid, 'eu');
+  PERFORM public.run_algolia_data_task('fc05a7e0-43f7-4af1-a172-c89a2e051756'::uuid, 'eu');
 
   RETURN json_build_object(
     'inserted', v_inserted,
