@@ -14,6 +14,8 @@ import { MoreHorizontal, UserPlus, Mail, Crown, Eye, Trash2, Shield } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useToast } from "@/hooks/use-toast";
+import { getWorkspaceTierLimits } from "@/lib/adminApi";
+import type { TierLimitCheck } from "@/types/plan-tiers";
 
 interface WorkspaceUser {
   user_id: string;
@@ -35,6 +37,7 @@ export const WorkspaceUsersManager: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "gestionnaire">("gestionnaire");
   const [isInviting, setIsInviting] = useState(false);
+  const [tierLimits, setTierLimits] = useState<TierLimitCheck | null>(null);
 
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
@@ -87,6 +90,14 @@ export const WorkspaceUsersManager: React.FC = () => {
       });
 
       setUsers(normalizedUsers);
+
+      // Charger les limites du tier
+      try {
+        const limits = await getWorkspaceTierLimits(currentWorkspace.id);
+        setTierLimits(limits);
+      } catch (err) {
+        console.error('Error fetching tier limits:', err);
+      }
     } catch (error) {
       console.error('Error fetching workspace users:', error);
       toast({
@@ -108,6 +119,16 @@ export const WorkspaceUsersManager: React.FC = () => {
 
   const handleInviteUser = async () => {
     if (!currentWorkspace?.id || !inviteEmail.trim()) return;
+
+    // Vérifier la limite avant d'inviter
+    if (tierLimits && !tierLimits.allowed) {
+      toast({
+        variant: 'destructive',
+        title: t('toasts.limitReached.title'),
+        description: t('toasts.limitReached.description', { max: tierLimits.max_users })
+      });
+      return;
+    }
 
     try {
       setIsInviting(true);
@@ -272,22 +293,37 @@ export const WorkspaceUsersManager: React.FC = () => {
   }
 
   return (
-    <Card>
+    <Card className="mt-6">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                {t('title')}
-              </CardTitle>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              {t('title')}
+            </CardTitle>
+            <div className="flex items-center gap-3 mt-2">
               <p className="text-sm text-muted-foreground">
                 {t('description')}
               </p>
+              {tierLimits && (
+                <span className="text-sm text-muted-foreground">
+                  •
+                </span>
+              )}
+              {tierLimits && (
+                <span className={`text-sm font-semibold ${tierLimits.allowed ? 'text-primary' : 'text-destructive'}`}>
+                  <span className="tabular-nums">{tierLimits.current_count} / {tierLimits.max_users === 999999 ? '∞' : tierLimits.max_users}</span> {t('users')}
+                </span>
+              )}
+            </div>
           </div>
 
           <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button 
+                className="flex items-center gap-2"
+                disabled={tierLimits ? !tierLimits.allowed : false}
+              >
                 <UserPlus className="h-4 w-4" />
                 {t('invite.button')}
               </Button>

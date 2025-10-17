@@ -331,7 +331,8 @@
       "role": "Role",
       "roleMissing": "Not assigned",
       "workspacePlan": "Workspace plan",
-      "planDefault": "Freemium"
+      "planDefault": "Freemium",
+      "maxUsers": "max users"
     },
     "workspace": {
       "title": "Workspace",
@@ -426,6 +427,7 @@
       "title": "Workspace team",
       "description": "Manage your workspace users",
       "empty": "No users in this workspace yet.",
+      "users": "users",
       "invite": {
         "button": "Invite a user",
         "dialogTitle": "Invite a user",
@@ -484,6 +486,10 @@
         "removeUserError": {
           "title": "Error",
           "description": "Unable to remove the user"
+        },
+        "limitReached": {
+          "title": "Limit reached",
+          "description": "Your plan allows a maximum of {{max}} users. Please upgrade to a higher plan or remove users."
         }
       }
     },
