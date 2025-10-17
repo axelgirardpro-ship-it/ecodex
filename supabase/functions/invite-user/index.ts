@@ -100,6 +100,33 @@ Deno.serve(async (req) => {
 
     console.log(`Inviting ${email} to workspace ${workspaceName} with role ${role}`);
 
+    // Check workspace user limit before sending invitation
+    const { data: limitCheck, error: limitError } = await supabase
+      .rpc('check_workspace_user_limit', { p_workspace_id: workspaceId })
+
+    if (limitError) {
+      console.error('Limit check error:', limitError)
+      throw new Error('Erreur lors de la vérification de la limite d\'utilisateurs')
+    }
+
+    console.log('Limit check result:', limitCheck)
+
+    if (!limitCheck.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'user limit exceeded',
+          message: limitCheck.error || `Limite d'utilisateurs atteinte (${limitCheck.current_count}/${limitCheck.max_users}). Veuillez passer à un plan supérieur.`,
+          current_count: limitCheck.current_count,
+          max_users: limitCheck.max_users,
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
+    }
+
     const emailLower = email.toLowerCase().trim();
 
     // On ne peut pas vérifier directement dans auth.users depuis une Edge Function

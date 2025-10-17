@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import type { PlanTier, TierLimitCheck } from '@/types/plan-tiers'
 
 // Cache mémoire simple pour éviter les appels redondants vers get-admin-workspaces
 type WorkspacesCacheEntry = { data: any[]; expiresAt: number; inflight?: Promise<any[]> }
@@ -65,6 +66,46 @@ export async function updateWorkspacePlan(workspaceId: string, newPlan: 'freemiu
   // Invalidation du cache des workspaces
   invalidateAdminWorkspacesCache()
   return data
+}
+
+// ============================================================================
+// GESTION DES TIERS DE PLANS
+// ============================================================================
+
+export async function getPlanTiers(): Promise<PlanTier[]> {
+  const { data, error } = await supabase
+    .from('plan_tiers')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+  
+  if (error) throw error
+  return data || []
+}
+
+export async function updateWorkspaceTier(workspaceId: string, tierCode: string) {
+  const { data, error } = await invokeWithAuth('update-user-plan-role', {
+    body: { action: 'update_workspace_tier', workspaceId, tierCode }
+  })
+  if (error) {
+    // Formater l'erreur pour un meilleur affichage
+    if (error.message?.includes('user limit exceeded')) {
+      const errorData = typeof error === 'object' && 'message' in error ? error : { message: error }
+      throw new Error(errorData.message)
+    }
+    throw error
+  }
+  // Invalidation du cache des workspaces
+  invalidateAdminWorkspacesCache()
+  return data
+}
+
+export async function getWorkspaceTierLimits(workspaceId: string): Promise<TierLimitCheck> {
+  const { data, error } = await supabase
+    .rpc('check_workspace_user_limit', { p_workspace_id: workspaceId })
+  
+  if (error) throw error
+  return data as TierLimitCheck
 }
 
 export async function updateUserRole(userId: string, workspaceId: string, newRole: 'admin'|'gestionnaire'|'lecteur') {

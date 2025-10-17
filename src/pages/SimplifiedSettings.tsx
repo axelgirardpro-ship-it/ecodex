@@ -46,51 +46,53 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2 flex items-center homepage-text">
-              <SettingsIcon className="w-8 h-8 mr-3 text-primary" />
-              {t('pageTitle')}
-            </h1>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 flex items-center homepage-text">
+            <SettingsIcon className="w-8 h-8 mr-3 text-primary" />
+            {t('pageTitle')}
+          </h1>
           <p className="text-muted-foreground">
-              {t('pageSubtitle')}
+            {t('pageSubtitle')}
           </p>
         </div>
 
-          <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center">
                 <User className="w-5 h-5 mr-2" />
                 {t('account.title')}
-            </CardTitle>
-            <CardDescription>
+              </CardTitle>
+              <CardDescription>
                 {t('account.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              {userLoading ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-              <div>
-                      <Label>{t('account.email')}</Label>
-                      <Skeleton className="h-4 w-full mt-1" />
-              </div>
-              <div>
-                      <Label>{t('account.fullName')}</Label>
-                      <Skeleton className="h-4 w-full mt-1" />
-                    </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {userLoading || workspaceLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>{t('account.email')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
+                  </div>
+                  <div>
+                    <Label>{t('account.fullName')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
+                  </div>
+                  <div>
+                    <Label>{t('account.role')}</Label>
+                    <Skeleton className="h-4 w-full mt-1" />
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <Label className="text-sm font-medium">{t('account.email')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       {user?.email || t('account.missing')}
-                </p>
-              </div>
-              <div>
+                    </p>
+                  </div>
+                  <div>
                     <Label className="text-sm font-medium">{t('account.fullName')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       {userProfile?.first_name && userProfile?.last_name
@@ -98,18 +100,24 @@ const Settings = () => {
                         : t('account.missing')}
                     </p>
                   </div>
+                  <div>
+                    <Label className="text-sm font-medium">{t('account.role')}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userProfile?.role || t('account.roleMissing')}
+                    </p>
+                  </div>
                 </div>
               )}
 
               <Separator />
 
-              {userLoading ? (
+              {userLoading || workspaceLoading ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>{t('account.role')}</Label>
+                    <Label>{t('workspace.name')}</Label>
                     <Skeleton className="h-4 w-full mt-1" />
-              </div>
-              <div>
+                  </div>
+                  <div>
                     <Label>{t('account.workspacePlan')}</Label>
                     <Skeleton className="h-4 w-full mt-1" />
                   </div>
@@ -117,117 +125,29 @@ const Settings = () => {
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">{t('account.role')}</Label>
+                    <Label className="text-sm font-medium">{t('workspace.name')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {userProfile?.role || t('account.roleMissing')}
+                      {currentWorkspace?.name || t('workspace.none')}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">{t('account.workspacePlan')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {planType || currentWorkspace?.plan_type || 'Freemium'}
+                      {currentWorkspace?.tier_info?.display_name_fr || planType || currentWorkspace?.plan_type || 'Freemium'}
+                      {currentWorkspace?.tier_info && currentWorkspace.tier_info.max_users !== 999999 && (
+                        <span className="text-xs ml-2">
+                          ({currentWorkspace.tier_info.max_users} {t('account.maxUsers')})
+                        </span>
+                      )}
                     </p>
-              </div>
-            </div>
-              )}
-          </CardContent>
-        </Card>
-
-          <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-                <Building className="w-5 h-5 mr-2" />
-                {t('workspace.title')}
-            </CardTitle>
-            <CardDescription>
-                {t('workspace.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              {workspaceLoading ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>{t('workspace.name')}</Label>
-                    <Skeleton className="h-4 w-full mt-1" />
-                  </div>
-                  <div>
-                    <Label>{t('workspace.plan')}</Label>
-                    <Skeleton className="h-4 w-full mt-1" />
                   </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-              <div>
-                    <Label className="text-sm font-medium">{t('workspace.name')}</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {currentWorkspace?.name || t('workspace.none')}
-                    </p>
-              </div>
-              <div>
-                    <Label className="text-sm font-medium">{t('workspace.plan')}</Label>
-                    <p className="text-sm text-muted-foreground mt-1 capitalize">
-                      {currentWorkspace?.plan_type || t('workspace.freemium')}
-                    </p>
-              </div>
-            </div>
               )}
-          </CardContent>
-        </Card>
-
-          <RoleGuard requirePermission="canManageUsers">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ExternalLink className="mr-2 h-5 w-5" />
-                  {t('team.title')}
-                </CardTitle>
-                <CardDescription>
-                  {t('team.description')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <WorkspaceUsersManager />
-              </CardContent>
-            </Card>
-          </RoleGuard>
-
-
-          <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-                <SettingsIcon className="w-5 h-5 mr-2" />
-                {t('actions.title')}
-            </CardTitle>
-              <CardDescription>{t('actions.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center justify-center">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t('actions.logout.button')}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('actions.logout.confirmTitle')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('actions.logout.confirmDescription')}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('actions.logout.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSignOut}>
-                      {t('actions.logout.confirm')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
           <RoleGuard allowedRoles={["supra_admin"]}>
-            <Card className="mb-6 border-primary/30">
+            <Card className="border-primary/30">
               <CardHeader>
                 <CardTitle className="flex items-center text-primary">
                   <Shield className="mr-2 h-5 w-5" />
@@ -246,21 +166,62 @@ const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start space-x-3">
-                <Crown className="h-5 w-5 text-orange-600 mt-0.5" />
-                <div>
+
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-3">
+                  <Crown className="h-5 w-5 text-orange-600 mt-0.5" />
+                  <div>
                     <h4 className="text-sm font-medium text-orange-800">{t('adminNotice.title')}</h4>
-                  <p className="text-sm text-orange-700 mt-1">
+                    <p className="text-sm text-orange-700 mt-1">
                       {t('adminNotice.description')}
-                  </p>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           </RoleGuard>
         </div>
+
+        {/* Section pleine largeur pour la gestion d'équipe */}
+        <RoleGuard requirePermission="canManageUsers">
+          <WorkspaceUsersManager />
+        </RoleGuard>
+
+        {/* Actions du compte à la fin */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <SettingsIcon className="w-5 h-5 mr-2" />
+              {t('actions.title')}
+            </CardTitle>
+            <CardDescription>{t('actions.description')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="flex items-center justify-center">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t('actions.logout.button')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('actions.logout.confirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('actions.logout.confirmDescription')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('actions.logout.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSignOut}>
+                    {t('actions.logout.confirm')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

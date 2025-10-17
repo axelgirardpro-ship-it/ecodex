@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useUser } from './UserContext';
+import type { PlanTier } from '@/types/plan-tiers';
 
 interface Workspace {
   id: string;
   name: string;
   owner_id: string;
   plan_type: string;
+  plan_tier?: string | null;
   created_at: string;
   updated_at: string;
   billing_company?: string;
@@ -16,6 +18,7 @@ interface Workspace {
   billing_country?: string;
   billing_siren?: string;
   billing_vat_number?: string;
+  tier_info?: PlanTier | null;
 }
 
 interface WorkspaceContextType {
@@ -74,7 +77,21 @@ export const WorkspaceProvider = ({ children }: WorkspaceProviderProps) => {
         console.error('Error fetching workspace:', error);
         setCurrentWorkspace(null);
       } else {
-        setCurrentWorkspace(data);
+        // Charger les informations du tier si plan_tier est défini
+        if (data.plan_tier) {
+          const { data: tierData } = await supabase
+            .from('plan_tiers')
+            .select('*')
+            .eq('tier_code', data.plan_tier)
+            .single();
+
+          setCurrentWorkspace({
+            ...data,
+            tier_info: tierData || null
+          });
+        } else {
+          setCurrentWorkspace(data);
+        }
       }
     } catch (error) {
       console.error('Error in fetchWorkspace:', error);

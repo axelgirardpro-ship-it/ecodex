@@ -7,11 +7,12 @@ const corsHeaders = {
 }
 
 interface UpdateRequest {
-  action: 'update_workspace_plan' | 'update_user_role' | 'update_user_plan';
+  action: 'update_workspace_plan' | 'update_user_role' | 'update_user_plan' | 'update_workspace_tier';
   workspaceId?: string;
   userId?: string;
   newPlan?: 'freemium' | 'pro';
   newRole?: 'admin' | 'gestionnaire' | 'lecteur';
+  tierCode?: string;
 }
 
 serve(async (req) => {
@@ -50,7 +51,117 @@ serve(async (req) => {
 
     const requestBody = await req.json()
     console.log('Request body:', JSON.stringify(requestBody))
-    const { action, workspaceId, userId, newPlan, newRole }: UpdateRequest = requestBody
+    const { action, workspaceId, userId, newPlan, newRole, tierCode }: UpdateRequest = requestBody
+
+    // New action: update_workspace_tier
+    if (action === 'update_workspace_tier' && workspaceId && tierCode) {
+      console.log(`Updating workspace tier: ${workspaceId} to ${tierCode}`)
+      
+      // Validate that the tier exists and is active
+      const { data: tier, error: tierError } = await supabaseClient
+        .from('plan_tiers')
+        .select('*')
+        .eq('tier_code', tierCode)
+        .eq('is_active', true)
+        .single()
+
+      if (tierError || !tier) {
+        console.error('Tier validation error:', tierError)
+        return new Response(
+          JSON.stringify({ error: 'Tier invalide ou inactif' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Check workspace user limit before updating
+      const { data: limitCheck, error: limitError } = await supabaseClient
+        .rpc('check_workspace_user_limit', { 
+          p_workspace_id: workspaceId,
+          p_new_tier_code: tierCode 
+        })
+
+      if (limitError) {
+        console.error('Limit check error:', limitError)
+        throw limitError
+      }
+
+      console.log('Limit check result:', limitCheck)
+
+      if (!limitCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'user limit exceeded',
+            message: limitCheck.error,
+            current_count: limitCheck.current_count,
+            max_users: limitCheck.max_users,
+            users_to_remove: limitCheck.current_count - limitCheck.max_users
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Update workspace tier and plan_type
+      const { error: workspaceError } = await supabaseClient
+        .from('workspaces')
+        .update({ 
+          plan_tier: tierCode,
+          plan_type: tier.plan_type,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', workspaceId)
+
+      if (workspaceError) {
+        console.error('Workspace update error:', workspaceError)
+        throw workspaceError
+      }
+
+      // Get all user IDs in this workspace to update quotas if plan type changed
+      const { data: userRoles, error: userRolesError } = await supabaseClient
+        .from('user_roles')
+        .select('user_id')
+        .eq('workspace_id', workspaceId)
+      
+      if (userRolesError) {
+        console.error('User roles query error:', userRolesError)
+        throw userRolesError
+      }
+
+      if (userRoles && userRoles.length > 0) {
+        const userIds = userRoles.map(ur => ur.user_id)
+        
+        // Update search quotas based on new plan type
+        let quotaUpdates: Record<string, any> = {}
+        switch (tier.plan_type) {
+          case 'freemium':
+            quotaUpdates = { exports_limit: 10, clipboard_copies_limit: 10, favorites_limit: 10 }
+            break
+          case 'pro':
+            quotaUpdates = { exports_limit: 1000, clipboard_copies_limit: 1000, favorites_limit: null }
+            break
+        }
+
+        console.log('Updating quotas with:', quotaUpdates)
+        const { error: quotasError } = await supabaseClient
+          .from('search_quotas')
+          .update({ ...quotaUpdates, updated_at: new Date().toISOString() })
+          .in('user_id', userIds)
+
+        if (quotasError) {
+          console.error('Quotas update error:', quotasError)
+          throw quotasError
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Tier du workspace mis à jour vers ${tierCode}`,
+          tier_info: tier,
+          updatedUsers: userRoles?.length || 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     if (action === 'update_workspace_plan' && workspaceId && newPlan) {
       console.log(`Updating workspace plan: ${workspaceId} to ${newPlan}`)
@@ -209,9 +320,9 @@ serve(async (req) => {
       )
     }
 
-    console.log('Invalid action or missing parameters:', { action, workspaceId, userId, newPlan, newRole })
+    console.log('Invalid action or missing parameters:', { action, workspaceId, userId, newPlan, newRole, tierCode })
     return new Response(
-      JSON.stringify({ error: 'Action invalide ou paramètres manquants', receivedParams: { action, workspaceId, userId, newPlan, newRole } }),
+      JSON.stringify({ error: 'Action invalide ou paramètres manquants', receivedParams: { action, workspaceId, userId, newPlan, newRole, tierCode } }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
