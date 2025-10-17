@@ -109,6 +109,24 @@ serve(async (req) => {
           .select('*', { count: 'exact', head: true })
           .eq('workspace_id', workspace.id)
 
+        // Count pending invitations
+        const { count: pendingInvitations } = await supabase
+          .from('workspace_invitations')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id)
+          .eq('status', 'pending')
+
+        // Get tier info if plan_tier is set
+        let tierInfo = null
+        if (workspace.plan_tier) {
+          const { data: tier } = await supabase
+            .from('plan_tiers')
+            .select('*')
+            .eq('tier_code', workspace.plan_tier)
+            .single()
+          tierInfo = tier
+        }
+
         // Use workspace plan_type instead of user subscription
         // The billing is at workspace level, not user level
         const workspacePlan = workspace.plan_type || 'freemium'
@@ -118,6 +136,8 @@ serve(async (req) => {
           ...workspace,
           owner_email: authUser?.user?.email || 'Unknown',
           user_count: userCount || 0,
+          pending_invitations: pendingInvitations || 0,
+          tier_info: tierInfo,
           subscription_status: { 
             plan_type: workspacePlan, 
             subscribed: isSubscribed 

@@ -757,6 +757,45 @@ export type Database = {
           },
         ]
       }
+      plan_tiers: {
+        Row: {
+          created_at: string
+          display_name_en: string
+          display_name_fr: string
+          id: string
+          is_active: boolean
+          max_users: number
+          plan_type: string
+          sort_order: number
+          tier_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name_en: string
+          display_name_fr: string
+          id?: string
+          is_active?: boolean
+          max_users: number
+          plan_type: string
+          sort_order?: number
+          tier_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name_en?: string
+          display_name_fr?: string
+          id?: string
+          is_active?: boolean
+          max_users?: number
+          plan_type?: string
+          sort_order?: number
+          tier_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workspaces: {
         Row: {
           billing_address: string | null
@@ -769,6 +808,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          plan_tier: string | null
           plan_type: string
           updated_at: string
         }
@@ -783,6 +823,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          plan_tier?: string | null
           plan_type?: string
           updated_at?: string
         }
@@ -797,10 +838,19 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          plan_tier?: string | null
           plan_type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_workspaces_plan_tier"
+            columns: ["plan_tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["tier_code"]
+          }
+        ]
       }
     }
     Views: {
