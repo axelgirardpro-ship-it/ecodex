@@ -1,5 +1,5 @@
 import React from 'react';
-import { Configure } from 'react-instantsearch';
+import { Configure, useHitsPerPage, useInstantSearch } from 'react-instantsearch';
 import { SearchProvider } from './SearchProvider';
 import { SearchBox } from './SearchBox';
 import { SearchResults } from './SearchResults';
@@ -8,6 +8,48 @@ import { SearchStats } from './SearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
 import { useOrigin } from './SearchProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
+
+const HitsPerPageSelector: React.FC = () => {
+  const { t } = useTranslation('search');
+  const { refresh } = useInstantSearch();
+  const { items, refine } = useHitsPerPage({
+    items: [
+      { label: '10', value: 10, default: false },
+      { label: '25', value: 25, default: true },
+      { label: '50', value: 50, default: false },
+    ],
+  });
+
+  const currentValue = items.find(item => item.isRefined)?.value.toString() || '25';
+
+  const handleChange = (value: string) => {
+    refine(Number(value));
+    // Force un refresh pour garantir que tous les paramètres (incluant maxValuesPerFacet) sont envoyés
+    setTimeout(() => {
+      refresh();
+    }, 100);
+  };
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="text-muted-foreground">{t('results.results_per_page', { defaultValue: 'Résultats par page' })}:</span>
+      <Select value={currentValue} onValueChange={handleChange}>
+        <SelectTrigger className="w-20 h-8">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((item) => (
+            <SelectItem key={item.value} value={item.value.toString()}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
 
 const AlgoliaSearchContent: React.FC = () => {
   const { origin } = useOrigin();
@@ -70,12 +112,15 @@ const AlgoliaSearchContent: React.FC = () => {
     const searchableAttributes = language === 'en'
       ? ['Nom_en', 'Description_en', 'Commentaires_en']
       : ['Nom_fr', 'Description_fr', 'Commentaires_fr'];
+    // Inclure TOUS les attributs possibles (avec fallbacks) pour garantir le highlighting sur tous les hits
     const highlightAttributes = language === 'en'
-      ? ['Nom_en', 'Description_en', 'Commentaires_en']
-      : ['Nom_fr', 'Description_fr', 'Commentaires_fr'];
+      ? ['Nom_en', 'Nom', 'Description_en', 'Description', 'Commentaires_en', 'Commentaires']
+      : ['Nom_fr', 'Nom', 'Description_fr', 'Description', 'Commentaires_fr', 'Commentaires'];
 
     const base = {
-      hitsPerPage: 100, // Augmenté pour afficher tous les hits pertinents d'Algolia
+      // NOTE: hitsPerPage est géré par useHitsPerPage dans HitsPerPageSelector, ne pas le définir ici
+      // NOTE: facets n'est PAS défini ici car les widgets useRefinementList déclarent déjà implicitement les facettes
+      maxValuesPerFacet: 1500, // Synchronisé avec la config Algolia backend pour couvrir toutes les facettes (notamment Localisation_fr: 1395 valeurs)
       ruleContexts: [`origin:${origin}`] as string[],
       attributesToRetrieve: [...commonAttributes, ...localized, ...fallbackAttributes] as string[],
       attributesToHighlight: highlightAttributes as string[],
@@ -112,7 +157,10 @@ const AlgoliaSearchContent: React.FC = () => {
           {/* Results Section */}
           <section className="lg:col-span-3">
             <Configure {...configureProps} />
-            <SearchStats />
+            <div className="flex justify-between items-center mb-4">
+              <SearchStats />
+              <HitsPerPageSelector />
+            </div>
             <SearchResults />
           </section>
         </div>

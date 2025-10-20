@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useTranslation } from 'react-i18next';
 
 interface PaidBlurProps {
   isBlurred?: boolean;
@@ -21,6 +22,7 @@ export const PaidBlur = ({
   showBadge = true
 }: PaidBlurProps) => {
   const { currentWorkspace } = useWorkspace();
+  const { t } = useTranslation('search');
 
   // Le plan du workspace ne doit pas bypass le blur des sources payantes
   if (!isBlurred) {
@@ -37,7 +39,7 @@ export const PaidBlur = ({
           {showBadge && (
             <Badge variant="default" className="bg-[#4ABEA1] text-white border-0">
               <Lock className="w-3 h-3 mr-1" />
-              Source Payante
+              {t('filters.source_locked')}
             </Badge>
           )}
           {showUpgradeButton && (

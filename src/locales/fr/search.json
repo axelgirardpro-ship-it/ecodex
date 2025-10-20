@@ -46,6 +46,7 @@
     "suggestion_2": "Essayez des termes plus généraux",
     "suggestion_3": "Utilisez moins de filtres",
     "displayed_results": "{{count}} résultat(s) affiché(s)",
+    "results_per_page": "Résultats par page",
     "select_all": "Tout sélectionner",
     "deselect_all": "Tout désélectionner",
     "selected_items": "{{count}} sélectionné(s)",

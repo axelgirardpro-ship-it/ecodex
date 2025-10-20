@@ -11,7 +11,7 @@ export const SearchStats: React.FC = () => {
   const formatNumber = (num: number) => num?.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US') ?? '0';
 
   return (
-    <div className="flex items-center justify-between text-sm text-indigo-950 mb-4 font-montserrat">
+    <div className="flex flex-col gap-1 text-sm text-indigo-950 mb-4 font-montserrat">
       <div>
         {areHitsSorted && nbSortedHits !== nbHits ? (
           <span>
@@ -28,7 +28,7 @@ export const SearchStats: React.FC = () => {
           </span>
         )}
       </div>
-      <div>
+      <div className="text-xs text-muted-foreground font-normal">
         {t('timeMs', { time: processingTimeMS })}
       </div>
     </div>

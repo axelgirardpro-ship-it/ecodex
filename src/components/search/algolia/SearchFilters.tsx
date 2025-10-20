@@ -54,14 +54,9 @@ const FiltersInitializer: React.FC = () => {
 
   React.useEffect(() => {
     if (!initialized) {
-      // Déclencher une recherche vide pour peupler les filtres
-      setTimeout(() => {
-        refine('*'); // Recherche universelle qui retourne tout
-        setTimeout(() => {
-          refine(''); // Revenir à vide après initialisation
-          setInitialized(true);
-        }, 100);
-      }, 100);
+      // Faire UNE SEULE recherche vide stable pour peupler les facettes
+      refine('');
+      setInitialized(true);
     }
   }, [refine, initialized]);
 
