@@ -1,7 +1,7 @@
 -- Migration: Mise à jour du Task ID Algolia dans run_import_from_staging
 -- Date: 2025-10-16
 -- Description: Remplace l'ancien Task ID 55278ecb-f8dc-43d8-8fe6-aff7057b69d0 
---              par le nouveau Task ID fc05a7e0-43f7-4af1-a172-c89a2e051756
+--              par le nouveau Task ID 914124fb-141d-4239-aeea-784bc5b24f41
 
 CREATE OR REPLACE FUNCTION public.run_import_from_staging()
 RETURNS json
@@ -191,7 +191,7 @@ BEGIN
 
   BEGIN
     -- ✅ NOUVEAU TASK ID ALGOLIA
-    PERFORM public.run_algolia_data_task('fc05a7e0-43f7-4af1-a172-c89a2e051756'::uuid, 'eu');
+    PERFORM public.run_algolia_data_task('914124fb-141d-4239-aeea-784bc5b24f41'::uuid, 'eu');
   EXCEPTION WHEN OTHERS THEN
     PERFORM public.log_import_error('Algolia', SQLERRM, NULL);
   END;
@@ -224,5 +224,5 @@ $function$;
 COMMENT ON FUNCTION public.run_import_from_staging() IS 
 'Import des facteurs d''émission depuis staging_emission_factors vers emission_factors.
 Inclut les champs de score Algolia (localization_score, perimeter_score, base_score, unit_score).
-Task ID Algolia: fc05a7e0-43f7-4af1-a172-c89a2e051756';
+Task ID Algolia: 914124fb-141d-4239-aeea-784bc5b24f41';
 

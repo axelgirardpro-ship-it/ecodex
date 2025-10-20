@@ -8,7 +8,7 @@ Remplacement complet de l'ancien Task ID Algolia par le nouveau dans tout le flo
 
 | Élément | Ancienne valeur | Nouvelle valeur |
 |---------|----------------|-----------------|
-| **Task ID Algolia** | `55278ecb-f8dc-43d8-8fe6-aff7057b69d0` | `fc05a7e0-43f7-4af1-a172-c89a2e051756` |
+| **Task ID Algolia** | `55278ecb-f8dc-43d8-8fe6-aff7057b69d0` | `914124fb-141d-4239-aeea-784bc5b24f41` |
 | **Date de mise à jour** | 16 octobre 2025 | - |
 | **Scope** | Flow d'import admin complet | - |
 
@@ -41,7 +41,7 @@ Tous les fichiers de migration SQL contenant des appels à `run_algolia_data_tas
   PERFORM public.run_algolia_data_task('55278ecb-f8dc-43d8-8fe6-aff7057b69d0'::uuid, 'eu');
   
   -- Après
-  PERFORM public.run_algolia_data_task('fc05a7e0-43f7-4af1-a172-c89a2e051756'::uuid, 'eu');
+  PERFORM public.run_algolia_data_task('914124fb-141d-4239-aeea-784bc5b24f41'::uuid, 'eu');
   ```
 
 ## ✅ Validation
@@ -50,7 +50,7 @@ Tous les fichiers de migration SQL contenant des appels à `run_algolia_data_tas
 
 ```bash
 # Nouveau Task ID présent (10 occurrences)
-grep -r "fc05a7e0-43f7-4af1-a172-c89a2e051756" supabase/migrations/ | wc -l
+grep -r "914124fb-141d-4239-aeea-784bc5b24f41" supabase/migrations/ | wc -l
 # Résultat : 10
 
 # Ancien Task ID supprimé (0 occurrence)
@@ -65,7 +65,7 @@ grep -r "55278ecb-f8dc-43d8-8fe6-aff7057b69d0" supabase/migrations/ | wc -l
 SELECT routine_name, routine_type
 FROM information_schema.routines
 WHERE routine_schema = 'public'
-  AND routine_definition LIKE '%fc05a7e0-43f7-4af1-a172-c89a2e051756%';
+  AND routine_definition LIKE '%914124fb-141d-4239-aeea-784bc5b24f41%';
 
 -- Résultat :
 -- routine_name: run_import_from_staging
@@ -122,7 +122,7 @@ SELECT public.run_import_from_staging();
 ## 🎯 Résultat final
 
 ✅ **Ancien Task ID** : `55278ecb-f8dc-43d8-8fe6-aff7057b69d0` - **0 occurrence** (supprimé)  
-✅ **Nouveau Task ID** : `fc05a7e0-43f7-4af1-a172-c89a2e051756` - **11 occurrences** (actif)
+✅ **Nouveau Task ID** : `914124fb-141d-4239-aeea-784bc5b24f41` - **11 occurrences** (actif)
 
 ### Répartition des occurrences
 
