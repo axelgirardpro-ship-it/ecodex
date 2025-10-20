@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     // Utiliser les noms de secrets Supabase
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID')!
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!
@@ -138,13 +139,17 @@ Deno.serve(async (req) => {
     
     // Vérifier l'authentification (souple: public autorisé sans auth, privé interdit)
     const authHeader = req.headers.get('Authorization')
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // IMPORTANT: Utiliser ANON_KEY pour l'auth JWT
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: authHeader ? { headers: { Authorization: authHeader } } : undefined
     })
+    // IMPORTANT: Utiliser SERVICE_ROLE_KEY pour contourner RLS lors de la lecture de la table users
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     let userId: string | null = null
     if (authHeader) {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
       if (!authError && user) {
         userId = user.id
       }
@@ -159,16 +164,17 @@ Deno.serve(async (req) => {
     let workspaceId: string | null = null
     let assignedSources: string[] = []
     if (userId) {
-      const { data: userRow } = await supabase
+      const { data: userRow } = await supabaseAdmin
         .from('users')
         .select('workspace_id')
         .eq('user_id', userId)
         .single()
+      
       workspaceId = userRow?.workspace_id ?? null
       
       // Récupérer les sources premium assignées au workspace
       if (workspaceId) {
-        const { data: sourcesData } = await supabase
+        const { data: sourcesData } = await supabaseAdmin
           .from('fe_source_workspace_assignments')
           .select('source_name')
           .eq('workspace_id', workspaceId)
@@ -198,24 +204,22 @@ Deno.serve(async (req) => {
       
       if (origin === 'public') {
         appliedFilters = `scope:public`
-        if (workspaceId) {
-          // Workspace authentifié: free + paid assigné
-          appliedFacetFilters = [[ 'access_level:free', `assigned_workspace_ids:${workspaceId}` ]]
-          attributesToRetrieve = undefined // Accès complet
-        } else {
-          // Utilisateur non-authentifié: PAS de facetFilters pour éviter inconsistance
-          // Tous les attributs sont retournés, seul FE est blurré pour les sources paid via postProcessResults
-          appliedFacetFilters = []
-          attributesToRetrieve = undefined // Accès complet à tous les attributs
-        }
+        // IMPORTANT: Ne pas appliquer de facetFilters pour le scope public
+        // Le blurring des sources premium se fait dans postProcessResults
+        appliedFacetFilters = []
+        attributesToRetrieve = undefined // Accès complet à tous les attributs
       } else {
         // private: données du workspace uniquement
+        // scope via filters (filterOnly), workspace_id via facetFilters (UUID)
+        appliedFilters = 'scope:private'
         if (!userId) {
-          appliedFilters = `scope:private AND workspace_id:_none_` // Pas d'accès sans auth
+          // Pas d'accès sans auth: filtre impossible à matcher
+          appliedFacetFilters = [[ 'workspace_id:_none_' ]]
         } else {
-          appliedFilters = workspaceId
-            ? `scope:private AND workspace_id:${workspaceId}`
-            : `scope:private AND workspace_id:_none_`
+          // Filtre par workspace_id via facetFilters (supporte les UUIDs)
+          appliedFacetFilters = workspaceId
+            ? [[ `workspace_id:${workspaceId}` ]]
+            : [[ 'workspace_id:_none_' ]]
         }
         attributesToRetrieve = undefined // Accès complet aux données du workspace
       }
@@ -226,9 +230,8 @@ Deno.serve(async (req) => {
 
     // Construire les requêtes Algolia (multi)
     const built = incomingRequests.map((r: any, idx: number) => {
-      // React InstantSearch envoie les paramètres dans r.params, pas à la racine
-      // Support également les paramètres à la racine pour rétrocompatibilité
       const params = r?.params || r || {}
+      const reqOrigin = r?.origin || params?.origin
       const {
         query,
         filters,
@@ -238,7 +241,6 @@ Deno.serve(async (req) => {
         sortFacetValuesBy,
         maxFacetHits,
         ruleContexts,
-        origin: reqOrigin,
         searchType,
         hitsPerPage,
         page,
@@ -249,6 +251,16 @@ Deno.serve(async (req) => {
       const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
         (reqOrigin as 'public'|'private'|undefined), String(searchType || '')
       )
+      
+      // DEBUG: Log pour diagnostiquer le filtrage
+      if (reqOrigin === 'private') {
+        console.log('[DEBUG] Private search:', { 
+          userId, 
+          workspaceId, 
+          appliedFilters, 
+          appliedFacetFilters: JSON.stringify(appliedFacetFilters)
+        })
+      }
       const combinedFilters = filters ? `(${appliedFilters}) AND (${filters})` : appliedFilters
       let combinedFacetFilters: any[] = [...appliedFacetFilters]
       if (facetFilters) {
@@ -281,6 +293,7 @@ Deno.serve(async (req) => {
         index: idx
       }
     })
+
 
     // Préparer les headers Algolia
     const algoliaHeaders = {

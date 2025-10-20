@@ -25,7 +25,6 @@ export interface ProxySearchResponse {
 class ProxySearchClient {
   async search(requests: ProxySearchRequest[]): Promise<{ results: ProxySearchResponse[] }> {
     try {
-      // Utiliser le SDK supabase pour invoquer l'Edge Function, en forçant le JWT si disponible
       const { data: { session } } = await supabase.auth.getSession();
       const headers: Record<string, string> = {};
       if (session?.access_token) {
