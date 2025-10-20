@@ -154,7 +154,11 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     if (value === undefined || value === null) return '';
     const num = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(num)) return '';
-    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 4 });
+    const decimals = Math.abs(num) >= 1 ? 1 : 4;
+    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { 
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals 
+    });
   };
 
   const mapHitToEmissionFactor = useCallback((hit: AlgoliaHit): EmissionFactor => ({

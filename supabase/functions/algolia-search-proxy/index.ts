@@ -265,6 +265,7 @@ Deno.serve(async (req) => {
         hitsPerPage,
         page,
         attributesToRetrieve: attrsClient,
+        attributesToHighlight,
         restrictSearchableAttributes
       } = r || {}
       const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
@@ -285,10 +286,11 @@ Deno.serve(async (req) => {
         ...(typeof page === 'number' ? { page } : {}),
         ...(restrictSearchableAttributes ? { restrictSearchableAttributes } : {}),
         ...(facets ? { facets } : {}),
-        ...(typeof maxValuesPerFacet === 'number' ? { maxValuesPerFacet } : {}),
+        maxValuesPerFacet: typeof maxValuesPerFacet === 'number' ? maxValuesPerFacet : 1500, // Défaut à 1500 pour couvrir toutes les facettes (notamment Localisation_fr: 1395 valeurs)
         ...(sortFacetValuesBy ? { sortFacetValuesBy } : {}),
         ...(typeof maxFacetHits === 'number' ? { maxFacetHits } : {}),
         ...(Array.isArray(ruleContexts) ? { ruleContexts } : {}),
+        ...(Array.isArray(attributesToHighlight) && attributesToHighlight.length > 0 ? { attributesToHighlight } : {}),
         // Balises de highlight attendues par React InstantSearch
         highlightPreTag: '__ais-highlight__',
         highlightPostTag: '__/ais-highlight__'

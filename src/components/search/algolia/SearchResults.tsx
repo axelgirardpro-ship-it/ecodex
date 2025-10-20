@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHits, usePagination, useSearchBox, Highlight } from 'react-instantsearch';
+import { useHits, usePagination, useSearchBox, Highlight as AlgoliaHighlight } from 'react-instantsearch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -186,6 +186,7 @@ const StateResults: React.FC = () => {
 
 export const SearchResults: React.FC = () => {
   const { hits: originalHits } = useHits<AlgoliaHit>();
+  const { query } = useSearchBox();
   const language = useSafeLanguage();
   const { t } = useTranslation('search', { keyPrefix: 'results' });
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
@@ -219,7 +220,11 @@ export const SearchResults: React.FC = () => {
     if (value === undefined || value === null) return '';
     const num = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(num)) return '';
-    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 4 });
+    const decimals = Math.abs(num) >= 1 ? 1 : 4;
+    return num.toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-US', { 
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals 
+    });
   };
 
   const renderTextField = (label: string, value?: string | number) => {
@@ -326,6 +331,8 @@ export const SearchResults: React.FC = () => {
 
     const candidates = langSpecific[base as keyof typeof langSpecific] || [base];
     const hl = (hit as any)._highlightResult || {};
+    
+    // Essayer d'utiliser _highlightResult d'Algolia
     for (const a of candidates) {
       const h = hl[a];
       if (h?.value) {
@@ -334,8 +341,24 @@ export const SearchResults: React.FC = () => {
           .replace(/&lt;\/em&gt;|&amp;lt;\/em&amp;gt;/g, '</em>');
         return { __html: text };
       }
+    }
+    
+    // Fallback: si pas de _highlightResult, chercher la valeur brute et faire le highlight manuellement
+    const searchTerm = (query || '').trim().toLowerCase();
+    
+    for (const a of candidates) {
       const v = (hit as any)[a];
-      if (v) return { __html: v };
+      if (v) {
+        const text = String(v);
+        // Highlight manuel si on a une query
+        if (searchTerm && searchTerm.length >= 3) {
+          const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedTerm})`, 'gi');
+          const highlighted = text.replace(regex, '<em>$1</em>');
+          return { __html: highlighted };
+        }
+        return { __html: text };
+      }
     }
     return { __html: '' };
   };
@@ -573,10 +596,10 @@ export const SearchResults: React.FC = () => {
                         <div className="flex-1">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex flex-col items-start gap-1">
-                            <h3
-                              className="text-lg font-semibold text-primary leading-tight font-montserrat"
-                              dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Nom')}
-                            />
+                            <h3 className="text-lg font-semibold text-primary leading-tight font-montserrat">
+                              {/* Highlight natif Algolia - le backend transmet attributesToHighlight */}
+                              <AlgoliaHighlight attribute={currentLang === 'fr' ? 'Nom_fr' : 'Nom_en'} hit={hit} />
+                            </h3>
                             {isPrivateHit && (
                               <Badge variant="secondary" className="mt-1 text-[10px] leading-none px-2 py-0.5">
                                 {t('imported_ef')}

@@ -13,7 +13,7 @@ export const FavorisSearchStats: React.FC = () => {
   const formatNumber = (num: number) => num?.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US') ?? '0';
 
   return (
-    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+    <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
       <div>
         {areHitsSorted && nbSortedHits !== nbHits ? (
           <span>
@@ -32,7 +32,7 @@ export const FavorisSearchStats: React.FC = () => {
           </span>
         )}
       </div>
-      <div>
+      <div className="text-xs font-normal">
         {tStats('timeMs', { time: processingTimeMS })}
       </div>
     </div>
