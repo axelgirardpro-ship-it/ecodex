@@ -209,7 +209,7 @@ BEGIN
 
   -- Appeler Algolia
   BEGIN
-    PERFORM public.run_algolia_data_task('fc05a7e0-43f7-4af1-a172-c89a2e051756'::uuid, 'eu');
+    PERFORM public.run_algolia_data_task('914124fb-141d-4239-aeea-784bc5b24f41'::uuid, 'eu');
   EXCEPTION WHEN OTHERS THEN
     PERFORM public.log_import_error('Algolia', SQLERRM, NULL);
   END;
