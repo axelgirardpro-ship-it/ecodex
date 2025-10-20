@@ -387,31 +387,31 @@ const Import = () => {
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2 flex items-center">
-              <Upload className="w-8 h-8 mr-3 text-primary" />
-              {t("pageTitle")}
-            </h1>
-            <p className="text-muted-foreground">
-              {t("pageSubtitle")}
-            </p>
-          </div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 flex items-center">
+            <Upload className="w-8 h-8 mr-3 text-primary" />
+            {t("pageTitle")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("pageSubtitle")}
+          </p>
+        </div>
 
-          {/* Vérification des permissions */}
-          <RoleGuard requirePermission="canImportData" fallback={
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-                  <p>{t("cards.noPermission")}</p>
-                </div>
-              </CardContent>
-            </Card>
-          }>
+        {/* Vérification des permissions */}
+        <RoleGuard requirePermission="canImportData" fallback={
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="text-center text-muted-foreground">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+                <p>{t("cards.noPermission")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        }>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Template Download Card */}
-            <Card className="mb-6">
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Download className="w-5 h-5 mr-2" />
@@ -442,7 +442,7 @@ const Import = () => {
             </Card>
 
             {/* Upload Card */}
-            <Card>
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   {t("cards.upload.title")}
@@ -536,22 +536,22 @@ const Import = () => {
                 </Button>
               </CardContent>
             </Card>
-          </RoleGuard>
+          </div>
+        </RoleGuard>
 
-          {/* Info Card */}
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground space-y-2">
-                <div><strong>{t("info.sizeLimit.label")}:</strong> {t("info.sizeLimit.value")}</div>
-                <div><strong>{t("info.format.label")}:</strong> {t("info.format.value")}</div>
-                <div><strong>{t("info.encoding.label")}:</strong> {t("info.encoding.value")}</div>
-                <div><strong>{t("info.compression.label")}:</strong> {t("info.compression.value")}</div>
-                <div><strong>{t("info.validation.label")}:</strong> {t("info.validation.value")}</div>
-                <div><strong>{t("info.workspace.label")}:</strong> {t("info.workspace.value")}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Info Card */}
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <div><strong>{t("info.sizeLimit.label")}:</strong> {t("info.sizeLimit.value")}</div>
+              <div><strong>{t("info.format.label")}:</strong> {t("info.format.value")}</div>
+              <div><strong>{t("info.encoding.label")}:</strong> {t("info.encoding.value")}</div>
+              <div><strong>{t("info.compression.label")}:</strong> {t("info.compression.value")}</div>
+              <div><strong>{t("info.validation.label")}:</strong> {t("info.validation.value")}</div>
+              <div><strong>{t("info.workspace.label")}:</strong> {t("info.workspace.value")}</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
