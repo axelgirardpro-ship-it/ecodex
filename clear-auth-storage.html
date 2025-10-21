@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Supabase Auth</title>
+</head>
+<body>
+    <h1>Clearing Supabase Auth Storage...</h1>
+    <script>
+        // Nettoyer TOUT le localStorage Supabase
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+                console.log('Removing:', key);
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Nettoyer sessionStorage aussi
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+                console.log('Removing from session:', key);
+                sessionStorage.removeItem(key);
+            }
+        });
+        
+        alert('Auth storage cleared! Close this tab and reopen your app.');
+    </script>
+</body>
+</html>
