@@ -117,13 +117,12 @@ const Demo = () => {
 
             {/* Right Column - Formbricks Embed */}
             <div className="lg:sticky lg:top-24">
-              <div style={{ position: "relative", height: "80dvh", overflow: "auto" }}>
+              <div style={{ position: "relative", height: "80dvh", overflow: "auto" }}> 
                 <iframe 
                   src="https://app.formbricks.com/s/cmh0d4dh50yobad019gak8a76" 
-                  frameBorder="0"
-                  title="Formulaire de prise de rendez-vous"
-                  style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", border: 0 }}
-                />
+                  frameBorder="0" 
+                  style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", border: 0 }}>
+                </iframe>
               </div>
             </div>
           </div>
