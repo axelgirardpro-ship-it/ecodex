@@ -4,7 +4,7 @@ export const STANDARD_DATASET_LOGOS = [
   { name: "BEIS", src: "/assets/6a36c45c-748d-4f7b-83c3-06ab2651649f.png" },
   { name: "Base Carbone", src: "/assets/e9be0482-b48d-476b-8536-b92ea3b88ea5.png" },
   { name: "Base Impacts", src: "/assets/8351c94f-afcc-498e-b8fa-73f47451686a.png" },
-  { name: "CCF", src: "/assets/c9bb06bc-2cc4-4420-9704-4c9f16118e97.png" },
+  { name: "GLEC", src: "/assets/a5f3dea0-840a-4eed-b0ce-58ef94a75d67.png" },
   { name: "Climate Trace", src: "/assets/47300cd4-f205-4264-a5b0-6f1406b312f8.png" },
   { name: "EEA", src: "/assets/d2dffb4b-f32d-43ed-82bf-b071db714f91.png" },
   { name: "EPA", src: "/assets/75c9eac2-554f-4bb0-9719-08a698c80e1d.png" },
