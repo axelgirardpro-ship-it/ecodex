@@ -247,9 +247,18 @@ const OriginFilter: React.FC = () => {
 export const SearchFilters: React.FC = () => {
   const { refine: clearRefinements } = useClearRefinements();
   const { language } = useLanguage();
+  const { origin } = useOrigin();
   const { t } = useTranslation();
 
   const filters = language === 'en' ? FILTERS_EN : FILTERS_FR;
+
+  // Filtrer les filtres : masquer "dataset_name" quand origin === 'public'
+  // Le filtre "Dataset importé" n'est visible que pour la base personnelle
+  const filteredFilters = React.useMemo(() => {
+    return filters.filter(filter => 
+      origin === 'private' || filter.attribute !== 'dataset_name'
+    );
+  }, [filters, origin]);
 
   return (
     <Card className="w-full">
@@ -274,7 +283,7 @@ export const SearchFilters: React.FC = () => {
           <OriginFilter />
         </div>
 
-        {filters.map(({ attribute, label, searchable, limit }) => (
+        {filteredFilters.map(({ attribute, label, searchable, limit }) => (
           <RefinementList
             key={attribute}
             attribute={attribute}
