@@ -117,15 +117,16 @@ const Demo = () => {
 
             {/* Right Column - Formbricks Embed */}
             <div className="lg:sticky lg:top-24">
-              <div className="bg-card rounded-lg border border-border overflow-hidden" style={{ position: "relative", height: "80dvh" }}>
+              <div className="bg-card rounded-lg border border-border overflow-hidden relative" style={{ height: "80dvh" }}>
                 <iframe 
                   src="https://app.formbricks.com/s/cmh0d4dh50yobad019gak8a76" 
                   frameBorder="0"
                   title="Formulaire de prise de rendez-vous"
-                  style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", border: 0 }}
+                  className="absolute inset-0 w-full h-full"
                   loading="lazy"
                   allow="clipboard-write; fullscreen"
                   referrerPolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                 />
                 {/* Fallback message si l'iframe ne charge pas */}
                 <noscript>
