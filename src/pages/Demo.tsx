@@ -117,24 +117,12 @@ const Demo = () => {
 
             {/* Right Column - Formbricks Embed */}
             <div className="lg:sticky lg:top-24">
-              <div className="bg-card rounded-lg border border-border overflow-hidden" style={{ position: "relative", height: "80dvh" }}>
+              <div style={{ position: "relative", height: "80dvh", overflow: "auto" }}> 
                 <iframe 
-                  src="https://app.formbricks.com/s/cmh0d4dh50yobad019gak8a76?embed=true" 
-                  frameBorder="0"
-                  title="Formulaire de prise de rendez-vous"
-                  style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", border: 0 }}
-                  loading="lazy"
-                  allow="clipboard-write"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                />
-                {/* Fallback message si l'iframe ne charge pas */}
-                <noscript>
-                  <div className="flex items-center justify-center h-full p-8 text-center">
-                    <p className="text-muted-foreground">
-                      Le formulaire nécessite JavaScript pour fonctionner. Veuillez activer JavaScript dans votre navigateur.
-                    </p>
-                  </div>
-                </noscript>
+                  src="https://app.formbricks.com/s/cmh0d4dh50yobad019gak8a76" 
+                  frameBorder="0" 
+                  style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", border: 0 }}>
+                </iframe>
               </div>
             </div>
           </div>
