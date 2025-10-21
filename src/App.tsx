@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AuthCallback from "./pages/AuthCallback";
+import Demo from "./pages/Demo";
 
 import { SearchDashboard } from "@/components/search/algolia/AlgoliaSearchDashboard";
 import { FavorisAlgoliaDashboard } from "@/components/search/favoris/FavorisAlgoliaDashboard";
@@ -98,6 +99,7 @@ const App = () => (
                       <Routes>
                         <Route element={<LanguageLayout lang="fr" />}>
                           <Route path="/" element={<Index />} />
+                          <Route path="/demo" element={<Demo />} />
                           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
                           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -109,6 +111,7 @@ const App = () => (
                         </Route>
                         <Route path="/en" element={<LanguageLayout lang="en" />}>
                           <Route index element={<Index />} />
+                          <Route path="demo" element={<Demo />} />
                           <Route path="login" element={<PublicRoute><Login /></PublicRoute>} />
                           <Route path="signup" element={<PublicRoute><Signup /></PublicRoute>} />
                           <Route path="auth/callback" element={<AuthCallback />} />

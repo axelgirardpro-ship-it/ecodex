@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -18,28 +18,28 @@ const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [trialExpiredMessage, setTrialExpiredMessage] = useState(false);
   const { toast } = useToast();
   const { signIn, signInWithGoogle } = useAuth();
   const { ssoState, setProviderLoading, setLastError } = useSSO();
   const location = useLocation();
+  const navigate = useNavigate();
   const { language } = useLanguage();
   const { t } = useTranslation("pages", { keyPrefix: "login" });
 
   useEffect(() => {
-    // Active l'alerte si flag session ou query param est présent
+    // Redirige vers /demo si trial expiré
     try {
       const urlParams = new URLSearchParams(location.search);
       const fromQuery = urlParams.get('trial_expired') === 'true';
       const fromSession = sessionStorage.getItem('trial_expired') === 'true';
       if (fromQuery || fromSession) {
-        setTrialExpiredMessage(true);
         sessionStorage.removeItem('trial_expired');
+        navigate(buildLocalizedPath('/demo', language) + '?reason=trial_expired', { replace: true });
       }
     } catch (error) {
       console.error("Failed to parse trial_expired flags", error);
     }
-  }, [location]);
+  }, [location, navigate, language]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +51,6 @@ const LoginForm = () => {
       const result = await signIn(email, password);
       
       if (result.error) {
-        // Si l'essai est expiré, afficher l'alerte dédiée
-      const trialError = result.error as { code?: string };
-      if (trialError.code === 'TRIAL_EXPIRED') {
-          setTrialExpiredMessage(true);
-        }
         toast({
           variant: "destructive",
           title: (t as any)("toasts.error.title"),
@@ -126,19 +121,6 @@ const LoginForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Trial Expired Message */}
-            {trialExpiredMessage && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p className="font-medium">{t("trial.title")}</p>
-                    <p>{t("trial.description")}</p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">{t("email")}</Label>

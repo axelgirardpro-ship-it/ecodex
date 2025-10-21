@@ -6,13 +6,15 @@
         "de FE le plus puissant",
         "du marché"
       ],
-      "subtitle": "Accédez à plus de 255 000 facteurs d'émissions français et internationaux agrégés et enrichis par nos experts.",
-      "primaryCta": "Tester le moteur de recherche",
+      "subtitle": "Accédez à plus de 450 000 facteurs d'émissions français et internationaux agrégés et enrichis par nos experts.",
+      "primaryCta": "Tester pendant 7 jours",
+      "bookDemo": "Prendre rendez-vous",
       "secondaryCta": "Se connecter",
       "imageAlt": "Interface de recherche de facteurs d'émission"
     },
     "navbar": {
-      "partners": "Retrouvez les plus grandes bases françaises et internationales"
+      "partners": "Retrouvez les plus grandes bases françaises et internationales",
+      "bookDemo": "Prendre rendez-vous"
     },
     "demo": {
       "title": "Découvrez la puissance du moteur de recherche",
@@ -36,8 +38,8 @@
               "description": "Une mise à jour en continu des bases pour une garantie de qualité des facteurs d'émission."
             },
             {
-              "title": "+ 250K FE à disposition",
-              "description": "Plus de 250k FE génériques et spécifiques disponibles dans une structure commune."
+              "title": "+ 450K FE à disposition",
+              "description": "Plus de 450k FE génériques et spécifiques disponibles dans une structure commune."
             }
           ]
         },
@@ -146,8 +148,8 @@
     "finalCta": {
       "title": "Prêt à explorer nos facteurs d'émission ?",
       "subtitle": "Accédez dès maintenant au moteur de recherche le plus puissant du marché",
-      "primary": "Tester le moteur de recherche",
-      "secondary": "Se connecter"
+      "primary": "Tester pendant 7 jours",
+      "secondary": "Prendre rendez-vous"
     },
     "footer": {
       "tagline": "Le moteur de recherche de facteurs d'émission le plus puissant du marché.",
@@ -688,5 +690,29 @@
     "title": "Page introuvable",
     "description": "La page que vous recherchez n'existe pas ou a été déplacée.",
     "backHome": "Retour à l'accueil"
+  },
+  "demo": {
+    "title": "Prenez rendez-vous avec notre équipe afin d'en savoir plus sur nos solutions",
+    "subtitle": "Notre équipe vous rappelle très rapidement !",
+    "usps": [
+      "Retrouvez les plus grandes bases françaises et internationales",
+      "Accédez à plus de 450k FE enrichis et structurés",
+      "Importez vos propres bases de données",
+      "Profitez de la puissance d'agents IA"
+    ],
+    "logosTitle": "Accédez à la meilleure donnée carbone du marché",
+    "trialExpired": {
+      "title": "Votre période d'essai de 7 jours est terminée.",
+      "description": "Prenez rendez-vous avec notre équipe pour découvrir nos offres premium et continuer à utiliser notre moteur de recherche."
+    },
+    "footer": {
+      "tagline": "Le moteur de recherche de facteurs d'émission le plus puissant du marché.",
+      "legal": {
+        "privacy": "Politique de confidentialité",
+        "terms": "Conditions d'utilisation",
+        "cookies": "Cookies"
+      },
+      "copyright": "© 2025 Ecodex. Tous droits réservés."
+    }
   }
 }

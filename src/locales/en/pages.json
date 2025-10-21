@@ -6,13 +6,15 @@
         "emission factors search engine",
         "on the market"
       ],
-      "subtitle": "Access over 255,000 French and international emission factors curated and enriched by our experts.",
-      "primaryCta": "Try the search engine",
+      "subtitle": "Access over 450,000 French and international emission factors curated and enriched by our experts.",
+      "primaryCta": "Try for 7 days",
+      "bookDemo": "Book a meeting",
       "secondaryCta": "Log in",
       "imageAlt": "Emission factors search interface"
     },
     "navbar": {
-      "partners": "Access leading French and international databases"
+      "partners": "Access leading French and international databases",
+      "bookDemo": "Book a meeting"
     },
     "demo": {
       "title": "Discover the power of our search engine",
@@ -36,8 +38,8 @@
               "description": "Continuous updates to guarantee high-quality emission factors."
             },
             {
-              "title": "+250K EF available",
-              "description": "Over 250k generic and specific emission factors available within a unified structure."
+              "title": "+450K EF available",
+              "description": "Over 450k generic and specific emission factors available within a unified structure."
             }
           ]
         },
@@ -146,8 +148,8 @@
     "finalCta": {
       "title": "Ready to explore our emission factors?",
       "subtitle": "Unlock the most powerful search engine on the market",
-      "primary": "Try the search engine",
-      "secondary": "Log in"
+      "primary": "Try for 7 days",
+      "secondary": "Book a meeting"
     },
     "footer": {
       "tagline": "The most powerful emission factors search engine on the market.",
@@ -684,5 +686,29 @@
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has moved.",
     "backHome": "Back to homepage"
+  },
+  "demo": {
+    "title": "Book a meeting with our team to learn more about our solutions",
+    "subtitle": "Our team will get back to you very quickly!",
+    "usps": [
+      "Access leading French and international databases",
+      "Access over 450k enriched and structured EFs",
+      "Import your own databases",
+      "Leverage the power of AI agents"
+    ],
+    "logosTitle": "Access the best carbon data on the market",
+    "trialExpired": {
+      "title": "Your 7-day trial period has ended.",
+      "description": "Book a meeting with our team to discover our premium plans and continue using our search engine."
+    },
+    "footer": {
+      "tagline": "The most powerful emission factors search engine on the market.",
+      "legal": {
+        "privacy": "Privacy policy",
+        "terms": "Terms of use",
+        "cookies": "Cookies"
+      },
+      "copyright": "© 2025 Ecodex. All rights reserved."
+    }
   }
 }
