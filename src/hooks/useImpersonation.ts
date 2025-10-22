@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithAuth } from '@/lib/adminApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@supabase/supabase-js';
 
@@ -43,7 +44,7 @@ export const useImpersonation = () => {
 
     try {
       // Create a custom JWT token for the target user using an edge function
-      const { data, error } = await supabase.functions.invoke('impersonate-user', {
+      const { data, error } = await invokeWithAuth('impersonate-user', {
         body: { 
           targetUserId,
           originalUserId: user.id
@@ -86,7 +87,7 @@ export const useImpersonation = () => {
 
     try {
       // Create a JWT token for the original user
-      const { data, error } = await supabase.functions.invoke('stop-impersonation', {
+      const { data, error } = await invokeWithAuth('stop-impersonation', {
         body: { 
           originalUserId: state.originalUser.id
         }

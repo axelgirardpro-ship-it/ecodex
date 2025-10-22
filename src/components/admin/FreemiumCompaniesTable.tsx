@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { getAdminWorkspaces } from '@/lib/adminApi'
+import { getAdminWorkspaces, invokeWithAuth } from '@/lib/adminApi'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +52,7 @@ export const FreemiumCompaniesTable = () => {
   const handlePlanChange = async (workspaceId: string, newPlan: string) => {
     setUpdating(workspaceId);
     try {
-      const { data, error } = await supabase.functions.invoke('update-user-plan-role', {
+      const { data, error } = await invokeWithAuth('update-user-plan-role', {
         body: { 
           action: 'update_workspace_plan', 
           workspaceId, 

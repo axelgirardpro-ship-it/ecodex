@@ -10,20 +10,82 @@ export function invalidateAdminWorkspacesCache() {
   Object.keys(workspacesCache).forEach(k=> delete workspacesCache[k])
 }
 
-async function invokeWithAuth<T = any>(fn: string, options?: {
+/**
+ * Fonction utilitaire pour invoquer une Edge Function avec authentification
+ * Gère automatiquement le refresh de session si nécessaire
+ * @param fn Nom de la fonction Edge à invoquer
+ * @param options Options (body, headers)
+ * @returns Promise avec data et error
+ */
+export async function invokeWithAuth<T = any>(fn: string, options?: {
   body?: any,
   headers?: Record<string, string>,
 }): Promise<{ data: T | null; error: any | null }> {
-  const { data: sessionData } = await supabase.auth.getSession();
+  // Tenter de récupérer la session, et forcer un refresh si nécessaire
+  let { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  
+  // Debug: Log session status
+  console.log(`[invokeWithAuth] Appel Edge Function: ${fn}`);
+  console.log(`[invokeWithAuth] Session présente:`, !!sessionData?.session);
+  console.log(`[invokeWithAuth] Token présent:`, !!sessionData?.session?.access_token);
+  
+  // Si pas de session ou erreur, tenter de rafraîchir
+  if (!sessionData?.session || sessionError) {
+    console.warn('[invokeWithAuth] Session invalide ou absente, tentative de rafraîchissement...');
+    const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError || !refreshedData?.session) {
+      console.error('[invokeWithAuth] Impossible de rafraîchir la session:', refreshError);
+      return { 
+        data: null, 
+        error: new Error('Session expirée ou invalide. Veuillez vous reconnecter.') 
+      };
+    }
+    
+    console.log('[invokeWithAuth] Session rafraîchie avec succès');
+    sessionData = refreshedData;
+  }
+  
   const accessToken = sessionData?.session?.access_token;
+  
+  if (!accessToken) {
+    console.error('[invokeWithAuth] Pas de token d\'accès disponible');
+    return { 
+      data: null, 
+      error: new Error('Token d\'accès manquant. Veuillez vous reconnecter.') 
+    };
+  }
+  
+  // IMPORTANT: supabase.functions.invoke() N'ajoute PAS automatiquement Authorization
+  // Il FAUT l'ajouter explicitement dans les headers
   const headers = {
     ...(options?.headers || {}),
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    'Authorization': `Bearer ${accessToken}`,
   } as Record<string, string>;
+  
+  console.log(`[invokeWithAuth] Appel de l'Edge Function "${fn}"...`);
+  console.log(`[invokeWithAuth] Access token (premiers 20 chars):`, accessToken.substring(0, 20));
+  
   const { data, error } = await supabase.functions.invoke(fn, {
     body: options?.body,
     headers,
   });
+  
+  // Si on reçoit une erreur 401, c'est probablement que le token est invalide
+  if (error) {
+    console.error(`[invokeWithAuth] Erreur lors de l'appel à ${fn}:`, error);
+    
+    if (error.status === 401 || error.message?.includes('401') || error.message?.includes('Invalid JWT')) {
+      console.warn('[invokeWithAuth] Erreur 401/JWT reçue, session probablement expirée');
+      return { 
+        data: null, 
+        error: new Error('Session expirée. Veuillez rafraîchir la page et vous reconnecter si nécessaire.') 
+      };
+    }
+  } else {
+    console.log(`[invokeWithAuth] Appel à ${fn} réussi`);
+  }
+  
   return { data, error };
 }
 
