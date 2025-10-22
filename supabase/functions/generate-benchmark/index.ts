@@ -1,5 +1,5 @@
 // Edge Function: generate-benchmark
-// Version: 1.0.3 - Fix linter errors
+// Version: 1.0.4 - SECURITY FIX: Add workspace ownership validation
 // @ts-nocheck - This is a Deno Edge Function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -141,6 +141,30 @@ Deno.serve(async (req) => {
     }
 
     console.log('✅ Starting benchmark generation for workspace:', workspaceId);
+
+    // 🔒 Vérifier que l'utilisateur appartient au workspace
+    const { data: userWorkspace, error: userWorkspaceError } = await supabaseAdmin
+      .from('users')
+      .select('workspace_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (userWorkspaceError || !userWorkspace) {
+      console.error('❌ Failed to fetch user workspace:', userWorkspaceError);
+      return jsonResponse(403, { error: 'Access denied: user not found' });
+    }
+
+    if (userWorkspace.workspace_id !== workspaceId) {
+      console.error('❌ Workspace mismatch:', { 
+        userWorkspace: userWorkspace.workspace_id, 
+        requestedWorkspace: workspaceId 
+      });
+      return jsonResponse(403, { 
+        error: 'Access denied: you do not have access to this workspace' 
+      });
+    }
+
+    console.log('✅ User authorized for workspace:', workspaceId);
 
     // Vérifier le plan et les quotas
     const { data: workspace } = await supabaseAdmin
