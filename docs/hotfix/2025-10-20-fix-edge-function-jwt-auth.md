@@ -202,3 +202,4 @@ npx supabase functions deploy algolia-search-proxy --no-verify-jwt
 - [x] Code legacy nettoyé
 - [x] Edge Function déployée en production
 
+

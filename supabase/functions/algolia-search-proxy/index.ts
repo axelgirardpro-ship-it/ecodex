@@ -139,19 +139,36 @@ Deno.serve(async (req) => {
     
     // Vérifier l'authentification (souple: public autorisé sans auth, privé interdit)
     const authHeader = req.headers.get('Authorization')
-    // IMPORTANT: Utiliser ANON_KEY pour l'auth JWT
-    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: authHeader ? { headers: { Authorization: authHeader } } : undefined
-    })
     // IMPORTANT: Utiliser SERVICE_ROLE_KEY pour contourner RLS lors de la lecture de la table users
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     let userId: string | null = null
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '')
-      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
-      if (!authError && user) {
-        userId = user.id
+      
+      console.log('[algolia-search-proxy] Validating JWT (optional)')
+      
+      // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+      try {
+        const parts = token.split('.')
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+          const extractedUserId = payload.sub
+          
+          if (extractedUserId) {
+            // Valider que l'utilisateur existe en utilisant l'admin API
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(extractedUserId)
+            
+            if (!authError && authUser?.user) {
+              userId = authUser.user.id
+              console.log('[algolia-search-proxy] User authenticated:', userId)
+            } else {
+              console.warn('[algolia-search-proxy] User validation failed:', authError)
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[algolia-search-proxy] Failed to decode JWT (continuing as anonymous):', error)
       }
     }
 

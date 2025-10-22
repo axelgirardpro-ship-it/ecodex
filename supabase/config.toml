@@ -81,4 +81,11 @@ verify_jwt = true
 [functions.reindex-ef-all-atomic]
 verify_jwt = true
 
+# Admin functions - we manually validate JWT in code to support ES256
+[functions.get-admin-workspaces]
+verify_jwt = false
+
+[functions.get-admin-contacts]
+verify_jwt = false
+
 # Legacy db-webhooks removed

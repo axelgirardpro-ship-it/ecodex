@@ -11,6 +11,8 @@ import frSearch from "@locales/fr/search.json";
 import enSearch from "@locales/en/search.json";
 import frQuota from "@locales/fr/quota.json";
 import enQuota from "@locales/en/quota.json";
+import frBenchmark from "@locales/fr/benchmark.json";
+import enBenchmark from "@locales/en/benchmark.json";
 
 const DEFAULT_LANG = 'fr';
 

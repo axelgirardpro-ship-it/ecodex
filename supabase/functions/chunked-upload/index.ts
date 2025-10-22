@@ -19,7 +19,50 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('[chunked-upload] No Authorization header')
+      return json(401, { error: 'Missing bearer token' })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    
+    console.log('[chunked-upload] Validating JWT')
+    
+    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+    let userId: string
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+      
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT')
+      }
+      
+      console.log('[chunked-upload] Extracted user ID from JWT:', userId)
+    } catch (error) {
+      console.error('[chunked-upload] Failed to decode JWT:', error)
+      return json(401, { error: 'Invalid JWT format' })
+    }
+    
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+
+    // Valider que l'utilisateur existe en utilisant l'admin API
+    const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(userId)
+    
+    if (authErr || !authUser) {
+      console.error('[chunked-upload] User validation failed:', authErr)
+      return json(401, { error: 'Invalid user' })
+    }
+
+    const user = authUser.user
+    console.log('[chunked-upload] User authenticated successfully:', user.id)
 
     const body = await req.json().catch(()=> ({})) as any
     // Nouveau flux: délègue intégralement à import-csv-user
@@ -31,9 +74,6 @@ Deno.serve(async (req) => {
     if (!datasetName || !filePath) {
       return json(400, { error: 'file_path and dataset_name are required' })
     }
-
-    const { data: session } = await supabase.auth.getUser(req.headers.get('Authorization')?.replace('Bearer ','') || '')
-    if (!session?.user) return json(401, { error: 'Invalid token' })
 
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/import-csv-user`, {
       method: 'POST',

@@ -49,26 +49,55 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Create Supabase admin client with service role key
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[invite-user] No Authorization header')
       throw new Error('No authorization header');
     }
 
-    // Verify the calling user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
+    const token = authHeader.replace('Bearer ', '')
+    
+    console.log('[invite-user] Validating JWT')
+    console.log('[invite-user] Token starts with:', token.substring(0, 20))
+    
+    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+    let userId: string
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+      
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT')
+      }
+      
+      console.log('[invite-user] Extracted user ID from JWT:', userId)
+    } catch (error) {
+      console.error('[invite-user] Failed to decode JWT:', error)
+      throw new Error('Invalid JWT format: ' + error.message)
     }
+    
+    // Create Supabase admin client with service role key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Valider que l'utilisateur existe en utilisant l'admin API
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
+    
+    if (authError || !authUser) {
+      console.error('[invite-user] User validation failed:', authError)
+      throw new Error('Invalid user: ' + authError?.message)
+    }
+
+    const user = authUser.user
+    console.log('[invite-user] User authenticated successfully:', user.id)
 
     // Get request body
     const { email, workspaceId, role, redirectTo } = await req.json();

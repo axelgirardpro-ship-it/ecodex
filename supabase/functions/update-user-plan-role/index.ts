@@ -21,22 +21,70 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     // Get the user from the request
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
-
-    if (authError || !user) {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('[update-user-plan-role] No Authorization header')
       return new Response(
-        JSON.stringify({ error: 'Non autorisé' }),
+        JSON.stringify({ error: 'No Authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const token = authHeader.replace('Bearer ', '')
+    
+    console.log('[update-user-plan-role] Validating JWT')
+    console.log('[update-user-plan-role] Token starts with:', token.substring(0, 20))
+    
+    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+    let userId: string
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+      
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT')
+      }
+      
+      console.log('[update-user-plan-role] Extracted user ID from JWT:', userId)
+    } catch (error) {
+      console.error('[update-user-plan-role] Failed to decode JWT:', error)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JWT format',
+          details: error.message
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Créer un client Supabase avec SERVICE_ROLE_KEY
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Valider que l'utilisateur existe en utilisant l'admin API
+    const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(userId)
+    
+    if (authError || !authUser) {
+      console.error('[update-user-plan-role] User validation failed:', authError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid user',
+          details: authError?.message
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const user = authUser.user
+    console.log('[update-user-plan-role] User authenticated successfully:', user.id)
 
     // Check if user is supra admin
     const { data: isSupraAdmin } = await supabaseClient

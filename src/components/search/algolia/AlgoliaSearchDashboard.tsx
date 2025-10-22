@@ -6,6 +6,7 @@ import { SearchResults } from './SearchResults';
 import { SearchFilters } from './SearchFilters';
 import { SearchStats } from './SearchStats';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
+import { GenerateBenchmarkButton } from '../GenerateBenchmarkButton';
 import { useOrigin } from './SearchProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -157,9 +158,12 @@ const AlgoliaSearchContent: React.FC = () => {
           {/* Results Section */}
           <section className="lg:col-span-3">
             <Configure {...configureProps} />
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-2">
               <SearchStats />
               <HitsPerPageSelector />
+            </div>
+            <div className="mb-4">
+              <GenerateBenchmarkButton />
             </div>
             <SearchResults />
           </section>

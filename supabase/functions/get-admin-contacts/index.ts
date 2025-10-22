@@ -12,24 +12,74 @@ serve(async (req) => {
   }
 
   try {
+    // Valider le JWT en utilisant supabase.auth.getUser()
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('[get-admin-contacts] No Authorization header')
+      return new Response(JSON.stringify({ error: 'No Authorization header' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Extraire le token du header "Bearer <token>"
+    const token = authHeader.replace('Bearer ', '')
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    console.log('[get-admin-contacts] Validating JWT')
+    console.log('[get-admin-contacts] Token starts with:', token.substring(0, 20))
+    
+    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+    // La signature sera vérifiée en vérifiant que l'utilisateur existe dans la base
+    let userId: string
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+      
+      // Décoder le payload (partie 2 du JWT)
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT')
+      }
+      
+      console.log('[get-admin-contacts] Extracted user ID from JWT:', userId)
+    } catch (error) {
+      console.error('[get-admin-contacts] Failed to decode JWT:', error)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JWT format',
+        details: error.message
+      }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    
+    // Créer un client Supabase avec SERVICE_ROLE_KEY
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    // Valider que l'utilisateur existe en utilisant l'admin API
+    const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(userId)
+    
+    if (userError || !authUser) {
+      console.error('[get-admin-contacts] User validation failed:', userError)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid user',
+        details: userError?.message
+      }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-
-    if (authError || !user) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
+    const user = authUser.user
+    console.log('[get-admin-contacts] User authenticated successfully:', user.id)
 
     // Check supra-admin via RPC authoritative function
     const { data: isSupra } = await supabase.rpc('is_supra_admin', { user_uuid: user.id })

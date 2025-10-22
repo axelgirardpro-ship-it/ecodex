@@ -112,24 +112,54 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     // Authentification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[manage-workspace-users] No Authorization header')
       throw new Error('Pas d\'en-tête d\'autorisation');
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Non autorisé');
+    const token = authHeader.replace('Bearer ', '')
+    
+    console.log('[manage-workspace-users] Validating JWT')
+    console.log('[manage-workspace-users] Token starts with:', token.substring(0, 20))
+    
+    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
+    let userId: string
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+      
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT')
+      }
+      
+      console.log('[manage-workspace-users] Extracted user ID from JWT:', userId)
+    } catch (error) {
+      console.error('[manage-workspace-users] Failed to decode JWT:', error)
+      throw new Error('Invalid JWT format: ' + error.message)
     }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Valider que l'utilisateur existe en utilisant l'admin API
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
+    
+    if (authError || !authUser) {
+      console.error('[manage-workspace-users] User validation failed:', authError)
+      throw new Error('Invalid user: ' + authError?.message)
+    }
+
+    const user = authUser.user
+    console.log('[manage-workspace-users] User authenticated successfully:', user.id)
 
     const requestBody: RequestBody = await req.json();
     const { action } = requestBody;
