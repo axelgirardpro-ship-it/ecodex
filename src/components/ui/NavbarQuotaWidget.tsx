@@ -12,6 +12,9 @@ interface QuotaData {
   clipboard_copies_used: number;
   clipboard_copies_limit: number | null;
   favorites_used: number;
+  benchmarks_used?: number;
+  benchmarks_limit?: number;
+  benchmarks_reset_date?: string | null;
 }
 
 interface NavbarQuotaWidgetProps {
@@ -47,9 +50,12 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
   const exportsLimit = quotaData.exports_limit;
   const clipboardCopiesUsed = quotaData.clipboard_copies_used;
   const clipboardCopiesLimit = quotaData.clipboard_copies_limit;
+  const benchmarksUsed = quotaData.benchmarks_used || 0;
+  const benchmarksLimit = quotaData.benchmarks_limit || 3;
 
   const exportProgress = exportsLimit === null ? 0 : (exportsUsed / exportsLimit) * 100;
   const clipboardProgress = clipboardCopiesLimit === null ? 0 : (clipboardCopiesUsed / clipboardCopiesLimit) * 100;
+  const benchmarkProgress = planType === 'pro' ? 0 : (benchmarksUsed / benchmarksLimit) * 100;
 
   const getPlanIcon = () => {
     if (planType === 'pro') return <Crown className="h-4 w-4 text-yellow-500" />;
@@ -75,6 +81,11 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
   const getFavoritesDisplay = () => {
     if (planType !== 'pro') return (t as any)('favorites.pro_only');
     return (t as any)('limits.unlimited');
+  };
+
+  const getBenchmarksDisplay = () => {
+    if (planType === 'pro') return (t as any)('limits.unlimited');
+    return (t as any)('limits.used_over_total', { used: benchmarksUsed, total: benchmarksLimit });
   };
 
   // Pour pro, affichage simplifié
@@ -186,6 +197,26 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                       {getFavoritesDisplay()}
                     </span>
                   </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">{(t as any)('benchmarks.label')}</span>
+                    <span className={`text-sm font-medium ${benchmarkProgress >= 100 && planType !== 'pro' ? 'text-destructive' : planType === 'pro' ? 'text-success' : 'text-muted-foreground'}`}>
+                      {getBenchmarksDisplay()}
+                    </span>
+                  </div>
+                  {planType !== 'pro' && (
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          benchmarkProgress >= 100 ? 'bg-destructive' :
+                          benchmarkProgress > 66 ? 'bg-amber-500' : 'bg-success'
+                        }`}
+                        style={{ width: `${Math.min(benchmarkProgress, 100)}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {isAtLimit && planType === 'freemium' && (

@@ -16,6 +16,10 @@ interface QuotaData {
   exports_used: number;
   clipboard_copies_used: number;
   favorites_used: number;
+  // Benchmarks (nouveau)
+  benchmarks_limit: number | null; // null = unlimited (Pro), 3 = Freemium
+  benchmarks_used: number;
+  benchmarks_reset_date: string | null;
 }
 
 // Fonction de fetch isolée pour React Query
@@ -105,6 +109,10 @@ export const useQuotas = () => {
     enrichedQuotaData.favorites_limit === null || enrichedQuotaData.favorites_used < enrichedQuotaData.favorites_limit 
     : false;
   
+  const canGenerateBenchmark = enrichedQuotaData ?
+    enrichedQuotaData.benchmarks_limit === null || enrichedQuotaData.benchmarks_used < enrichedQuotaData.benchmarks_limit
+    : false;
+  
   // Un utilisateur est "à la limite" s'il ne peut plus faire d'actions principales
   const isAtLimit = enrichedQuotaData ? 
     !canExport || !canCopyToClipboard || !canAddToFavorites
@@ -185,6 +193,31 @@ export const useQuotas = () => {
     );
   }, [user, enrichedQuotaData, queryClient]);
 
+  const incrementBenchmark = useCallback(async () => {
+    if (!user || !enrichedQuotaData) return;
+    
+    // Ne pas incrémenter si les benchmarks sont illimités (Pro)
+    if (enrichedQuotaData.benchmarks_limit === null) {
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('search_quotas')
+      .update({ benchmarks_used: enrichedQuotaData.benchmarks_used + 1 })
+      .eq('user_id', user.id);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Mettre à jour le cache React Query
+    queryClient.setQueryData(
+      queryKeys.quotas.user(user.id),
+      (old: QuotaData | null | undefined) => 
+        old ? { ...old, benchmarks_used: old.benchmarks_used + 1 } : null
+    );
+  }, [user, enrichedQuotaData, queryClient]);
+
   // Fonction de reload manuel (invalide le cache React Query)
   const reloadQuota = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.quotas.user(user?.id || '') });
@@ -197,10 +230,12 @@ export const useQuotas = () => {
     canExport,
     canCopyToClipboard,
     canAddToFavorites,
+    canGenerateBenchmark,
     isAtLimit,
     incrementExport,
     incrementClipboardCopy,
     incrementFavorite,
+    incrementBenchmark,
     reloadQuota
   };
 };

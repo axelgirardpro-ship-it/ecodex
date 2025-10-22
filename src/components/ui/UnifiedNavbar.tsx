@@ -38,7 +38,7 @@ export const UnifiedNavbar = () => {
             <img src="/assets/logo-ecodex-navbar.png" alt="Ecodex" className="h-10" />
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-3">
             {user ? (
               <>
                 <div className="hidden md:block">
@@ -46,49 +46,57 @@ export const UnifiedNavbar = () => {
                 </div>
 
                 <Link to={buildLocalizedPath("/search", language)}>
-                  <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
+                  <Button variant="ghost" size="sm" className="text-foreground hover:bg-primary/10 hover:text-primary">
                     {t("navbar:search")}
                   </Button>
                 </Link>
 
                 {canUseFavorites() ? (
                   <Link to={buildLocalizedPath("/favoris", language)}>
-                    <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
+                    <Button variant="ghost" size="sm" className="text-foreground hover:bg-primary/10 hover:text-primary">
                       {t("navbar:favorites")}
                     </Button>
                   </Link>
                 ) : (
                   <Button
                     variant="ghost"
+                    size="sm"
                     className="text-foreground opacity-50 cursor-not-allowed"
                     disabled
                     title={t("navbar:favorites_locked") ?? undefined}
                   >
-                    <Lock className="h-4 w-4 mr-2" />
+                    <Lock className="h-3 w-3 mr-1" />
                     {t("navbar:favorites")}
                   </Button>
                 )}
 
+                <Link to={buildLocalizedPath("/benchmark", language)}>
+                  <Button variant="ghost" size="sm" className="text-foreground hover:bg-primary/10 hover:text-primary">
+                    {t("navbar:benchmark")}
+                  </Button>
+                </Link>
+
                 {canImportData ? (
                   <Link to={buildLocalizedPath("/import", language)}>
-                    <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
+                    <Button variant="ghost" size="sm" className="text-foreground hover:bg-primary/10 hover:text-primary">
                       {t("navbar:import")}
                     </Button>
                   </Link>
                 ) : (
                   <Button
                     variant="ghost"
+                    size="sm"
                     className="text-foreground opacity-50 cursor-not-allowed"
                     disabled
                     title={t("navbar:import_locked") ?? undefined}
                   >
-                    <Lock className="h-4 w-4 mr-2" />
+                    <Lock className="h-3 w-3 mr-1" />
                     {t("navbar:import")}
                   </Button>
                 )}
 
                 <Link to={buildLocalizedPath("/settings", language)}>
-                  <Button variant="ghost" className="text-foreground hover:bg-primary/10 hover:text-primary">
+                  <Button variant="ghost" size="sm" className="text-foreground hover:bg-primary/10 hover:text-primary">
                     {t("navbar:settings")}
                   </Button>
                 </Link>
@@ -96,6 +104,7 @@ export const UnifiedNavbar = () => {
                 <Button
                   onClick={handleSignOut}
                   variant="outline"
+                  size="sm"
                   className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
                   {t("navbar:logout")}

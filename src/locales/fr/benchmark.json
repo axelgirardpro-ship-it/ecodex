@@ -1,0 +1,206 @@
+{
+  "page": {
+    "title": "Benchmark",
+    "subtitle": "Analyse comparative des facteurs d'émission"
+  },
+  "hub": {
+    "title": "Mes Benchmarks",
+    "subtitle": "Gérez vos analyses de benchmarks et créez-en de nouveaux",
+    "new_benchmark": "Nouveau Benchmark",
+    "empty": {
+      "title": "Aucun benchmark",
+      "description": "Commencez par créer votre premier benchmark depuis la page de recherche",
+      "create_button": "Créer un Benchmark"
+    }
+  },
+  "header": {
+    "sample_size": "{{count}} facteurs d'émission analysés",
+    "actions": {
+      "save": "Sauvegarder",
+      "share": "Partager",
+      "history": "Historique"
+    },
+    "display": {
+      "all_displayed": "{{count}} FE affichés",
+      "selected_points": "Affichage : {{selected}} points sélectionnés sur {{total}} FE",
+      "stratified_sample": "Échantillon représentatif stratifié"
+    }
+  },
+  "chart": {
+    "title": "Graphique de distribution",
+    "xlabel": "Facteurs d'émission",
+    "ylabel": "Valeur (kgCO2e)",
+    "legend": {
+      "q1": "Q1",
+      "median": "Médiane",
+      "q3": "Q3"
+    },
+    "tooltip": {
+      "value": "Valeur",
+      "source": "Source",
+      "year": "Année",
+      "scope": "Périmètre",
+      "click_details": "Cliquez pour voir les détails complets"
+    },
+    "warning": {
+      "limit_1000": "Plus de 1000 résultats, seuls les 1000 premiers sont analysés"
+    },
+    "points": {
+      "label": "Points affichés",
+      "samples": "{{count}} échantillons sur {{total}}"
+    },
+    "sort": {
+      "ascending": "Ordre croissant",
+      "descending": "Ordre décroissant"
+    }
+  },
+  "statistics": {
+    "title": "Statistiques",
+    "median": {
+      "label": "Médiane",
+      "tooltip": "La valeur médiane représente le point central de la distribution. 50% des valeurs sont en dessous et 50% au-dessus."
+    },
+    "q1": {
+      "label": "Q1 (1er Quartile)",
+      "tooltip": "Le premier quartile représente la valeur en dessous de laquelle se trouvent 25% des données."
+    },
+    "q3": {
+      "label": "Q3 (3ème Quartile)",
+      "tooltip": "Le troisième quartile représente la valeur en dessous de laquelle se trouvent 75% des données."
+    },
+    "min": {
+      "label": "Minimum",
+      "tooltip": "La plus petite valeur observée dans l'échantillon."
+    },
+    "max": {
+      "label": "Maximum",
+      "tooltip": "La plus grande valeur observée dans l'échantillon."
+    },
+    "mean": {
+      "label": "Moyenne",
+      "tooltip": "La moyenne arithmétique de toutes les valeurs. Peut être influencée par les valeurs extrêmes."
+    },
+    "stdDev": {
+      "label": "Écart-type",
+      "tooltip": "Mesure de la dispersion des valeurs autour de la moyenne. Plus l'écart-type est élevé, plus les valeurs sont dispersées."
+    },
+    "iqr": {
+      "label": "IQR (Écart interquartile)",
+      "tooltip": "La différence entre Q3 et Q1. Représente la plage contenant 50% des valeurs centrales."
+    },
+    "percentRange": {
+      "label": "Plage (%)",
+      "tooltip": "Le pourcentage de variation entre la valeur minimale et maximale."
+    }
+  },
+  "tables": {
+    "top10": {
+      "title": "Top 10 - Valeurs les plus faibles",
+      "rank": "#",
+      "name": "Nom",
+      "value": "Valeur",
+      "source": "Source",
+      "year": "Année"
+    },
+    "worst10": {
+      "title": "Worst 10 - Valeurs les plus élevées",
+      "rank": "#",
+      "name": "Nom",
+      "value": "Valeur",
+      "source": "Source",
+      "year": "Année"
+    },
+    "click_details": "Cliquez sur une ligne pour voir les détails complets"
+  },
+  "metadata": {
+    "title": "Informations sur le benchmark",
+    "unit": "Unité",
+    "scope": "Périmètre",
+    "sample_size": "Taille de l'échantillon",
+    "sources": "Source",
+    "sources_plural": "Sources",
+    "period": "Période"
+  },
+  "warnings": {
+    "multiple_sources": "Sources multiples détectées ({{count}}). Les FE peuvent provenir de méthodologies différentes.",
+    "multiple_years": "Années multiples détectées ({{min}} - {{max}}). Les FE peuvent refléter des périodes différentes.",
+    "large_sample": "Échantillon important ({{count}} FE). L'analyse statistique peut être biaisée si les données ne sont pas homogènes."
+  },
+  "modal": {
+    "details_title": "Détails du facteur d'émission",
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "value": "Valeur",
+      "unit": "Unité",
+      "scope": "Périmètre",
+      "source": "Source",
+      "year": "Année",
+      "location": "Localisation",
+      "sector": "Secteur",
+      "subsector": "Sous-secteur",
+      "comments": "Commentaires",
+      "methodology": "Méthodologie",
+      "data_type": "Type de données",
+      "contributor": "Contributeur"
+    },
+    "actions": {
+      "copy_id": "Copier l'ID",
+      "close": "Fermer"
+    },
+    "copy_success": "ID copié dans le presse-papier"
+  },
+  "skeleton": {
+    "loading": "Chargement du benchmark..."
+  },
+  "errors": {
+    "generation_failed": "Échec de la génération du benchmark",
+    "trial_expired": "Votre période d'essai a expiré. Passez à Pro pour générer des benchmarks.",
+    "quota_exceeded": "Quota dépassé ({{used}}/{{limit}}). Passez à Pro pour des benchmarks illimités.",
+    "no_results": "Aucun résultat trouvé pour cette requête.",
+    "no_query": "Veuillez effectuer une recherche avant de générer un benchmark.",
+    "back_to_search": "Retour à la recherche"
+  },
+  "save": {
+    "modal_title": "Sauvegarder le benchmark",
+    "title_label": "Titre",
+    "title_placeholder": "Ex: Benchmark transport routier 2024",
+    "description_label": "Description (optionnel)",
+    "description_placeholder": "Ajoutez une description pour retrouver facilement ce benchmark...",
+    "actions": {
+      "save": "Sauvegarder",
+      "cancel": "Annuler"
+    },
+    "success": "Benchmark sauvegardé avec succès",
+    "error": "Erreur lors de la sauvegarde"
+  },
+  "history": {
+    "title": "Historique des benchmarks",
+    "empty": "Aucun benchmark sauvegardé",
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce benchmark ?",
+    "item": {
+      "sample_size": "{{count}} FE"
+    }
+  },
+  "export": {
+    "png": {
+      "button": "PNG",
+      "success": "Benchmark exporté en PNG",
+      "error": "Erreur lors de l'export PNG"
+    },
+    "pdf": {
+      "button": "PDF",
+      "success": "Benchmark exporté en PDF",
+      "error": "Erreur lors de l'export PDF"
+    }
+  },
+  "share": {
+    "button": "Partager",
+    "modal_title": "Partager ce benchmark",
+    "modal_description": "Tous les membres de votre workspace peuvent accéder à ce benchmark.",
+    "url_label": "Lien de partage",
+    "copy_success": "Lien copié dans le presse-papier",
+    "copy_error": "Impossible de copier le lien",
+    "workspace_info": "Ce benchmark est uniquement accessible aux membres de votre workspace."
+  }
+}

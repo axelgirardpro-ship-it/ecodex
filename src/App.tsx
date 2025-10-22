@@ -23,6 +23,8 @@ import { FavorisAlgoliaDashboard } from "@/components/search/favoris/FavorisAlgo
 import Import from "./pages/Import";
 import Settings from "./pages/SimplifiedSettings";
 import Admin from "./pages/Admin";
+import BenchmarkHub from "./pages/BenchmarkHub";
+import BenchmarkView from "./pages/BenchmarkView";
 import NotFound from "./pages/NotFound";
 import { LanguageProvider, SupportedLanguage, useLanguage } from "@/providers/LanguageProvider";
 import { buildLocalizedPath } from "@i18n/routing";
@@ -108,6 +110,9 @@ const App = () => (
                           <Route path="/import" element={<ProtectedRoute><Import /></ProtectedRoute>} />
                           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                          <Route path="/benchmark" element={<ProtectedRoute><BenchmarkHub /></ProtectedRoute>} />
+                          <Route path="/benchmark/view" element={<ProtectedRoute><BenchmarkView /></ProtectedRoute>} />
+                          <Route path="/benchmark/:id" element={<ProtectedRoute><BenchmarkView /></ProtectedRoute>} />
                         </Route>
                         <Route path="/en" element={<LanguageLayout lang="en" />}>
                           <Route index element={<Index />} />
@@ -120,6 +125,9 @@ const App = () => (
                           <Route path="import" element={<ProtectedRoute><Import /></ProtectedRoute>} />
                           <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                           <Route path="admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                          <Route path="benchmark" element={<ProtectedRoute><BenchmarkHub /></ProtectedRoute>} />
+                          <Route path="benchmark/view" element={<ProtectedRoute><BenchmarkView /></ProtectedRoute>} />
+                          <Route path="benchmark/:id" element={<ProtectedRoute><BenchmarkView /></ProtectedRoute>} />
                           <Route path="*" element={<NotFound />} />
                         </Route>
                         <Route path="*" element={<NotFound />} />

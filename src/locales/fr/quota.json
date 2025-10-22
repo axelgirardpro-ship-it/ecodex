@@ -33,6 +33,10 @@
     "label": "Favoris",
     "pro_only": "Pro"
   },
+  "benchmarks": {
+    "label": "Benchmarks",
+    "pro_only": "Pro"
+  },
   "trial": {
     "title": "Période d'essai",
     "expired": "Période d'essai expirée",

@@ -92,5 +92,13 @@
     "oneResultFound": "{{formattedCount}} résultat trouvé", 
     "multipleResultsFound": "{{formattedCount}} résultats trouvés",
     "timeMs": "en {{time}} ms"
+  },
+  "benchmark": {
+    "generate_button": "Générer un benchmark",
+    "errors": {
+      "no_query": "Veuillez saisir une requête de recherche",
+      "no_results": "Aucun résultat trouvé pour cette recherche",
+      "quota_exceeded": "Quota dépassé ({{used}}/{{limit}}). Passez au plan Pro pour des benchmarks illimités."
+    }
   }
 }
