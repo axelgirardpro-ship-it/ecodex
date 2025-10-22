@@ -1,7 +1,9 @@
 import { useInstantSearch } from 'react-instantsearch';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 
 interface ValidationError {
-  code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'UNKNOWN';
+  code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'INSUFFICIENT_ACCESSIBLE_DATA' | 'UNKNOWN';
   message: string;
   details?: any;
 }
@@ -13,6 +15,8 @@ interface ValidationResult {
 
 export const useBenchmarkValidation = () => {
   const { results, indexUiState } = useInstantSearch();
+  const { currentWorkspace } = useWorkspace();
+  const { assignedSources } = useEmissionFactorAccess();
 
   const validateBenchmark = (): ValidationResult => {
     try {
@@ -35,6 +39,44 @@ export const useBenchmarkValidation = () => {
             code: 'INSUFFICIENT_DATA',
             message: 'Pas assez de résultats',
             details: { count: results.nbHits },
+          },
+        };
+      }
+
+      // Vérifier combien de FEs sont réellement accessibles (non floutés/verrouillés)
+      const accessibleHits = results.hits.filter((hit: any) => {
+        // Exclure les FEs teaser
+        if (hit.variant === 'teaser' || hit.is_blurred === true) {
+          return false;
+        }
+
+        // Si c'est une source payante, vérifier l'assignation
+        if (hit.access_level === 'paid') {
+          const source = hit.Source || hit.source;
+          return assignedSources.includes(source);
+        }
+
+        // Les FEs publiques sont toujours accessibles
+        return true;
+      });
+
+      console.log('🔐 Validation accessibilité:', {
+        totalHits: results.nbHits,
+        accessibleCount: accessibleHits.length,
+        assignedSources,
+      });
+
+      if (accessibleHits.length < 10) {
+        return {
+          valid: false,
+          error: {
+            code: 'INSUFFICIENT_ACCESSIBLE_DATA',
+            message: 'Pas assez de facteurs d\'émission accessibles',
+            details: { 
+              totalCount: results.nbHits,
+              accessibleCount: accessibleHits.length,
+              requiredCount: 10,
+            },
           },
         };
       }

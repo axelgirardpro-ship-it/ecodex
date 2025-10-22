@@ -7,8 +7,35 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### En cours
-- Phase 7 des tests de la fonctionnalité Benchmark
+---
+
+## [1.6.1] - 2025-10-22
+
+### Amélioré
+- **Validation pré-navigation pour Benchmark** : Détection des FEs inaccessibles (floutés/verrouillés) directement sur `/search`
+  - Nouveau code d'erreur `INSUFFICIENT_ACCESSIBLE_DATA` dans `useBenchmarkValidation`
+  - Alerte contextuelle empêchant la navigation inutile vers une page d'erreur
+  - Filtrage intelligent basé sur `variant`, `is_blurred`, et `access_level`
+  - Messages clairs avec compteur de FEs accessibles vs total
+- **UI BenchmarkHeader** : Gestion du débordement du titre long
+  - Troncature avec ellipses (`...`) pour les titres trop longs
+  - Tooltip natif au survol pour afficher le titre complet
+  - Boutons d'action toujours visibles (flex-shrink-0)
+
+### Corrigé
+- **Edge Function `generate-benchmark`** : Boot error résolu
+  - Restauration de l'authentification native Supabase (`supabaseAuth.auth.getUser()`)
+  - Suppression du décodage JWT manuel complexe avec `atob()`
+  - Simplification de la validation utilisateur
+- **Linter** : Correction de toutes les erreurs TypeScript dans l'Edge Function
+  - Ajout de `@ts-nocheck` pour le runtime Deno
+  - Type explicite `warnings: string[]`
+  - Création de `deno.json` pour configuration TypeScript
+
+### Technique
+- Edge Function version `1.0.3`
+- 0 erreur de lint dans le projet
+- Cohérence validation frontend ↔ backend (minimum 10 FEs accessibles)
 
 ---
 

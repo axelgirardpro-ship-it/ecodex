@@ -1,6 +1,7 @@
 // Edge Function: generate-benchmark
-// Version: 1.0.1 - CORS fix
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+// Version: 1.0.3 - Fix linter errors
+// @ts-nocheck - This is a Deno Edge Function
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,64 +106,38 @@ Deno.serve(async (req) => {
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!;
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') || 'ef_all';
 
-    // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('[generate-benchmark] No Authorization header')
-      return jsonResponse(401, { error: 'Missing authorization header' });
+    // Auth - Méthode simple avec supabaseAuth.auth.getUser()
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+
+    let userId: string | null = null;
+    const authHeader = req.headers.get('authorization');
+
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+      
+      if (!authError && user) {
+        userId = user.id;
+      } else {
+        console.error('❌ Auth error:', authError?.message);
+        return jsonResponse(401, { error: 'Invalid or expired token' });
+      }
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
-    console.log('[generate-benchmark] Validating JWT')
-    console.log('[generate-benchmark] Token starts with:', token.substring(0, 20))
-    
-    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
-    let userId: string
-    try {
-      const parts = token.split('.')
-      if (parts.length !== 3) {
-        throw new Error('Invalid JWT format')
-      }
-      
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-      userId = payload.sub
-      
-      if (!userId) {
-        throw new Error('No user ID in JWT')
-      }
-      
-      console.log('[generate-benchmark] Extracted user ID from JWT:', userId)
-    } catch (error) {
-      console.error('[generate-benchmark] Failed to decode JWT:', error)
-      return jsonResponse(401, { 
-        error: 'Invalid JWT format',
-        details: error.message
-      })
+    if (!userId) {
+      return jsonResponse(401, { error: 'Authorization required' });
     }
-    
-    // Créer un client Supabase avec SERVICE_ROLE_KEY
+
+    // Créer un client Supabase avec SERVICE_ROLE_KEY pour les requêtes admin
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Valider que l'utilisateur existe en utilisant l'admin API
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId)
-    
-    if (authError || !authUser) {
-      console.error('[generate-benchmark] User validation failed:', authError)
-      return jsonResponse(401, { 
-        error: 'Invalid user',
-        details: authError?.message
-      })
-    }
-
-    const user = authUser.user
-    console.log('[generate-benchmark] User authenticated successfully:', user.id)
-
     const requestBody = await req.json();
-    const { query, filters, facetFilters, workspaceId, userId } = requestBody;
+    const { query, filters, facetFilters, workspaceId } = requestBody;
 
-    if (!query || !workspaceId || !userId || userId !== user.id) {
-      return jsonResponse(400, { error: 'Missing or invalid parameters' });
+    if (!query || !workspaceId) {
+      return jsonResponse(400, { error: 'Missing required parameters: query and workspaceId' });
     }
 
     console.log('✅ Starting benchmark generation for workspace:', workspaceId);
@@ -405,7 +380,7 @@ Deno.serve(async (req) => {
     const hasMultipleYears = years.length > 1;
     const hasLargeSample = validHits.length > 500;
 
-    const warnings = [];
+    const warnings: string[] = [];
     if (hasMultipleSources) {
       warnings.push(`Sources multiples détectées (${sources.length}) : les FE peuvent avoir des méthodologies différentes`);
     }

@@ -25,19 +25,21 @@ void i18n
         navbar: frNavbar,
         pages: frPages,
         search: frSearch,
-        quota: frQuota
+        quota: frQuota,
+        benchmark: frBenchmark
       },
       en: {
         common: enCommon,
         navbar: enNavbar,
         pages: enPages,
         search: enSearch,
-        quota: enQuota
+        quota: enQuota,
+        benchmark: enBenchmark
       }
     },
     lng: DEFAULT_LANG,
     fallbackLng: DEFAULT_LANG,
-    ns: ['common', 'navbar', 'pages', 'search', 'quota'],
+    ns: ['common', 'navbar', 'pages', 'search', 'quota', 'benchmark'],
     interpolation: { escapeValue: false },
     defaultNS: 'common'
   });

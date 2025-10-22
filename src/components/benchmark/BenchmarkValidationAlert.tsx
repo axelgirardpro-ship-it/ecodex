@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 interface ValidationError {
-  code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'UNKNOWN';
+  code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'INSUFFICIENT_ACCESSIBLE_DATA' | 'UNKNOWN';
   message: string;
   details?: any;
 }
@@ -62,6 +62,19 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             ? `Your search returns ${count} emission factor${count > 1 ? 's' : ''}. At least 3 are needed to generate a benchmark. ${count === 0 ? 'Try broadening your search or removing filters.' : 'Broaden your search criteria slightly.'}`
             : `Votre recherche retourne ${count} facteur${count > 1 ? 's' : ''} d'émission. Au moins 3 sont nécessaires pour générer un benchmark. ${count === 0 ? 'Élargissez votre recherche ou retirez des filtres.' : 'Élargissez légèrement vos critères de recherche.'}`,
           color: 'text-amber-600',
+        };
+      case 'INSUFFICIENT_ACCESSIBLE_DATA':
+        const totalCount = error.details?.totalCount || 0;
+        const accessibleCount = error.details?.accessibleCount || 0;
+        const requiredCount = error.details?.requiredCount || 10;
+        return {
+          icon: AlertTriangle,
+          variant: 'default' as const,
+          title: isEnglish ? 'Insufficient accessible data' : 'Données accessibles insuffisantes',
+          message: isEnglish
+            ? `Your search returns ${totalCount} results, but only ${accessibleCount} are accessible (not blurred/locked). At least ${requiredCount} accessible emission factors are required to generate a benchmark. ${accessibleCount === 0 ? 'All results are from paid sources not assigned to your workspace.' : 'Most results are blurred or from paid sources. Contact your administrator to unlock additional sources or broaden your search.'}`
+            : `Votre recherche retourne ${totalCount} résultats, mais seulement ${accessibleCount} sont accessibles (non floutés/verrouillés). Au moins ${requiredCount} facteurs d'émission accessibles sont nécessaires pour générer un benchmark. ${accessibleCount === 0 ? 'Tous les résultats proviennent de sources payantes non assignées à votre espace de travail.' : 'La plupart des résultats sont floutés ou issus de sources payantes. Contactez votre administrateur pour débloquer des sources supplémentaires ou élargissez votre recherche.'}`,
+          color: 'text-orange-600',
         };
       default:
         return {

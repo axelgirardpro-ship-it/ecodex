@@ -55,9 +55,11 @@ export const BenchmarkHeader = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-foreground truncate" title={title}>
+            {title}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {t('header.sample_size', {
               defaultValue: '{{count}} emission factors analyzed',
@@ -66,7 +68,7 @@ export const BenchmarkHeader = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Selector d'affichage (seulement si plus de 25 résultats) */}
           {benchmarkData.chartData.length > 25 && (
             <div className="flex items-center border rounded-md bg-background">

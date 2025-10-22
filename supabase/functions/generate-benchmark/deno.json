@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "types": ["https://deno.land/x/edge_runtime@v1.1.1/index.d.ts"]
+  }
+}
+
