@@ -1,4 +1,5 @@
 // Edge Function: generate-benchmark
+// Version: 1.0.1 - CORS fix
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
