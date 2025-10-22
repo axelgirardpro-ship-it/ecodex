@@ -23,6 +23,7 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ## 2025-10
 
 ### 2025-10-22 🎯 Feature Benchmark (Phase 7)
+- **2025-10-22_PR_BENCHMARK_IMPROVEMENTS.md** - PR améliorations Benchmark : validation pré-navigation, correction header UI et boot Edge Function
 - **PHASE7_TESTS_CHECKLIST.md** - Checklist complète des tests pour la feature Benchmark
 - **PHASE7_CORRECTIONS_APPLIQUEES.md** - Corrections immédiates appliquées (export default, clés React)
 - **PHASE5_INTEGRATION_STATUS.md** - Statut d'intégration de la navigation Search → Benchmark
@@ -81,7 +82,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 29
+**Total de documents indexés** : 35
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11

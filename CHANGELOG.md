@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-22n- **PR_BENCHMARK_IMPROVEMENTS.md** : PR améliorations Benchmark : validation pré-navigation, correction header UI et boot Edge Functionn  - Documentation complète dans `docs/history/2025-10-22_PR_BENCHMARK_IMPROVEMENTS.md`n
+
 ---
 
 ## [1.6.1] - 2025-10-22
