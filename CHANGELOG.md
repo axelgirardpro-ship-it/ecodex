@@ -7,7 +7,17 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### 2025-10-22n- **PR_BENCHMARK_IMPROVEMENTS.md** : PR améliorations Benchmark : validation pré-navigation, correction header UI et boot Edge Functionn  - Documentation complète dans `docs/history/2025-10-22_PR_BENCHMARK_IMPROVEMENTS.md`n
+---
+
+## [1.6.2] - 2025-10-22
+
+### 🔒 Sécurité - CRITIQUE
+- **Edge Function `generate-benchmark`** : Fix vulnérabilité workspace ownership (v1.0.3 → v1.0.4)
+  - Ajout validation que l'utilisateur appartient au workspace avant génération
+  - Retour `403 Forbidden` pour accès non autorisé
+  - Protection contre consommation de quotas d'autres workspaces
+  - **Impact** : Tout utilisateur authentifié pouvait générer des benchmarks pour n'importe quel workspace (détecté par bugbot, aucune exploitation constatée)
+  - Documentation : `docs/hotfix/2025-10-22-security-fix-workspace-validation.md`
 
 ---
 
