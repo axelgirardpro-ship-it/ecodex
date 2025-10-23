@@ -7,9 +7,17 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### 2025-10-23n- **HOTFIX_2025-10-23_jwt_generate_benchmark.md** : Hotfix JWT authentication error 401 sur generate-benchmark (pattern robuste décodage manuel)n  - Documentation complète dans `docs/history/2025-10-23_HOTFIX_2025-10-23_jwt_generate_benchmark.md`n
+### 2025-10-23n- **HOTFIX_2025-10-23_jwt_edge_functions_config.md** : Hotfix JWT authentication error 401 sur generate-benchmark (config verify_jwt manquante)n  - Documentation complète dans `docs/history/2025-10-23_HOTFIX_2025-10-23_jwt_edge_functions_config.md`n
 
-### 2025-10-23n- **FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md** : 5 corrections critiques Benchmark : affichage 25/50 FE, tooltip, minimum 5 FE, warning navigation, liens Markdownn  - Documentation complète dans `docs/history/2025-10-23_FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md`n
+### 2025-10-23
+- **🐛 HOTFIX CRITIQUE - JWT Authentication Edge Functions** : Résolution erreur 401 "Invalid JWT" sur generate-benchmark
+  - **Cause racine** : Configuration manquante `verify_jwt = false` dans `supabase/config.toml`
+  - **Symptôme** : Supabase Edge Runtime rejetait les requêtes AVANT l'exécution du code (aucun log custom généré)
+  - **Solution** : Ajout de `verify_jwt = false` pour `generate-benchmark` et `algolia-search-proxy`
+  - **Pattern robuste** : Validation JWT manuelle dans le code pour supporter ES256 (comme admin functions)
+  - **Version Edge Function** : v1.0.9 (avec logs de debug complets)
+  - **⚠️ IMPORTANT** : Toute nouvelle Edge Function nécessitant auth doit avoir `verify_jwt = false` + validation manuelle
+  - **Impact** : Feature Benchmark de nouveau opérationnelle, génération de benchmarks restaurée
 
 ### 2025-10-23
 - **🐛 FIX - 5 corrections critiques Benchmark** : Correction de bugs impactant l'affichage et la validation des benchmarks

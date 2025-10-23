@@ -88,4 +88,12 @@ verify_jwt = false
 [functions.get-admin-contacts]
 verify_jwt = false
 
+# Benchmark function - manual JWT validation to support ES256
+[functions.generate-benchmark]
+verify_jwt = false
+
+# Algolia search proxy - no JWT verification (optional auth)
+[functions.algolia-search-proxy]
+verify_jwt = false
+
 # Legacy db-webhooks removed
