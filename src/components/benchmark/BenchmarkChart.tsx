@@ -83,7 +83,7 @@ export const BenchmarkChart = ({
         <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm max-w-sm">
           <p className="font-semibold text-foreground mb-1">{originalItem.name}</p>
           <p className="text-muted-foreground">
-            <span className="font-medium">{t('chart.tooltip.value', 'Value')}:</span> {formatEmissionFactor(originalItem.fe)} {originalItem.unit}
+            <span className="font-medium">{t('chart.tooltip.value', 'Value')}:</span> {formatEmissionFactor(originalItem.fe)} kgCO2eq/{originalItem.unit}
           </p>
           <p className="text-muted-foreground">
             <span className="font-medium">{t('chart.tooltip.source', 'Source')}:</span> {originalItem.source}

@@ -32,7 +32,7 @@ export const useBenchmarkValidation = () => {
       }
 
       // Vérifier le nombre de résultats
-      if (results.nbHits < 3) {
+      if (results.nbHits < 5) {
         return {
           valid: false,
           error: {
@@ -66,7 +66,7 @@ export const useBenchmarkValidation = () => {
         assignedSources,
       });
 
-      if (accessibleHits.length < 10) {
+      if (accessibleHits.length < 5) {
         return {
           valid: false,
           error: {
@@ -75,7 +75,7 @@ export const useBenchmarkValidation = () => {
             details: { 
               totalCount: results.nbHits,
               accessibleCount: accessibleHits.length,
-              requiredCount: 10,
+              requiredCount: 5,
             },
           },
         };

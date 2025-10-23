@@ -7,7 +7,19 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-23n- **HOTFIX_2025-10-23_jwt_generate_benchmark.md** : Hotfix JWT authentication error 401 sur generate-benchmark (pattern robuste décodage manuel)n  - Documentation complète dans `docs/history/2025-10-23_HOTFIX_2025-10-23_jwt_generate_benchmark.md`n
+
+### 2025-10-23n- **FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md** : 5 corrections critiques Benchmark : affichage 25/50 FE, tooltip, minimum 5 FE, warning navigation, liens Markdownn  - Documentation complète dans `docs/history/2025-10-23_FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md`n
+
 ### 2025-10-23
+- **🐛 FIX - 5 corrections critiques Benchmark** : Correction de bugs impactant l'affichage et la validation des benchmarks
+  - Fix #1 : Logique d'affichage 25/50 FE garantissant que min/max soient toujours identiques entre les deux vues
+  - Fix #2 : Affichage unité complète dans tooltip (kgCO2eq/unité au lieu de juste l'unité)
+  - Fix #3 : Réduction minimum FE requis de 10 à 5 pour permettre benchmarks sur datasets restreints
+  - Fix #4 : Warning sauvegarde fonctionnel pour TOUTES navigations (navbar, retour navigateur, fermeture)
+  - Fix #5 : Style liens Markdown corrigé (bleu souligné) pour meilleure lisibilité
+  - Impact : Cohérence données, accessibilité élargie, protection anti-perte de données, UX améliorée
+
 - **✨ FEAT - 5 améliorations UX Benchmark** : Amélioration de l'expérience utilisateur sur la feature Benchmark
   - Ajout du champ "Localisation" dans le tooltip du graphique et colonne dans Top10/Worst10
   - Amélioration du style Markdown : liens bleus cliquables, gras fonctionnel

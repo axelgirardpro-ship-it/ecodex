@@ -23,6 +23,8 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ## 2025-10
 
 ### 2025-10-23 🐛 Hotfix
+- **2025-10-23_HOTFIX_2025-10-23_jwt_generate_benchmark.md** - Hotfix JWT authentication error 401 sur generate-benchmark (pattern robuste décodage manuel)
+- **2025-10-23_FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md** - 5 corrections critiques Benchmark : affichage 25/50 FE, tooltip, minimum 5 FE, warning navigation, liens Markdown
 - **2025-10-23_AMELIORATIONS_BENCHMARK_UI_2025-10-23.md** - Améliorations UI/UX Benchmark : 13 améliorations majeures incluant coloration Q1/Q3, formatage dynamique, support Markdown, et réorganisation des contrôles
 - **2025-10-23_HOTFIX_2025-10-23_fix_import_unicode_whitespace.md** - Fix erreur import FE avec espaces Unicode (U+202F) - correction fonction run_import_from_staging
 - **2025-10-23_HOTFIX_2025-10-23_algolia_10kb_limit.md** - Suppression commentaires pour 316 records BEIS dépassant la limite Algolia de 10KB
@@ -87,7 +89,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 38
+**Total de documents indexés** : 40
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11
