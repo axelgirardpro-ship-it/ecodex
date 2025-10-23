@@ -23,6 +23,7 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ## 2025-10
 
 ### 2025-10-23 🐛 Hotfix
+- **2025-10-23_FIX_benchmark_date_range_period_2025-10-23.md** - Fix période du benchmark (champ Publication fantôme)
 - **2025-10-23_HOTFIX_2025-10-23_jwt_edge_functions_config.md** - Hotfix JWT authentication error 401 sur generate-benchmark (config verify_jwt manquante)
 - **2025-10-23_HOTFIX_2025-10-23_jwt_generate_benchmark.md** - Hotfix JWT authentication error 401 sur generate-benchmark (pattern robuste décodage manuel)
 - **2025-10-23_FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md** - 5 corrections critiques Benchmark : affichage 25/50 FE, tooltip, minimum 5 FE, warning navigation, liens Markdown
@@ -90,7 +91,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 41
+**Total de documents indexés** : 42
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11
