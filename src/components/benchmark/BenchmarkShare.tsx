@@ -14,17 +14,35 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 interface BenchmarkShareProps {
-  benchmarkId: string;
+  benchmarkId?: string;
+  searchParams?: {
+    query: string;
+    filters?: Record<string, any>;
+    facetFilters?: string[][];
+  };
 }
 
-export const BenchmarkShare = ({ benchmarkId }: BenchmarkShareProps) => {
+export const BenchmarkShare = ({ benchmarkId, searchParams }: BenchmarkShareProps) => {
   const { t } = useTranslation('benchmark');
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Construire l'URL de partage
-  const shareUrl = `${window.location.origin}/benchmark/${benchmarkId}`;
+  const shareUrl = benchmarkId 
+    ? `${window.location.origin}/benchmark/${benchmarkId}`
+    : (() => {
+        if (!searchParams) return window.location.href;
+        const params = new URLSearchParams();
+        params.set('query', searchParams.query);
+        if (searchParams.filters) {
+          params.set('filters', JSON.stringify(searchParams.filters));
+        }
+        if (searchParams.facetFilters) {
+          params.set('facetFilters', JSON.stringify(searchParams.facetFilters));
+        }
+        return `${window.location.origin}/benchmark/view?${params.toString()}`;
+      })();
 
   const handleCopyUrl = async () => {
     try {

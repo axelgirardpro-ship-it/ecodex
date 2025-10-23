@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { BenchmarkItemModal } from './BenchmarkItemModal';
+import { formatEmissionFactor } from '@/lib/formatters/benchmarkFormatters';
 import type { BenchmarkEmissionFactor } from '@/types/benchmark';
 
 interface TopWorstTablesProps {
@@ -52,7 +53,7 @@ export const TopWorstTables = ({ top10, worst10 }: TopWorstTablesProps) => {
                     {item.Nom_fr}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {item.FE.toFixed(4)}
+                    {formatEmissionFactor(item.FE)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {item.Source}

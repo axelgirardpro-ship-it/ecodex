@@ -11,15 +11,23 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
+import { ArrowUpDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { BenchmarkItemModal } from './BenchmarkItemModal';
-import type { BenchmarkChartDataPoint, BenchmarkStatistics, DisplayMode } from '@/types/benchmark';
+import { formatEmissionFactor } from '@/lib/formatters/benchmarkFormatters';
+import type { BenchmarkChartDataPoint, BenchmarkStatistics, DisplayMode, SortOrder } from '@/types/benchmark';
 
 interface BenchmarkChartProps {
   data: BenchmarkChartDataPoint[];
   statistics: BenchmarkStatistics;
   displayMode: DisplayMode;
+  onDisplayModeChange: (mode: DisplayMode) => void;
+  sortOrder: SortOrder;
+  onSortOrderChange: (order: SortOrder) => void;
   totalCount: number;
+  unit: string;
   allData?: BenchmarkChartDataPoint[]; // Toutes les données pour retrouver les items au clic
 }
 
@@ -27,7 +35,11 @@ export const BenchmarkChart = ({
   data,
   statistics,
   displayMode,
+  onDisplayModeChange,
+  sortOrder,
+  onSortOrderChange,
   totalCount,
+  unit,
   allData,
 }: BenchmarkChartProps) => {
   const { t } = useTranslation('benchmark');
@@ -42,22 +54,24 @@ export const BenchmarkChart = ({
     return name.substring(0, maxLength) + '...';
   };
 
-  // Fonction pour obtenir la couleur en fonction de la valeur (gradient vert → jaune → rouge)
+  // Fonction pour obtenir la couleur en fonction de Q1/Q3
   const getBarColor = (value: number): string => {
-    const { min, max } = statistics;
-    const range = max - min;
-    const normalized = (value - min) / range; // 0 à 1
+    const { q1, q3 } = statistics;
 
-    if (normalized < 0.33) {
-      // Vert
-      return 'hsl(166, 50%, 59%)'; // #4ABEA1
-    } else if (normalized < 0.67) {
-      // Jaune
-      return 'hsl(48, 100%, 62%)'; // #FFD93D
+    if (value < q1) {
+      // Vert si en dessous de Q1
+      return 'hsl(142, 70%, 45%)';
+    } else if (value <= q3) {
+      // Jaune entre Q1 et Q3
+      return 'hsl(48, 100%, 62%)';
     } else {
-      // Rouge
-      return 'hsl(0, 100%, 70%)'; // #FF6B6B
+      // Marron au-dessus de Q3
+      return 'hsl(25, 50%, 40%)';
     }
+  };
+
+  const handleToggleSortOrder = () => {
+    onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -69,7 +83,7 @@ export const BenchmarkChart = ({
         <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm max-w-sm">
           <p className="font-semibold text-foreground mb-1">{originalItem.name}</p>
           <p className="text-muted-foreground">
-            <span className="font-medium">{t('chart.tooltip.value', 'Value')}:</span> {originalItem.fe.toFixed(4)} {originalItem.unit}
+            <span className="font-medium">{t('chart.tooltip.value', 'Value')}:</span> {formatEmissionFactor(originalItem.fe)} {originalItem.unit}
           </p>
           <p className="text-muted-foreground">
             <span className="font-medium">{t('chart.tooltip.source', 'Source')}:</span> {originalItem.source}
@@ -95,7 +109,64 @@ export const BenchmarkChart = ({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{t('chart.title', 'Distribution chart')}</CardTitle>
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle>{t('chart.title', 'Distribution chart')}</CardTitle>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Selector d'affichage (seulement si plus de 25 résultats) */}
+              {totalCount > 25 && (
+                <div className="flex items-center border rounded-md bg-background">
+                  <Button
+                    variant={displayMode === 25 ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => onDisplayModeChange(25)}
+                    className="rounded-r-none"
+                  >
+                    25
+                  </Button>
+                  <Button
+                    variant={displayMode === 50 ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => onDisplayModeChange(50)}
+                    className="rounded-l-none"
+                    disabled={totalCount < 50}
+                  >
+                    50
+                  </Button>
+                </div>
+              )}
+
+              {/* Toggle ordre */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleSortOrder}
+                title={sortOrder === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'}
+              >
+                <ArrowUpDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Badge info affichage et unité */}
+          <div className="flex items-center gap-2 mt-4">
+            <Badge variant="secondary">
+              {totalCount <= 25
+                ? t('header.display.all_displayed', {
+                    defaultValue: '{{count}} FE affichés',
+                    count: totalCount
+                  })
+                : t('header.display.selected_points', {
+                    defaultValue: 'Affichage : {{selected}} points sélectionnés sur {{total}} FE',
+                    selected: Math.min(displayMode, totalCount),
+                    total: totalCount
+                  })
+              }
+            </Badge>
+            <Badge variant="outline">
+              kgCO2eq/{unit}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Légende fixe */}
@@ -103,19 +174,19 @@ export const BenchmarkChart = ({
             <div className="flex items-center gap-2">
               <div className="w-12 h-0.5 border-t-2 border-dashed border-blue-400"></div>
               <span className="text-sm font-medium text-muted-foreground">
-                {t('chart.legend.q1', 'Q1')}: <span className="text-foreground">{statistics.q1.toFixed(2)}</span>
+                {t('chart.legend.q1', 'Q1')}: <span className="text-foreground">{formatEmissionFactor(statistics.q1)}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-12 h-1 bg-blue-600 rounded"></div>
               <span className="text-sm font-medium text-muted-foreground">
-                {t('chart.legend.median', 'Median')}: <span className="text-foreground font-semibold">{statistics.median.toFixed(2)}</span>
+                {t('chart.legend.median', 'Median')}: <span className="text-foreground font-semibold">{formatEmissionFactor(statistics.median)}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-12 h-0.5 border-t-2 border-dashed border-purple-500"></div>
               <span className="text-sm font-medium text-muted-foreground">
-                {t('chart.legend.q3', 'Q3')}: <span className="text-foreground">{statistics.q3.toFixed(2)}</span>
+                {t('chart.legend.q3', 'Q3')}: <span className="text-foreground">{formatEmissionFactor(statistics.q3)}</span>
               </span>
             </div>
           </div>
@@ -123,7 +194,7 @@ export const BenchmarkChart = ({
           <ResponsiveContainer width="100%" height={500}>
             <BarChart
               data={data.map(d => ({ ...d, name: truncateName(d.name) }))}
-              margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+              margin={{ top: 20, right: 30, left: 30, bottom: 120 }}
             >
               <defs>
                 <linearGradient id="colorFE" x1="0" y1="0" x2="0" y2="1">
@@ -146,7 +217,7 @@ export const BenchmarkChart = ({
               
               <YAxis
                 label={{
-                  value: data[0]?.unit || '',
+                  value: `kgCO2eq/${unit}`,
                   angle: -90,
                   position: 'insideLeft',
                   style: { fill: 'hsl(var(--foreground))' },
