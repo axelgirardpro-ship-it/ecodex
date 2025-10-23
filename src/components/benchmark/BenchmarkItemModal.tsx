@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Copy, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { formatEmissionFactor } from '@/lib/formatters/benchmarkFormatters';
 import type { BenchmarkEmissionFactor, BenchmarkChartDataPoint } from '@/types/benchmark';
 
 interface BenchmarkItemModalProps {
@@ -35,8 +37,8 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
   const fields = isFull
     ? [
         { key: 'name', value: (item as BenchmarkEmissionFactor).Nom_fr },
-        { key: 'description', value: (item as BenchmarkEmissionFactor).Description_fr },
-        { key: 'value', value: `${(item as BenchmarkEmissionFactor).FE.toFixed(4)}` },
+        { key: 'description', value: (item as BenchmarkEmissionFactor).Description_fr, isMarkdown: true },
+        { key: 'value', value: formatEmissionFactor((item as BenchmarkEmissionFactor).FE) },
         { key: 'unit', value: (item as BenchmarkEmissionFactor).Unite_fr },
         { key: 'scope', value: (item as BenchmarkEmissionFactor).Périmètre_fr },
         { key: 'source', value: (item as BenchmarkEmissionFactor).Source },
@@ -44,25 +46,27 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
         { key: 'location', value: (item as BenchmarkEmissionFactor).Localisation_fr },
         { key: 'sector', value: (item as BenchmarkEmissionFactor).Secteur_fr },
         { key: 'subsector', value: (item as BenchmarkEmissionFactor)['Sous-secteur_fr'] },
-        { key: 'comments', value: (item as BenchmarkEmissionFactor).Commentaires_fr },
+        { key: 'comments', value: (item as BenchmarkEmissionFactor).Commentaires_fr, isMarkdown: true },
         { key: 'methodology', value: (item as BenchmarkEmissionFactor).Méthodologie },
         { key: 'data_type', value: (item as BenchmarkEmissionFactor).Type_de_données },
         { key: 'contributor', value: (item as BenchmarkEmissionFactor).Contributeur },
       ]
     : [
         { key: 'name', value: (item as BenchmarkChartDataPoint).name },
-        { key: 'value', value: `${(item as BenchmarkChartDataPoint).fe.toFixed(4)}` },
+        { key: 'description', value: (item as BenchmarkChartDataPoint).description, isMarkdown: true },
+        { key: 'value', value: formatEmissionFactor((item as BenchmarkChartDataPoint).fe) },
         { key: 'unit', value: (item as BenchmarkChartDataPoint).unit },
         { key: 'scope', value: (item as BenchmarkChartDataPoint).scope },
         { key: 'source', value: (item as BenchmarkChartDataPoint).source },
         { key: 'year', value: (item as BenchmarkChartDataPoint).date?.toString() },
         { key: 'location', value: (item as BenchmarkChartDataPoint).localisation },
         { key: 'sector', value: (item as BenchmarkChartDataPoint).sector },
+        { key: 'comments', value: (item as BenchmarkChartDataPoint).comments, isMarkdown: true },
       ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('modal.details_title')}</DialogTitle>
         </DialogHeader>
@@ -75,7 +79,13 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     {t(`modal.fields.${field.key}`)}
                   </p>
-                  <p className="text-base text-foreground">{field.value}</p>
+                  {field.isMarkdown ? (
+                    <div className="text-base text-foreground prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{field.value}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-base text-foreground">{field.value}</p>
+                  )}
                 </div>
               )
           )}

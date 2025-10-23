@@ -9,6 +9,7 @@ import { TopWorstTables } from '@/components/benchmark/TopWorstTables';
 import { BenchmarkMetadata } from '@/components/benchmark/BenchmarkMetadata';
 import { BenchmarkSkeleton } from '@/components/benchmark/BenchmarkSkeleton';
 import { BenchmarkValidationError } from '@/components/benchmark/BenchmarkValidationError';
+import { BenchmarkUnsavedWarning } from '@/components/benchmark/BenchmarkUnsavedWarning';
 import { useBenchmarkGeneration } from '@/hooks/useBenchmarkGeneration';
 import { useBenchmarkStorage } from '@/hooks/useBenchmarkStorage';
 import type { DisplayMode, SortOrder } from '@/types/benchmark';
@@ -144,21 +145,6 @@ export const BenchmarkView = () => {
       return selected.sort((a, b) => sortOrder === 'asc' ? a.fe - b.fe : b.fe - a.fe);
     }
 
-    if (displayMode === 100) {
-      // Échantillonnage stratifié pour 100 points
-      if (n <= 100) return sortedData;
-
-      const selected: typeof sortedData = [];
-      const step = n / 100;
-
-      for (let i = 0; i < 100; i++) {
-        const index = Math.floor(i * step);
-        selected.push(sortedData[index]);
-      }
-
-      return selected.sort((a, b) => sortOrder === 'asc' ? a.fe - b.fe : b.fe - a.fe);
-    }
-
     return sortedData;
   }, [benchmarkData, displayMode, sortOrder]);
 
@@ -187,6 +173,9 @@ export const BenchmarkView = () => {
     <div className="min-h-screen bg-background">
       <UnifiedNavbar />
       
+      {/* Avertissement pour les benchmarks non sauvegardés */}
+      <BenchmarkUnsavedWarning hasUnsavedChanges={!id && !!benchmarkData} />
+      
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {isLoading ? (
           <BenchmarkSkeleton />
@@ -196,10 +185,6 @@ export const BenchmarkView = () => {
           <>
             <BenchmarkHeader
               title={savedBenchmarkRaw?.title || `Benchmark : ${benchmarkData.metadata.query} - ${benchmarkData.metadata.unit} - ${benchmarkData.metadata.scope}`}
-              displayMode={displayMode}
-              onDisplayModeChange={setDisplayMode}
-              sortOrder={sortOrder}
-              onSortOrderChange={setSortOrder}
               benchmarkData={benchmarkData}
               searchParams={searchParams}
               savedBenchmarkId={id}
@@ -215,11 +200,18 @@ export const BenchmarkView = () => {
                 data={displayedChartData}
                 statistics={benchmarkData.statistics}
                 displayMode={displayMode}
+                onDisplayModeChange={setDisplayMode}
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
                 totalCount={benchmarkData.chartData.length}
+                unit={benchmarkData.metadata.unit}
                 allData={benchmarkData.chartData}
               />
 
-              <BenchmarkStatistics statistics={benchmarkData.statistics} />
+              <BenchmarkStatistics 
+                statistics={benchmarkData.statistics}
+                unit={benchmarkData.metadata.unit}
+              />
 
               <TopWorstTables
                 top10={benchmarkData.top10}

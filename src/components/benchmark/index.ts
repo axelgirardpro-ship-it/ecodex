@@ -24,3 +24,6 @@ export { BenchmarkShare } from './BenchmarkShare';
 export { BenchmarkSkeleton } from './BenchmarkSkeleton';
 export { BenchmarkValidationError } from './BenchmarkValidationError';
 
+// Warnings
+export { BenchmarkUnsavedWarning } from './BenchmarkUnsavedWarning';
+

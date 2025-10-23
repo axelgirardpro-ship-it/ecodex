@@ -7,13 +7,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatEmissionFactor } from '@/lib/formatters/benchmarkFormatters';
 import type { BenchmarkStatistics as BenchmarkStatisticsType } from '@/types/benchmark';
 
 interface BenchmarkStatisticsProps {
   statistics: BenchmarkStatisticsType;
+  unit: string;
 }
 
-export const BenchmarkStatistics = ({ statistics }: BenchmarkStatisticsProps) => {
+export const BenchmarkStatistics = ({ statistics, unit }: BenchmarkStatisticsProps) => {
   const { t } = useTranslation('benchmark');
 
   const stats = [
@@ -21,39 +23,48 @@ export const BenchmarkStatistics = ({ statistics }: BenchmarkStatisticsProps) =>
       key: 'median',
       value: statistics.median,
       isPrimary: true,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'q1',
       value: statistics.q1,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'q3',
       value: statistics.q3,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'min',
       value: statistics.min,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'max',
       value: statistics.max,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'mean',
       value: statistics.mean,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'stdDev',
       value: statistics.standardDeviation,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'iqr',
       value: statistics.iqr,
+      unitLabel: 'kgCO2eq',
     },
     {
       key: 'percentRange',
       value: statistics.percentRange,
       isPercent: true,
+      unitLabel: '%',
     },
   ];
 
@@ -74,7 +85,7 @@ export const BenchmarkStatistics = ({ statistics }: BenchmarkStatisticsProps) =>
                   <span className="text-sm font-medium text-muted-foreground">
                     {t(`statistics.${stat.key}.label`)}
                   </span>
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -90,8 +101,10 @@ export const BenchmarkStatistics = ({ statistics }: BenchmarkStatisticsProps) =>
                     stat.isPrimary ? 'text-primary' : 'text-foreground'
                   }`}
                 >
-                  {stat.value.toFixed(4)}
-                  {stat.isPercent && '%'}
+                  {stat.isPercent ? stat.value.toFixed(1) : formatEmissionFactor(stat.value)}
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    {stat.unitLabel}
+                  </span>
                 </p>
               </CardContent>
             </Card>

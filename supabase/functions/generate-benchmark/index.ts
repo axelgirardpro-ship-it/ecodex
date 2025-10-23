@@ -387,6 +387,8 @@ Deno.serve(async (req) => {
       date: hit.Date || hit.Publication || null,
       localisation: hit.Localisation_fr || '',
       sector: hit.Secteur_fr || '',
+      description: hit.Description_fr || '',
+      comments: hit.Commentaires_fr || '',
     });
 
     // Transformer TOUS les points pour le graphique (le frontend fera la sélection)

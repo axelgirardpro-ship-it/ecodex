@@ -23,6 +23,8 @@ export interface BenchmarkChartDataPoint {
   date: number | null;
   localisation: string;
   sector: string;
+  description?: string;
+  comments?: string;
 }
 
 export interface BenchmarkEmissionFactor {
@@ -106,6 +108,6 @@ export interface BenchmarkHistoryItem {
   unit: string;
 }
 
-export type DisplayMode = 25 | 50 | 100;
+export type DisplayMode = 25 | 50;
 export type SortOrder = 'asc' | 'desc';
 
