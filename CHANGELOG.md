@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-23n- **FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md** : 5 corrections critiques Benchmark : affichage 25/50 FE, tooltip, minimum 5 FE, warning navigation, liens Markdownn  - Documentation complète dans `docs/history/2025-10-23_FIX_BENCHMARK_5_CORRECTIONS_2025-10-23.md`n
+
 ### 2025-10-23
 - **🐛 FIX - 5 corrections critiques Benchmark** : Correction de bugs impactant l'affichage et la validation des benchmarks
   - Fix #1 : Logique d'affichage 25/50 FE garantissant que min/max soient toujours identiques entre les deux vues
