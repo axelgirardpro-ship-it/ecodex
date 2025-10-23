@@ -71,8 +71,35 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
                     {t(`modal.fields.${field.key}`)}
                   </p>
                   {field.isMarkdown ? (
-                    <div className="text-base text-foreground prose prose-sm dark:prose-invert max-w-none prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800 prose-strong:font-bold prose-strong:text-foreground">
-                      <ReactMarkdown>{field.value}</ReactMarkdown>
+                    <div className="text-base text-foreground">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children, ...props }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          ),
+                          p: ({ children, ...props }) => (
+                            <p className="text-base leading-relaxed" {...props}>
+                              {children}
+                            </p>
+                          ),
+                          strong: ({ children, ...props }) => (
+                            <strong className="font-bold" {...props}>{children}</strong>
+                          ),
+                          em: ({ children, ...props }) => (
+                            <em className="italic" {...props}>{children}</em>
+                          ),
+                        }}
+                      >
+                        {field.value}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-base text-foreground">{field.value}</p>

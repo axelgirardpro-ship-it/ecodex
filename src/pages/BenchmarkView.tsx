@@ -104,7 +104,7 @@ export const BenchmarkView = () => {
     const n = sortedData.length;
 
     if (displayMode === 25) {
-      // Top 10 + Q1 + Médiane + Q3 + Worst 10 = 25 points environ
+      // Top 10 + Q1±1 + Médiane±1 + Q3±1 + Worst 10 = ~25 points
       if (n <= 25) return sortedData;
 
       const q1Index = Math.floor(n * 0.25);
@@ -112,21 +112,31 @@ export const BenchmarkView = () => {
       const q3Index = Math.floor(n * 0.75);
 
       const selected = [
-        ...sortedData.slice(0, 10), // Top 10
+        ...sortedData.slice(0, 10), // Top 10 (contient min)
       ];
 
-      // Ajouter Q1, Médiane, Q3 si pas déjà présents
-      if (!selected.find(p => p.objectID === sortedData[q1Index].objectID)) {
-        selected.push(sortedData[q1Index]);
+      // Ajouter 2 points autour de Q1
+      for (let i = Math.max(10, q1Index - 1); i <= Math.min(n - 11, q1Index + 1); i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
       }
-      if (!selected.find(p => p.objectID === sortedData[medianIndex].objectID)) {
-        selected.push(sortedData[medianIndex]);
+
+      // Ajouter 2 points autour de Médiane
+      for (let i = medianIndex - 1; i <= medianIndex + 1; i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
       }
-      if (!selected.find(p => p.objectID === sortedData[q3Index].objectID)) {
-        selected.push(sortedData[q3Index]);
+
+      // Ajouter 2 points autour de Q3
+      for (let i = q3Index - 1; i <= Math.min(n - 11, q3Index + 1); i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
       }
-      
-      // Worst 10
+
+      // Worst 10 (contient max)
       const worst10Start = Math.max(0, n - 10);
       for (let i = worst10Start; i < n; i++) {
         if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
@@ -138,15 +148,44 @@ export const BenchmarkView = () => {
     }
 
     if (displayMode === 50) {
-      // Échantillonnage stratifié pour 50 points
+      // Top 15 + Q1±2 + Médiane±2 + Q3±2 + Worst 15 = ~50 points
       if (n <= 50) return sortedData;
 
-      const selected: typeof sortedData = [];
-      const step = n / 50;
+      const q1Index = Math.floor(n * 0.25);
+      const medianIndex = Math.floor(n * 0.5);
+      const q3Index = Math.floor(n * 0.75);
 
-      for (let i = 0; i < 50; i++) {
-        const index = Math.floor(i * step);
-        selected.push(sortedData[index]);
+      const selected = [
+        ...sortedData.slice(0, 15), // Top 15 (contient min)
+      ];
+
+      // 5 points autour de Q1
+      for (let i = Math.max(15, q1Index - 2); i <= Math.min(n - 16, q1Index + 2); i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
+      }
+
+      // 5 points autour de Médiane
+      for (let i = medianIndex - 2; i <= medianIndex + 2; i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
+      }
+
+      // 5 points autour de Q3
+      for (let i = q3Index - 2; i <= Math.min(n - 16, q3Index + 2); i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
+      }
+
+      // Worst 15 (contient max)
+      const worst15Start = Math.max(0, n - 15);
+      for (let i = worst15Start; i < n; i++) {
+        if (!selected.find(p => p.objectID === sortedData[i].objectID)) {
+          selected.push(sortedData[i]);
+        }
       }
 
       return selected.sort((a, b) => sortOrder === 'asc' ? a.fe - b.fe : b.fe - a.fe);

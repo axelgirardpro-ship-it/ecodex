@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
 
     console.log('✅ Valid hits after filtering:', validHits.length);
 
-    if (validHits.length < 3) {
+    if (validHits.length < 5) {
       return jsonResponse(400, { 
         error: 'Insufficient valid emission factors',
         code: 'INSUFFICIENT_DATA',
