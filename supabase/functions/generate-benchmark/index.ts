@@ -106,58 +106,45 @@ Deno.serve(async (req) => {
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!;
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') || 'ef_all';
 
-    // Créer un client Supabase avec SERVICE_ROLE_KEY pour les requêtes admin
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Auth - Méthode robuste : décodage JWT manuel + validation via admin API
-    let userId: string | null = null;
+    // Auth - Créer le client et valider le JWT
+    console.log('[generate-benchmark] Starting authentication');
+    
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
     const authHeader = req.headers.get('authorization');
-
+    console.log('[generate-benchmark] Auth header present:', !!authHeader);
+    
     if (!authHeader) {
-      console.error('[generate-benchmark] No Authorization header');
+      console.error('[generate-benchmark] No auth header');
       return jsonResponse(401, { error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
-    
-    console.log('[generate-benchmark] Validating JWT');
+    console.log('[generate-benchmark] Token length:', token.length);
     console.log('[generate-benchmark] Token starts with:', token.substring(0, 20));
     
-    // Décoder le JWT pour obtenir le payload (sans vérification de signature)
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        throw new Error('Invalid JWT format');
-      }
-      
-      // Décoder le payload (partie 2 du JWT)
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const extractedUserId = payload.sub;
-      
-      if (!extractedUserId) {
-        throw new Error('No user ID in JWT');
-      }
-      
-      console.log('[generate-benchmark] Extracted user ID from JWT:', extractedUserId);
-      
-      // Valider que l'utilisateur existe en utilisant l'admin API
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(extractedUserId);
-      
-      if (authError || !authUser?.user) {
-        console.error('[generate-benchmark] User validation failed:', authError);
-        return jsonResponse(401, { error: 'Invalid or expired token' });
-      }
-      
-      userId = authUser.user.id;
-      console.log('[generate-benchmark] User validated:', userId);
-      
-    } catch (error) {
-      console.error('[generate-benchmark] Failed to decode/validate JWT:', error);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    console.log('[generate-benchmark] getUser result:', { hasUser: !!user, hasError: !!authError });
+    
+    if (authError) {
+      console.error('[generate-benchmark] Auth error:', authError.message, authError.status);
       return jsonResponse(401, { 
-        error: 'Invalid JWT format',
-        details: error.message 
+        error: 'Invalid or expired token',
+        details: authError.message 
       });
     }
+    
+    if (!user) {
+      console.error('[generate-benchmark] No user found');
+      return jsonResponse(401, { error: 'Invalid or expired token' });
+    }
+
+    const userId = user.id;
+    console.log('✅ User authenticated:', userId);
+
+    // Créer un client admin pour les requêtes privilégiées
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const requestBody = await req.json();
     const { query, filters, facetFilters, workspaceId } = requestBody;
