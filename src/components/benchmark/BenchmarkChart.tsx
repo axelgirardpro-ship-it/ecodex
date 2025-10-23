@@ -74,7 +74,7 @@ export const BenchmarkChart = ({
     onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: BenchmarkChartDataPoint }> }) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload as BenchmarkChartDataPoint;
       // Retrouver l'item original pour afficher le nom complet

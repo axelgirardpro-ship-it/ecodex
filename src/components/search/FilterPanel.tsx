@@ -40,7 +40,7 @@ export const FilterPanel = ({ filters, onFilterChange, onResetFilters }: FilterP
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        let query = supabase.from('emission_factors').select('"Source", "Secteur", "Sous-secteur", "Unité donnée d\'activité", "Localisation", "Date"');
+        const query = supabase.from('emission_factors').select('"Source", "Secteur", "Sous-secteur", "Unité donnée d\'activité", "Localisation", "Date"');
         
         // RLS policies now handle access control automatically
         // No need for manual filtering based on is_public

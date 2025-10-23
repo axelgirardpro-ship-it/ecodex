@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button';
 interface ValidationError {
   code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'INSUFFICIENT_ACCESSIBLE_DATA' | 'UNKNOWN';
   message: string;
-  details?: any;
+  details?: {
+    units?: string[];
+    scopes?: string[];
+    count?: number;
+    totalCount?: number;
+    accessibleCount?: number;
+    requiredCount?: number;
+  };
 }
 
 interface BenchmarkValidationAlertProps {
@@ -20,7 +27,7 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
 
   const getAlertConfig = () => {
     switch (error.code) {
-      case 'MULTIPLE_UNITS':
+      case 'MULTIPLE_UNITS': {
         const units = error.details?.units || [];
         return {
           icon: Info,
@@ -31,7 +38,8 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             : `Votre recherche retourne ${units.length} unités différentes. Utilisez les filtres sur la gauche pour sélectionner une seule unité.`,
           color: 'text-blue-600',
         };
-      case 'MULTIPLE_SCOPES':
+      }
+      case 'MULTIPLE_SCOPES': {
         const scopes = error.details?.scopes || [];
         return {
           icon: Info,
@@ -42,6 +50,7 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             : `Votre recherche retourne ${scopes.length} périmètres différents. Utilisez les filtres sur la gauche pour sélectionner un seul périmètre.`,
           color: 'text-blue-600',
         };
+      }
       case 'NO_UNIT_OR_SCOPE':
         return {
           icon: Info,
@@ -52,7 +61,7 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             : 'Les facteurs d\'émission trouvés ne contiennent pas d\'unité ou de périmètre valide. Ajustez votre recherche ou vos filtres.',
           color: 'text-blue-600',
         };
-      case 'INSUFFICIENT_DATA':
+      case 'INSUFFICIENT_DATA': {
         const count = error.details?.count || 0;
         return {
           icon: Info,
@@ -63,7 +72,8 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             : `Votre recherche retourne ${count} facteur${count > 1 ? 's' : ''} d'émission. Au moins 3 sont nécessaires pour générer un benchmark. ${count === 0 ? 'Élargissez votre recherche ou retirez des filtres.' : 'Élargissez légèrement vos critères de recherche.'}`,
           color: 'text-amber-600',
         };
-      case 'INSUFFICIENT_ACCESSIBLE_DATA':
+      }
+      case 'INSUFFICIENT_ACCESSIBLE_DATA': {
         const totalCount = error.details?.totalCount || 0;
         const accessibleCount = error.details?.accessibleCount || 0;
         const requiredCount = error.details?.requiredCount || 10;
@@ -76,6 +86,7 @@ export const BenchmarkValidationAlert = ({ error, onClose }: BenchmarkValidation
             : `Votre recherche retourne ${totalCount} résultats, mais seulement ${accessibleCount} sont accessibles (non floutés/verrouillés). Au moins ${requiredCount} facteurs d'émission accessibles sont nécessaires pour générer un benchmark. ${accessibleCount === 0 ? 'Tous les résultats proviennent de sources payantes non assignées à votre espace de travail.' : 'La plupart des résultats sont floutés ou issus de sources payantes. Contactez votre administrateur pour débloquer des sources supplémentaires ou élargissez votre recherche.'}`,
           color: 'text-orange-600',
         };
+      }
       default:
         return {
           icon: AlertCircle,

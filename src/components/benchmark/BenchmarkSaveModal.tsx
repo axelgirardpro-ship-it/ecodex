@@ -23,7 +23,7 @@ interface BenchmarkSaveModalProps {
   benchmarkData: BenchmarkData;
   searchParams: {
     query: string;
-    filters?: Record<string, any>;
+    filters?: Record<string, string | number | boolean>;
     facetFilters?: string[][];
   };
 }
