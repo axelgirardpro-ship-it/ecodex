@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     const validationParams: any = {
       query,
       hitsPerPage: 0,
-      facets: ['Unite_fr', 'Périmètre_fr', 'Source', 'Publication'],
+      facets: ['Unite_fr', 'Périmètre_fr', 'Source', 'Date'],
     };
 
     // Construire facetFilters
@@ -304,7 +304,6 @@ Deno.serve(async (req) => {
         'Unite_fr', 
         'Périmètre_fr', 
         'Source', 
-        'Publication',
         'Date',
         'Localisation_fr',
         'Secteur_fr',
@@ -378,7 +377,7 @@ Deno.serve(async (req) => {
       Unite_fr: hit.Unite_fr,
       Périmètre_fr: hit.Périmètre_fr,
       Source: hit.Source,
-      Date: hit.Date || hit.Publication || null,
+      Date: hit.Date || null,
       Localisation_fr: hit.Localisation_fr || null,
       Secteur_fr: hit.Secteur_fr || null,
       'Sous-secteur_fr': hit['Sous-secteur_fr'] || null,
@@ -397,7 +396,7 @@ Deno.serve(async (req) => {
       unit: hit.Unite_fr,
       scope: hit.Périmètre_fr,
       source: hit.Source,
-      date: hit.Date || hit.Publication || null,
+      date: hit.Date || null,
       localisation: hit.Localisation_fr || '',
       sector: hit.Secteur_fr || '',
       description: hit.Description_fr || '',
@@ -414,7 +413,32 @@ Deno.serve(async (req) => {
 
     // Metadata
     const sources = [...new Set(validHits.map((h: any) => h.Source))];
-    const years = [...new Set(validHits.map((h: any) => h.Publication).filter(Boolean))];
+    
+    // Extraire les dates actives depuis les facetFilters (valeurs filtrées par l'utilisateur)
+    let activeDates: number[] = [];
+    if (allFacetFilters && Array.isArray(allFacetFilters)) {
+      allFacetFilters.forEach((filterGroup: any) => {
+        if (Array.isArray(filterGroup)) {
+          filterGroup.forEach((filter: string) => {
+            if (filter.startsWith('Date:')) {
+              const dateValue = parseInt(filter.replace('Date:', ''), 10);
+              if (!isNaN(dateValue)) {
+                activeDates.push(dateValue);
+              }
+            }
+          });
+        } else if (typeof filterGroup === 'string' && filterGroup.startsWith('Date:')) {
+          const dateValue = parseInt(filterGroup.replace('Date:', ''), 10);
+          if (!isNaN(dateValue)) {
+            activeDates.push(dateValue);
+          }
+        }
+      });
+    }
+    
+    // Dédupliquer et trier les dates
+    const years = [...new Set(activeDates)].sort((a, b) => a - b);
+    
     const hasMultipleSources = sources.length > 1;
     const hasMultipleYears = years.length > 1;
     const hasLargeSample = validHits.length > 500;

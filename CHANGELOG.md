@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-23n- **FIX_benchmark_date_range_period_2025-10-23.md** : Fix période du benchmark (champ Publication fantôme)n  - Documentation complète dans `docs/history/2025-10-23_FIX_benchmark_date_range_period_2025-10-23.md`n
+
 ### 2025-10-23n- **HOTFIX_2025-10-23_jwt_edge_functions_config.md** : Hotfix JWT authentication error 401 sur generate-benchmark (config verify_jwt manquante)n  - Documentation complète dans `docs/history/2025-10-23_HOTFIX_2025-10-23_jwt_edge_functions_config.md`n
 
 ### 2025-10-23
