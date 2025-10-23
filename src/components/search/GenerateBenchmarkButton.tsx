@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useInstantSearch } from 'react-instantsearch';
 import { BarChart3 } from 'lucide-react';
@@ -17,7 +16,6 @@ import { BenchmarkValidationAlert } from '@/components/benchmark/BenchmarkValida
 
 export const GenerateBenchmarkButton = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { results, indexUiState } = useInstantSearch();
   const { currentWorkspace } = useWorkspace();
   const { canGenerateBenchmark, quotaData } = useQuotas();
@@ -82,8 +80,9 @@ export const GenerateBenchmarkButton = () => {
       searchParams.set('facetFilters', JSON.stringify(indexUiState.configure.facetFilters));
     }
 
-    // Naviguer vers la page benchmark view
-    navigate(`/benchmark/view?${searchParams.toString()}`);
+    // Ouvrir le benchmark dans un nouvel onglet
+    const url = `/benchmark/view?${searchParams.toString()}`;
+    window.open(url, '_blank');
   };
 
   const buttonContent = (

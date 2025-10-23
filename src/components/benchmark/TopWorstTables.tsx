@@ -39,6 +39,7 @@ export const TopWorstTables = ({ top10, worst10 }: TopWorstTablesProps) => {
                 <TableHead className="text-right">{t('tables.top10.value')}</TableHead>
                 <TableHead>{t('tables.top10.source')}</TableHead>
                 <TableHead className="text-center">{t('tables.top10.year')}</TableHead>
+                <TableHead className="text-center">{t('tables.top10.location')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -60,6 +61,9 @@ export const TopWorstTables = ({ top10, worst10 }: TopWorstTablesProps) => {
                   </TableCell>
                   <TableCell className="text-center text-sm">
                     {item.Date || '-'}
+                  </TableCell>
+                  <TableCell className="text-center text-sm text-muted-foreground">
+                    {item.Localisation_fr || '-'}
                   </TableCell>
                 </TableRow>
               ))}

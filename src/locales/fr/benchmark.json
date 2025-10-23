@@ -40,6 +40,7 @@
       "source": "Source",
       "year": "Année",
       "scope": "Périmètre",
+      "location": "Localisation",
       "click_details": "Cliquez pour voir les détails complets"
     },
     "warning": {
@@ -100,7 +101,8 @@
       "name": "Nom",
       "value": "Valeur",
       "source": "Source",
-      "year": "Année"
+      "year": "Année",
+      "location": "Pays"
     },
     "worst10": {
       "title": "Worst 10 - Valeurs les plus élevées",

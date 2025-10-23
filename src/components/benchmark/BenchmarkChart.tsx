@@ -96,6 +96,11 @@ export const BenchmarkChart = ({
           <p className="text-muted-foreground">
             <span className="font-medium">{t('chart.tooltip.scope', 'Scope')}:</span> {originalItem.scope}
           </p>
+          {originalItem.localisation && (
+            <p className="text-muted-foreground">
+              <span className="font-medium">{t('chart.tooltip.location', 'Location')}:</span> {originalItem.localisation}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground mt-2 italic">
             {t('chart.tooltip.click_details', 'Click to see full details')}
           </p>

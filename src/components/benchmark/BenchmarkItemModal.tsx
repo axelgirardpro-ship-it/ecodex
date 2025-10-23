@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Copy, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { formatEmissionFactor } from '@/lib/formatters/benchmarkFormatters';
 import type { BenchmarkEmissionFactor, BenchmarkChartDataPoint } from '@/types/benchmark';
 
@@ -20,16 +19,8 @@ interface BenchmarkItemModalProps {
 
 export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModalProps) => {
   const { t } = useTranslation('benchmark');
-  const { toast } = useToast();
 
   if (!item) return null;
-
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(item.objectID);
-    toast({
-      title: t('modal.copy_success'),
-    });
-  };
 
   // Déterminer si c'est un BenchmarkEmissionFactor ou BenchmarkChartDataPoint
   const isFull = 'Nom_fr' in item;
@@ -80,7 +71,7 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
                     {t(`modal.fields.${field.key}`)}
                   </p>
                   {field.isMarkdown ? (
-                    <div className="text-base text-foreground prose prose-sm dark:prose-invert max-w-none">
+                    <div className="text-base text-foreground prose prose-sm dark:prose-invert max-w-none prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800 prose-strong:font-bold prose-strong:text-foreground">
                       <ReactMarkdown>{field.value}</ReactMarkdown>
                     </div>
                   ) : (
@@ -89,28 +80,9 @@ export const BenchmarkItemModal = ({ item, isOpen, onClose }: BenchmarkItemModal
                 </div>
               )
           )}
-
-          <div className="pt-4 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-2">
-              Object ID
-            </p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-muted p-2 rounded font-mono">
-                {item.objectID}
-              </code>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCopyId}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                {t('modal.actions.copy_id')}
-              </Button>
-            </div>
-          </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 border-t">
           <Button onClick={onClose} variant="outline">
             <X className="h-4 w-4 mr-2" />
             {t('modal.actions.close')}

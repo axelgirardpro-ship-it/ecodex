@@ -40,6 +40,7 @@
       "source": "Source",
       "year": "Year",
       "scope": "Scope",
+      "location": "Location",
       "click_details": "Click to see full details"
     },
     "warning": {
@@ -100,7 +101,8 @@
       "name": "Name",
       "value": "Value",
       "source": "Source",
-      "year": "Year"
+      "year": "Year",
+      "location": "Country"
     },
     "worst10": {
       "title": "Worst 10 - Highest values",
