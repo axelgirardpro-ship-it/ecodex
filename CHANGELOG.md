@@ -8,6 +8,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Non publié]
 
 ### 2025-10-23
+- **✨ FEAT - 5 améliorations UX Benchmark** : Amélioration de l'expérience utilisateur sur la feature Benchmark
+  - Ajout du champ "Localisation" dans le tooltip du graphique et colonne dans Top10/Worst10
+  - Amélioration du style Markdown : liens bleus cliquables, gras fonctionnel
+  - Ouverture du benchmark dans un nouvel onglet pour faciliter les ajustements
+  - Suppression de l'Object ID des fiches FE (UI plus épurée)
+  - Impact : Meilleure visibilité des données, workflow amélioré, interface simplifiée
+
 - **🐛 FIX - Corrections bugs Cursor BugBot (PRs #137/#138)** : Correction de 3 bugs remontés par Cursor BugBot
   - Bug #2 : Nettoyage des entrées dupliquées dans `docs/history/INDEX.md` (sections 2025-10-23 répétées 5 fois)
   - Bug #5 : Désactivation du bouton "Partager" si benchmark non sauvegardé sans searchParams valides
