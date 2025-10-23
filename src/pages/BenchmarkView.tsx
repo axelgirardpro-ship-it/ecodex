@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { UnifiedNavbar } from '@/components/ui/UnifiedNavbar';
 import { BenchmarkHeader } from '@/components/benchmark/BenchmarkHeader';
@@ -39,6 +39,13 @@ export const BenchmarkView = () => {
       facetFilters: facetFiltersParam ? JSON.parse(facetFiltersParam) : undefined,
     };
   }, [location]);
+
+  // Redirection si route invalide (pas d'ID et pas de query valide)
+  useEffect(() => {
+    if (!id && !searchParams.query) {
+      navigate('/search', { replace: true });
+    }
+  }, [id, searchParams.query, navigate]);
 
   // State pour l'affichage
   const [displayMode, setDisplayMode] = useState<DisplayMode>(25);

@@ -201,6 +201,7 @@
     "url_label": "Share link",
     "copy_success": "Link copied to clipboard",
     "copy_error": "Failed to copy link",
-    "workspace_info": "This benchmark is only accessible to members of your workspace."
+    "workspace_info": "This benchmark is only accessible to members of your workspace.",
+    "save_first": "Please save the benchmark before sharing"
   }
 }

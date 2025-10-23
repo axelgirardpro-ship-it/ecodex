@@ -8,6 +8,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Non publié]
 
 ### 2025-10-23
+- **🐛 FIX - Corrections bugs Cursor BugBot (PRs #137/#138)** : Correction de 3 bugs remontés par Cursor BugBot
+  - Bug #2 : Nettoyage des entrées dupliquées dans `docs/history/INDEX.md` (sections 2025-10-23 répétées 5 fois)
+  - Bug #5 : Désactivation du bouton "Partager" si benchmark non sauvegardé sans searchParams valides
+  - Bug #8 : Redirection automatique vers `/search` si accès à `/benchmark/view` sans query params
+  - Ajout traductions FR/EN pour message d'erreur de partage
+  - Amélioration UX : prévention des URLs invalides et pages vides
+
 - **🐛 FIX - ESLint errors dans composants Benchmark** : Correction de 8+ erreurs critiques détectées par Cursor BugBot
   - Remplacement de tous les types `any` par des interfaces typées
   - Correction de 6 erreurs `no-case-declarations` dans `BenchmarkValidationAlert.tsx`

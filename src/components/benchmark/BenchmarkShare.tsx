@@ -28,6 +28,9 @@ export const BenchmarkShare = ({ benchmarkId, searchParams }: BenchmarkShareProp
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Vérifier si le partage est possible
+  const canShare = benchmarkId || (searchParams && searchParams.query);
+
   // Construire l'URL de partage
   const shareUrl = benchmarkId 
     ? `${window.location.origin}/benchmark/${benchmarkId}`
@@ -64,7 +67,13 @@ export const BenchmarkShare = ({ benchmarkId, searchParams }: BenchmarkShareProp
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={() => setOpen(true)}
+        disabled={!canShare}
+        title={!canShare ? t('share.save_first', 'Save the benchmark before sharing') : ''}
+      >
         <Share2 className="h-4 w-4 mr-2" />
         {t('share.button')}
       </Button>
