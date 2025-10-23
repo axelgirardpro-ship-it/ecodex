@@ -7,6 +7,21 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-23n- **AMELIORATIONS_BENCHMARK_UI_2025-10-23.md** : Améliorations UI/UX Benchmark : 13 améliorations majeures incluant coloration Q1/Q3, formatage dynamique, support Markdown, et réorganisation des contrôlesn  - Documentation complète dans `docs/history/2025-10-23_AMELIORATIONS_BENCHMARK_UI_2025-10-23.md`n
+
+### 2025-10-23
+- **🐛 HOTFIX - Fix import espaces Unicode** : Correction erreur `"invalid input syntax for type numeric: \"2 051\""` lors import Dataiku
+  - Problème : Espaces fines insécables (U+202F) dans le champ FE empêchaient la conversion en numeric
+  - Solution : Remplacement du SQL dynamique (EXECUTE) par CREATE TEMPORARY TABLE direct pour échappement regex correct
+  - Migration : `20251023_fix_fe_whitespace_in_dynamic_sql.sql`
+  - Documentation : `docs/history/2025-10-23_HOTFIX_2025-10-23_fix_import_unicode_whitespace.md`
+
+- **🐛 HOTFIX - Limite Algolia 10KB** : Suppression commentaires pour 316 records BEIS dépassant la limite Algolia
+  - 316 records de source BEIS avec commentaires très longs (~5 000 caractères)
+  - Sauvegarde dans `backup_oversized_comments` puis suppression des champs Commentaires_fr/en
+  - Résultat : Taille max passée de 10.59 KB à 7.95 KB (0 records > 10KB)
+  - Documentation : `docs/history/2025-10-23_HOTFIX_2025-10-23_algolia_10kb_limit.md`
+
 ---
 
 ## [1.6.2] - 2025-10-22
