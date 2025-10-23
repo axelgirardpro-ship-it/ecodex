@@ -7,9 +7,16 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### 2025-10-23n- **AMELIORATIONS_BENCHMARK_UI_2025-10-23.md** : Améliorations UI/UX Benchmark : 13 améliorations majeures incluant coloration Q1/Q3, formatage dynamique, support Markdown, et réorganisation des contrôlesn  - Documentation complète dans `docs/history/2025-10-23_AMELIORATIONS_BENCHMARK_UI_2025-10-23.md`n
-
 ### 2025-10-23
+- **🐛 FIX - ESLint errors dans composants Benchmark** : Correction de 8+ erreurs critiques détectées par Cursor BugBot
+  - Remplacement de tous les types `any` par des interfaces typées
+  - Correction de 6 erreurs `no-case-declarations` dans `BenchmarkValidationAlert.tsx`
+  - Typage strict des `filters` : `Record<string, string | number | boolean>`
+  - Changement `let query` → `const query` dans `FilterPanel.tsx`
+  - Commit : `eff1b3b5`
+
+- **AMELIORATIONS_BENCHMARK_UI_2025-10-23.md** : Améliorations UI/UX Benchmark : 13 améliorations majeures incluant coloration Q1/Q3, formatage dynamique, support Markdown, et réorganisation des contrôles
+  - Documentation complète dans `docs/history/2025-10-23_AMELIORATIONS_BENCHMARK_UI_2025-10-23.md`
 - **🐛 HOTFIX - Fix import espaces Unicode** : Correction erreur `"invalid input syntax for type numeric: \"2 051\""` lors import Dataiku
   - Problème : Espaces fines insécables (U+202F) dans le champ FE empêchaient la conversion en numeric
   - Solution : Remplacement du SQL dynamique (EXECUTE) par CREATE TEMPORARY TABLE direct pour échappement regex correct
