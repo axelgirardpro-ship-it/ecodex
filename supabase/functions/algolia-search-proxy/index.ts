@@ -1,4 +1,9 @@
 // @ts-nocheck
+// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
+// Ce fichier nécessite des interfaces TypeScript pour :
+// - Les paramètres de requête Algolia (SearchParams, FacetFilters, etc.)
+// - Les réponses Supabase (workspace_source_assignments, profiles)
+// - Les résultats Algolia (AlgoliaHit avec tous les attributs)
 /**
  * ALGOLIA SEARCH PROXY - Architecture de recherche unifiée
  * 

@@ -22,7 +22,7 @@ export async function invokeWithAuth<T = any>(fn: string, options?: {
   headers?: Record<string, string>,
 }): Promise<{ data: T | null; error: any | null }> {
   // Tenter de récupérer la session, et forcer un refresh si nécessaire
-  let { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   
   // Debug: Log session status
   console.log(`[invokeWithAuth] Appel Edge Function: ${fn}`);

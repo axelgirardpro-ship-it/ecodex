@@ -1,4 +1,8 @@
 // @ts-nocheck
+// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
+// Ce fichier nécessite des interfaces TypeScript pour :
+// - Les réponses Supabase (storage, workspaces, profiles, CSV parsing)
+// - Les types de données métier (colonnes CSV, facteurs d'émission)
 /* eslint-disable */
 // Import privé (user): parse fichier depuis Storage, ingestion SCD2 en bulk,
 // refresh projection par source, sync Algolia incrémentale (updateObject)

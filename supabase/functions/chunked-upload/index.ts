@@ -1,4 +1,8 @@
 // @ts-nocheck
+// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
+// Ce fichier nécessite des interfaces TypeScript pour :
+// - Les réponses Supabase (storage, chunks, profiles)
+// - La validation JWT et le décodage de payload
 /* eslint-disable */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 

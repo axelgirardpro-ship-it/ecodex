@@ -53,13 +53,21 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const getTooltip = (key: keyof typeof tooltipMap) => tooltipMap[key];
   const { toast } = useToast();
 
+  // Always call hooks at top level (Rules of Hooks)
   let language: 'fr' | 'en' = 'fr';
+  let languageError = false;
+  
   try {
-    const { language: currentLanguage } = useLanguage();
-    language = currentLanguage;
+    const languageContext = useLanguage();
+    language = languageContext.language;
   } catch (error) {
+    languageError = true;
+  }
+  
+  if (languageError) {
     console.warn('LanguageProvider not available, defaulting to French');
   }
+  
   const currentLang: 'fr' | 'en' = language;
   const hits = originalHits;
 
@@ -609,7 +617,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
       {nbPages > 1 && (() => {
         const maxVisible = 5;
         let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
-        let end = Math.min(nbPages - 1, start + maxVisible - 1);
+        const end = Math.min(nbPages - 1, start + maxVisible - 1);
         if (end - start < maxVisible - 1) {
           start = Math.max(0, end - maxVisible + 1);
         }

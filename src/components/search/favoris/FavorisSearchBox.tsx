@@ -12,8 +12,15 @@ interface FavorisSearchBoxProps {
 export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds = [] }) => {
   const { query, refine } = useSearchBox();
   const { nbHits } = useStats();
-  const controls = (() => { try { return useSearchControls(); } catch { return null; } })();
   const { refresh } = useInstantSearch();
+  
+  // Call hook at top level, handle error gracefully
+  let controls = null;
+  try {
+    controls = useSearchControls();
+  } catch (error) {
+    // SearchControls not available in this context
+  }
 
   // debug removed
 
@@ -27,7 +34,11 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
     if (trimmed.length < 3) {
       return;
     }
-    try { controls?.forceNextSearch(); } catch {}
+    try { 
+      controls?.forceNextSearch(); 
+    } catch (error) {
+      // Ignore errors if controls are not available
+    }
     refine(trimmed);
     refresh();
   };

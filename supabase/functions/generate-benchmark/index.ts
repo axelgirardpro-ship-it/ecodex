@@ -1,6 +1,11 @@
 // Edge Function: generate-benchmark
 // Version: 1.1.1 - FEATURE: Allow benchmark generation without search query (filters only)
 // @ts-nocheck - This is a Deno Edge Function
+// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
+// Ce fichier nécessite des interfaces TypeScript pour :
+// - Les réponses Algolia (hits, facets, pagination)
+// - Les structures de benchmark (BenchmarkItem, BenchmarkData)
+// - Les réponses Supabase (benchmarks, workspaces)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -348,7 +353,7 @@ Deno.serve(async (req) => {
     console.log('✅ Full search result:', searchResult.nbHits, 'hits,', searchResult.hits.length, 'returned');
 
     // Filtrer les résultats pour exclure sources payantes non-assignées
-    let validHits = searchResult.hits.filter((hit: any) => {
+    const validHits = searchResult.hits.filter((hit: any) => {
       // Validation FE
       if (typeof hit.FE !== 'number' || isNaN(hit.FE)) return false;
       
@@ -426,7 +431,7 @@ Deno.serve(async (req) => {
     const sources = [...new Set(validHits.map((h: any) => h.Source))];
     
     // Extraire les dates actives depuis les facetFilters (valeurs filtrées par l'utilisateur)
-    let activeDates: number[] = [];
+    const activeDates: number[] = [];
     if (allFacetFilters && Array.isArray(allFacetFilters)) {
       allFacetFilters.forEach((filterGroup: any) => {
         if (Array.isArray(filterGroup)) {

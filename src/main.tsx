@@ -1,15 +1,17 @@
 // Trusted Types (no-op in unsupported browsers)
 try {
-  // @ts-ignore
+  // @ts-expect-error - trustedTypes is not available in all browsers
   if (window.trustedTypes && !window.trustedTypes.getPolicy('default')) {
-    // @ts-ignore
+    // @ts-expect-error - trustedTypes API is browser-specific
     window.trustedTypes.createPolicy('default', {
       createHTML: (s: string) => s,
       createScript: (s: string) => s,
       createScriptURL: (s: string) => s,
     });
   }
-} catch {}
+} catch (error) {
+  // Trusted Types not supported in this browser, silently ignore
+}
 
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
