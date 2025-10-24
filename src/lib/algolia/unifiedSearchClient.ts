@@ -5,6 +5,14 @@ import { Origin, VALID_ALGOLIA_PARAMS, sanitizeFacetFilters } from './searchClie
 import { debugFacetFilters, analyzeFilterConflicts } from './debugFilters.ts';
 import { createProxyClient } from './proxySearchClient';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
+import type { 
+  SearchResponse, 
+  SearchParams,
+  SearchParamsObject,
+  FacetFilters,
+  SearchMethodParams
+} from 'algoliasearch';
+import type { AlgoliaHit } from '@/types/algolia';
 
 // --- Circuit breaker Algolia (blocage temporaire quand l'application Algolia est bloquée) ---
 let ALGOLIA_BLOCKED_UNTIL = 0;
@@ -32,15 +40,25 @@ function clearAlgoliaBlocked(): void {
   }
 }
 
-function isAlgoliaBlockedError(error: any): boolean {
-  const status = error?.status ?? error?.httpStatusCode ?? error?.response?.status;
-  const message = String(error?.message || '').toLowerCase();
+interface AlgoliaError {
+  status?: number;
+  httpStatusCode?: number;
+  message?: string;
+  response?: {
+    status?: number;
+  };
+}
+
+function isAlgoliaBlockedError(error: unknown): boolean {
+  const err = error as AlgoliaError;
+  const status = err?.status ?? err?.httpStatusCode ?? err?.response?.status;
+  const message = String(err?.message || '').toLowerCase();
   return status === 403 || message.includes('forbidden') || message.includes('blocked');
 }
 
-function buildEmptySingleResultFromRequest(req?: SearchRequest): any {
-  const hitsPerPage = (req as any)?.params?.hitsPerPage || 10;
-  const query = (req as any)?.params?.query || '';
+function buildEmptySingleResultFromRequest(req?: SearchRequest): SearchResponse<AlgoliaHit> {
+  const hitsPerPage = req?.params?.hitsPerPage || 10;
+  const query = req?.params?.query || '';
   return {
     hits: [],
     nbHits: 0,
@@ -49,21 +67,31 @@ function buildEmptySingleResultFromRequest(req?: SearchRequest): any {
     hitsPerPage,
     processingTimeMS: 0,
     query,
-    params: ''
+    params: '',
+    exhaustiveNbHits: true,
+    exhaustiveFacetsCount: true,
+    exhaustiveTypo: true
   };
 }
 
-function buildEmptyResultsForRequests(requests: SearchRequest[]): { results: any[] } {
+interface MultipleSearchResponse {
+  results: SearchResponse<AlgoliaHit>[];
+}
+
+function buildEmptyResultsForRequests(requests: SearchRequest[]): MultipleSearchResponse {
   const ref = requests[0];
   return { results: requests.map(() => buildEmptySingleResultFromRequest(ref)) };
 }
 
 export interface SearchRequest {
   indexName?: string;
-  params?: any;
+  params?: SearchParamsObject;
   query?: string;
   origin?: Origin;
   priority?: number; // 1=highest, 3=lowest
+  // Ajouté pour les résolutions de promesses en mode batch
+  resolve?: (value: MultipleSearchResponse) => void;
+  reject?: (reason: unknown) => void;
 }
 
 export interface OptimizedSearchOptions {
@@ -85,12 +113,16 @@ export interface OptimizedSearchOptions {
  * - Plus de clients multiples (fullPublic/fullPrivate/teaser)
  * - Sécurité garantie côté serveur
  */
+interface ProxyClient {
+  search: (requests: SearchRequest[]) => Promise<{ results: SearchResponse<AlgoliaHit>[] }>;
+}
+
 export class UnifiedAlgoliaClient {
-  private client: any | null = null;
+  private client: ProxyClient | null = null;
   
   private initPromise: Promise<void> | null = null;
   private requestQueue: SearchRequest[] = [];
-  private batchTimer: NodeJS.Timeout | null = null;
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly batchDelay = 130; // 130ms de batching (regroupe mieux les frappes)
   private readonly maxBatchSize = 10;
 
@@ -98,11 +130,12 @@ export class UnifiedAlgoliaClient {
     this.initializeClients();
   }
 
-  private ensureObjectIdOnHits<T extends any>(res: any): any {
+  private ensureObjectIdOnHits(res: SearchResponse<AlgoliaHit>): SearchResponse<AlgoliaHit> {
     if (!res || !Array.isArray(res.hits)) return res;
-    const patched = res.hits.map((h: any) => {
+    const patched = res.hits.map(h => {
       if (h && (h.objectID === undefined || h.objectID === null || h.objectID === '')) {
-        const fallback = h.object_id ?? h.objectId ?? h.id;
+        const hAsAny = h as unknown as Record<string, unknown>;
+        const fallback = hAsAny.object_id ?? hAsAny.objectId ?? hAsAny.id;
         return fallback ? { ...h, objectID: String(fallback) } : h;
       }
       return h;
@@ -129,7 +162,7 @@ export class UnifiedAlgoliaClient {
   async search(
     requests: SearchRequest[], 
     options: OptimizedSearchOptions = {}
-  ): Promise<{ results: any[] }> {
+  ): Promise<MultipleSearchResponse> {
     await this.initializeClients();
     // Court-circuit si l'application Algolia est bloquée pour éviter des erreurs non-capturées
     if (isAlgoliaTemporarilyBlocked()) {
@@ -173,11 +206,11 @@ export class UnifiedAlgoliaClient {
     }));
   }
 
-  private async addToBatch(request: SearchRequest): Promise<{ results: any[] }> {
+  private async addToBatch(request: SearchRequest): Promise<MultipleSearchResponse> {
     return new Promise((resolve, reject) => {
       // Ajouter la requête à la queue avec callback
-      (request as any).resolve = resolve;
-      (request as any).reject = reject;
+      request.resolve = resolve;
+      request.reject = reject;
       
       this.requestQueue.push(request);
       
@@ -215,9 +248,9 @@ export class UnifiedAlgoliaClient {
     try {
       // Si bloqué, répondre immédiatement avec des résultats vides
       if (isAlgoliaTemporarilyBlocked()) {
-        const empty = buildEmptyResultsForRequests(batch as any);
+        const empty = buildEmptyResultsForRequests(batch);
         batch.forEach((request, index) => {
-          const resolve = (request as any).resolve;
+          const resolve = request.resolve;
           if (resolve) {
             resolve({ results: [empty.results[index]] });
           }
@@ -232,21 +265,21 @@ export class UnifiedAlgoliaClient {
       // Résoudre toutes les promesses du batch avec le même dernier résultat
       const single = result.results[0];
       batch.forEach((request) => {
-        const resolve = (request as any).resolve;
+        const resolve = request.resolve;
         if (resolve) {
           resolve({ results: [single] });
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Gestion spéciale pour les erreurs Algolia 403 (application bloquée)
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
         console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
         // Résoudre avec des résultats vides plutôt que de rejeter
         batch.forEach((request) => {
-          const resolve = (request as any).resolve;
+          const resolve = request.resolve;
           if (resolve) {
-            resolve({ results: [buildEmptySingleResultFromRequest(request as any)] });
+            resolve({ results: [buildEmptySingleResultFromRequest(request)] });
           }
         });
         return;
@@ -254,7 +287,7 @@ export class UnifiedAlgoliaClient {
       
       // Rejeter toutes les promesses du batch pour les autres erreurs
       batch.forEach(request => {
-        const reject = (request as any).reject;
+        const reject = request.reject;
         if (reject) reject(error);
       });
     }
@@ -272,7 +305,7 @@ export class UnifiedAlgoliaClient {
   private async processRequests(
     requests: SearchRequest[],
     options: OptimizedSearchOptions = {}
-  ): Promise<{ results: any[] }> {
+  ): Promise<MultipleSearchResponse> {
     const {
       enableCache = true,
       enableDeduplication = true,
@@ -285,7 +318,7 @@ export class UnifiedAlgoliaClient {
     }
 
     try {
-      const results: any[] = [];
+      const results: SearchResponse<AlgoliaHit>[] = [];
       
       // Traitement simple : une requête = un appel à l'Edge Function
       for (const request of requests) {
@@ -311,7 +344,7 @@ export class UnifiedAlgoliaClient {
       // Algolia disponible => réinitialiser le blocage
       clearAlgoliaBlocked();
       return { results };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
         console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
@@ -325,7 +358,7 @@ export class UnifiedAlgoliaClient {
    * Exécution simplifiée d'une requête unique
    * Délégation complète à l'Edge Function via le client proxy
    */
-  private async executeSingleRequest(request: SearchRequest): Promise<any> {
+  private async executeSingleRequest(request: SearchRequest): Promise<SearchResponse<AlgoliaHit>> {
     if (!this.client) throw new Error('Client not initialized');
 
     // Court-circuit si bloqué
@@ -347,7 +380,7 @@ export class UnifiedAlgoliaClient {
 
       // Délégation complète à l'Edge Function
       return this.searchUnified(origin, baseParams, safeFacetFilters);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (isAlgoliaBlockedError(error)) {
         markAlgoliaBlocked();
         console.log('ℹ️ Algolia temporairement indisponible (plan payant requis)');
@@ -360,8 +393,12 @@ export class UnifiedAlgoliaClient {
    * Recherche unifiée via l'Edge Function
    * Toute la logique métier est déportée côté serveur
    */
-  private async searchUnified(origin: 'public'|'private', baseParams: any, safeFacetFilters: any): Promise<any> {
-    const paramsMerged: any = {
+  private async searchUnified(
+    origin: 'public' | 'private', 
+    baseParams: SearchParamsObject, 
+    safeFacetFilters: FacetFilters
+  ): Promise<SearchResponse<AlgoliaHit>> {
+    const paramsMerged: SearchParamsObject & { workspace_id?: string } = {
       ...baseParams,
       facetFilters: safeFacetFilters,
       filters: baseParams.filters
@@ -370,14 +407,14 @@ export class UnifiedAlgoliaClient {
       paramsMerged.workspace_id = this.workspaceId;
     }
 
-    const request = {
+    const searchRequest: SearchRequest = {
       indexName: 'ef_all',
       origin,
       params: paramsMerged
-    } as any;
+    };
     
     // Délégation complète au client proxy vers l'Edge Function
-    const result = await this.client.search([request]);
+    const result = await this.client!.search([searchRequest]);
     return this.ensureObjectIdOnHits(result.results[0]);
   }
 

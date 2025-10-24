@@ -8,7 +8,7 @@ class AlgoliaAutoInitializer {
   private initialized = false;
   private initPromise: Promise<void> | null = null;
   private lastAlertAt: Record<string, number> = {};
-  private metricsTimer: any = null;
+  private metricsTimer: ReturnType<typeof setInterval> | null = null;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -74,7 +74,7 @@ class AlgoliaAutoInitializer {
     // if (ALGOLIA_OPTIMIZATIONS.DEBUG_PERFORMANCE) {
     //   if (!this.metricsTimer) {
     //     this.metricsTimer = setInterval(() => {
-    //       const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
+    //       const blockedUntil = typeof window !== 'undefined' ? (window as Record<string, unknown>).__algoliaBlockedUntil as number : 0;
     //       if (blockedUntil && Date.now() < blockedUntil) return;
     //       const metrics = performanceMonitor.getMetrics();
     //       console.log('📈 Métriques Algolia:', {
@@ -115,7 +115,7 @@ class AlgoliaAutoInitializer {
 
   private setupAlerts(): void {
     setInterval(() => {
-      const blockedUntil = typeof window !== 'undefined' ? (window as any).__algoliaBlockedUntil : 0;
+      const blockedUntil = typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>).__algoliaBlockedUntil as number : 0;
       if (blockedUntil && Date.now() < blockedUntil) return;
       const metrics = performanceMonitor.getMetrics();
       const cacheStats = algoliaCache.getCacheStats();
@@ -153,7 +153,7 @@ class AlgoliaAutoInitializer {
     );
   }
 
-  private sendToMonitoringService(alert: any): void {
+  private sendToMonitoringService(alert: { severity: string; message: string }): void {
     if (typeof window !== 'undefined' && 'fetch' in window) {
       fetch('/api/monitoring/algolia-alert', {
         method: 'POST',
@@ -210,7 +210,7 @@ if (typeof window !== 'undefined') {
 }
 
 if (import.meta.env.DEV && typeof window !== 'undefined') {
-  (window as any).algoliaOptimizations = {
+  (window as unknown as Record<string, unknown>).algoliaOptimizations = {
     autoInit: algoliaAutoInit,
     performanceMonitor,
     cache: algoliaCache,

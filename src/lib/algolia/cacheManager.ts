@@ -1,14 +1,32 @@
 // Gestionnaire de cache intelligent pour Algolia
 import { Origin } from './searchClient';
+import type { SearchResponse } from 'algoliasearch';
+import type { AlgoliaHit } from '@/types/algolia';
 
 export interface CacheEntry {
   key: string;
-  data: any;
+  data: SearchResponse<AlgoliaHit>;
   timestamp: number;
   origin: Origin | 'all';
   ttl: number;
   accessCount: number;
   lastAccess: number;
+}
+
+export interface CacheRequest {
+  query?: string;
+  filters?: string;
+  facetFilters?: unknown;
+  origin?: Origin | 'all';
+  hitsPerPage?: number;
+  page?: number;
+  params?: {
+    query?: string;
+    filters?: string;
+    facetFilters?: unknown;
+    hitsPerPage?: number;
+    page?: number;
+  };
 }
 
 export interface SearchMetrics {
@@ -34,14 +52,14 @@ export class AlgoliaCacheManager {
   private baseTTL = 5 * 60 * 1000; // 5 minutes par défaut
   private maxCacheSize = 1000;
 
-  private generateCacheKey(request: any): string {
+  private generateCacheKey(request: CacheRequest): string {
     // Supporter les paramètres passés dans request.params (InstantSearch)
     const req = request || {};
-    const p = (req.params || {}) as any;
+    const p = req.params || {};
 
     const query = (req.query ?? p.query ?? '') as string;
     const filters = (req.filters ?? p.filters ?? '') as string;
-    const facetFiltersRaw = (req.facetFilters ?? p.facetFilters ?? []) as any;
+    const facetFiltersRaw = req.facetFilters ?? p.facetFilters ?? [];
     const origin = (req.origin ?? 'all') as string;
     const hitsPerPage = (req.hitsPerPage ?? p.hitsPerPage ?? 20) as number;
     const page = (req.page ?? p.page ?? 0) as number;
@@ -54,13 +72,13 @@ export class AlgoliaCacheManager {
     return `${origin}:${query}:${filters}:${normalizedFacets}:${hitsPerPage}:${page}`;
   }
 
-  private calculateAdaptiveTTL(request: any): number {
-    const p = (request?.params || {}) as any;
+  private calculateAdaptiveTTL(request: CacheRequest): number {
+    const p = request?.params || {};
     const q = (request?.query ?? p.query ?? '') as string;
+    const facetFiltersValue = request?.facetFilters ?? p.facetFilters;
     const hasFilters =
       !!(request?.filters ?? p.filters ?? '').toString().trim() ||
-      (Array.isArray(request?.facetFilters ?? p.facetFilters) &&
-        (request?.facetFilters ?? p.facetFilters).length > 0);
+      (Array.isArray(facetFiltersValue) && facetFiltersValue.length > 0);
     
     // TTL plus long pour requêtes complexes (moins susceptibles de changer)
     if (q.length > 6 && hasFilters) {
@@ -108,7 +126,7 @@ export class AlgoliaCacheManager {
     }
   }
 
-  get(request: any): CacheEntry | null {
+  get(request: CacheRequest): CacheEntry | null {
     const key = this.generateCacheKey(request);
     const entry = this.cache.get(key);
     
@@ -138,7 +156,7 @@ export class AlgoliaCacheManager {
     return entry;
   }
 
-  set(request: any, data: any, origin: Origin | 'all' = 'all'): void {
+  set(request: CacheRequest, data: SearchResponse<AlgoliaHit>, origin: Origin | 'all' = 'all'): void {
     const key = this.generateCacheKey(request);
     const ttl = this.calculateAdaptiveTTL(request);
     const now = Date.now();
@@ -160,9 +178,7 @@ export class AlgoliaCacheManager {
   invalidateBySource(source: string) {
     // Invalider toutes les entrées contenant cette source
     for (const [key, entry] of this.cache.entries()) {
-      if (entry.data?.results?.some((result: any) => 
-        result.hits?.some((hit: any) => hit.Source === source)
-      )) {
+      if (entry.data?.hits?.some(hit => hit.Source === source)) {
         this.cache.delete(key);
       }
     }
