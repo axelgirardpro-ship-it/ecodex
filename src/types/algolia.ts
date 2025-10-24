@@ -1,3 +1,18 @@
+// ============================================
+// ALGOLIA HIT - Facteur d'émission
+// ============================================
+
+export interface AlgoliaHighlightResult {
+  value: string;
+  matchLevel: 'none' | 'partial' | 'full';
+  matchedWords: string[];
+  fullyHighlighted?: boolean;
+}
+
+export interface AlgoliaHighlightResultRecord {
+  [key: string]: AlgoliaHighlightResult | AlgoliaHighlightResultRecord;
+}
+
 export interface AlgoliaHit {
   objectID: string;
   Source: string;
@@ -29,7 +44,121 @@ export interface AlgoliaHit {
   workspace_id?: string;
   import_type?: string;
   dataset_name?: string;
+  access_level?: 'public' | 'premium' | 'paid';
   __indexName?: string;
-  // highlight
-  _highlightResult?: any;
+  // Server-side processing
+  is_blurred?: boolean;
+  // Highlight results
+  _highlightResult?: AlgoliaHighlightResultRecord;
+}
+
+// ============================================
+// ALGOLIA SEARCH PARAMS
+// ============================================
+
+export type AlgoliaFacetFilter = string | string[];
+export type AlgoliaFacetFilters = (AlgoliaFacetFilter | AlgoliaFacetFilter[])[];
+
+export interface AlgoliaSearchParams {
+  query?: string;
+  filters?: string;
+  facetFilters?: AlgoliaFacetFilters;
+  facets?: string[];
+  attributesToRetrieve?: string[];
+  attributesToHighlight?: string[];
+  attributesToSnippet?: string[];
+  hitsPerPage?: number;
+  page?: number;
+  offset?: number;
+  length?: number;
+  getRankingInfo?: boolean;
+  analytics?: boolean;
+  analyticsTags?: string[];
+  clickAnalytics?: boolean;
+  userToken?: string;
+}
+
+// ============================================
+// ALGOLIA SEARCH RESPONSE
+// ============================================
+
+export interface AlgoliaFacetStats {
+  min: number;
+  max: number;
+  avg: number;
+  sum: number;
+}
+
+export interface AlgoliaFacets {
+  [facetName: string]: {
+    [facetValue: string]: number;
+  };
+}
+
+export interface AlgoliaFacetStatsRecord {
+  [facetName: string]: AlgoliaFacetStats;
+}
+
+export interface AlgoliaSearchResponse<T = AlgoliaHit> {
+  hits: T[];
+  nbHits: number;
+  page: number;
+  nbPages: number;
+  hitsPerPage: number;
+  exhaustiveNbHits: boolean;
+  exhaustiveFacetsCount: boolean;
+  exhaustiveTypo: boolean;
+  processingTimeMS: number;
+  query: string;
+  params?: string;
+  index?: string;
+  facets?: AlgoliaFacets;
+  facets_stats?: AlgoliaFacetStatsRecord;
+  queryID?: string;
+  serverTimeMS?: number;
+}
+
+// ============================================
+// ALGOLIA CLIENT TYPES
+// ============================================
+
+export interface AlgoliaSearchOptions {
+  cacheable?: boolean;
+  timeout?: number;
+  headers?: Record<string, string>;
+}
+
+export interface AlgoliaMultipleQueriesOptions {
+  strategy?: 'none' | 'stopIfEnoughMatches';
+}
+
+export interface AlgoliaIndexQuery {
+  indexName: string;
+  params?: AlgoliaSearchParams;
+  query?: string;
+}
+
+export interface AlgoliaMultipleQueriesResponse {
+  results: AlgoliaSearchResponse[];
+}
+
+// ============================================
+// CACHE & REQUEST TYPES
+// ============================================
+
+export interface AlgoliaCacheEntry<T = unknown> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+export interface AlgoliaRequestKey {
+  method: string;
+  path: string;
+  data?: unknown;
+}
+
+export interface AlgoliaPendingRequest<T = unknown> {
+  promise: Promise<T>;
+  timestamp: number;
 }
