@@ -204,11 +204,11 @@ export class AdaptiveDebouncer {
   }
 
   // Debouncing spécialisé pour les requêtes de recherche
-  debounceSearch(
+  debounceSearch<T>(
     query: string,
-    fn: () => Promise<any> | any,
+    fn: () => Promise<T> | T,
     context: { isTyping?: boolean; hasFilters?: boolean } = {}
-  ): Promise<any> {
+  ): Promise<T> {
     const { isTyping = false, hasFilters = false } = context;
     
     // Délai adaptatif basé sur le contexte
