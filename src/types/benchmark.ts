@@ -2,6 +2,9 @@
  * Types pour les benchmarks
  */
 
+export type DisplayMode = 25 | 50 | 'all';
+export type SortOrder = 'asc' | 'desc';
+
 export interface BenchmarkStatistics {
   sampleSize: number;
   median: number;
