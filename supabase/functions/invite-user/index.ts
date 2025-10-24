@@ -1,9 +1,9 @@
-// @ts-nocheck
-// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
-// Ce fichier nécessite des interfaces TypeScript pour :
-// - Les réponses Supabase (workspace_invitations, workspaces, profiles, auth.admin)
-// - Les paramètres d'invitation et de gestion d'utilisateurs
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+/**
+ * Edge Function: invite-user
+ * Invite un utilisateur à rejoindre un workspace avec validation des permissions et limites
+ */
+// @ts-ignore Deno runtime types
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +14,29 @@ const corsHeaders = {
 const AUTH_LIST_USERS_PAGE_SIZE = 200;
 const AUTH_LIST_USERS_MAX_PAGES = 25;
 
-async function findAuthUserByEmail(adminClient: ReturnType<typeof createClient>, email: string) {
+interface InviteUserRequest {
+  email: string;
+  workspaceId: string;
+  role: string;
+  redirectTo?: string;
+}
+
+interface UserLimitCheck {
+  allowed: boolean;
+  current_count: number;
+  max_users: number;
+  error?: string;
+}
+
+interface JWTPayload {
+  sub: string;
+  [key: string]: unknown;
+}
+
+async function findAuthUserByEmail(
+  adminClient: SupabaseClient,
+  email: string
+): Promise<{ id: string; email?: string; user_metadata?: Record<string, unknown> } | null> {
   const emailLower = email.toLowerCase();
 
   for (let page = 1; page <= AUTH_LIST_USERS_MAX_PAGES; page++) {
@@ -46,6 +68,7 @@ async function findAuthUserByEmail(adminClient: ReturnType<typeof createClient>,
   return null;
 }
 
+// @ts-ignore Deno runtime
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -53,7 +76,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // @ts-ignore Deno.env
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    // @ts-ignore Deno.env
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     // Get the authorization header
@@ -76,7 +101,7 @@ Deno.serve(async (req) => {
         throw new Error('Invalid JWT format')
       }
       
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as JWTPayload
       userId = payload.sub
       
       if (!userId) {
@@ -104,7 +129,7 @@ Deno.serve(async (req) => {
     console.log('[invite-user] User authenticated successfully:', user.id)
 
     // Get request body
-    const { email, workspaceId, role, redirectTo } = await req.json();
+    const { email, workspaceId, role, redirectTo } = await req.json() as InviteUserRequest;
 
     if (!email || !workspaceId || !role) {
       throw new Error('Missing required parameters: email, workspaceId, role');
@@ -135,7 +160,7 @@ Deno.serve(async (req) => {
 
     // Check workspace user limit before sending invitation
     const { data: limitCheck, error: limitError } = await supabase
-      .rpc('check_workspace_user_limit', { p_workspace_id: workspaceId })
+      .rpc('check_workspace_user_limit', { p_workspace_id: workspaceId }) as { data: UserLimitCheck | null; error: unknown }
 
     if (limitError) {
       console.error('Limit check error:', limitError)
@@ -144,13 +169,13 @@ Deno.serve(async (req) => {
 
     console.log('Limit check result:', limitCheck)
 
-    if (!limitCheck.allowed) {
+    if (!limitCheck || !limitCheck.allowed) {
       return new Response(
         JSON.stringify({ 
           error: 'user limit exceeded',
-          message: limitCheck.error || `Limite d'utilisateurs atteinte (${limitCheck.current_count}/${limitCheck.max_users}). Veuillez passer à un plan supérieur.`,
-          current_count: limitCheck.current_count,
-          max_users: limitCheck.max_users,
+          message: limitCheck?.error || `Limite d'utilisateurs atteinte (${limitCheck?.current_count ?? 0}/${limitCheck?.max_users ?? 0}). Veuillez passer à un plan supérieur.`,
+          current_count: limitCheck?.current_count ?? 0,
+          max_users: limitCheck?.max_users ?? 0,
           success: false
         }),
         { 
@@ -312,11 +337,12 @@ Deno.serve(async (req) => {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'envoi de l\'invitation';
     console.error('Invitation error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Erreur lors de l\'envoi de l\'invitation',
+        error: errorMessage,
         success: false 
       }),
       { 
