@@ -85,7 +85,7 @@ export const BenchmarkView = () => {
     
     // Si c'est déjà au bon format (a chartData)
     if ('chartData' in savedBenchmarkRaw) {
-      return savedBenchmarkRaw as any;
+      return savedBenchmarkRaw as BenchmarkData;
     }
     
     // Transformer snake_case en camelCase

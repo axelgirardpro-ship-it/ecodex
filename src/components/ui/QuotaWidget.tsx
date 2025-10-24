@@ -8,12 +8,12 @@ import { Zap, Crown, TrendingUp, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface QuotaWidgetProps {
-  quotaData: any;
+  quotaData: Record<string, unknown>;
   isLoading: boolean;
 }
 
 export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
-  const { t } = useTranslation('quota' as any);
+  const { t } = useTranslation('quota');
 
   if (isLoading) {
     return (

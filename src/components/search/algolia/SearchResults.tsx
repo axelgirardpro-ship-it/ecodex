@@ -680,7 +680,7 @@ export const SearchResults: React.FC = () => {
                                   )}
                                   <p
                                     className="text-sm font-light text-foreground"
-                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Source')}
+                                    dangerouslySetInnerHTML={getHighlightedText(hit, 'Source')}
                                   />
                                 </div>
                               </div>
@@ -750,7 +750,7 @@ export const SearchResults: React.FC = () => {
                                       }}
                                     >
                                       {(() => {
-                                        const highlighted = getHighlightedText(hit as any, 'Description');
+                                        const highlighted = getHighlightedText(hit, 'Description');
                                         return highlighted.__html || getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']);
                                       })()}
                                     </ReactMarkdown>
@@ -793,7 +793,7 @@ export const SearchResults: React.FC = () => {
                                       }}
                                     >
                                       {(() => {
-                                        const highlighted = getHighlightedText(hit as any, 'Commentaires');
+                                        const highlighted = getHighlightedText(hit, 'Commentaires');
                                         return highlighted.__html || getLocalizedValue(hit, 'Commentaires_fr', 'Commentaires_en', ['Commentaires']);
                                       })()}
                                     </ReactMarkdown>
@@ -836,7 +836,7 @@ export const SearchResults: React.FC = () => {
                                       }}
                                     >
                                       {(() => {
-                                        const highlighted = getHighlightedText(hit as any, 'Contributeur');
+                                        const highlighted = getHighlightedText(hit, 'Contributeur');
                                         return highlighted.__html || getLocalizedValue(hit, 'Contributeur', 'Contributeur_en');
                                       })()}
                                     </ReactMarkdown>
@@ -879,7 +879,7 @@ export const SearchResults: React.FC = () => {
                                       }}
                                     >
                                       {(() => {
-                                        const highlighted = getHighlightedText(hit as any, 'Méthodologie');
+                                        const highlighted = getHighlightedText(hit, 'Méthodologie');
                                         return highlighted.__html || getLocalizedValue(hit, 'Méthodologie', 'Méthodologie_en');
                                       })()}
                                     </ReactMarkdown>
@@ -891,7 +891,7 @@ export const SearchResults: React.FC = () => {
                                   <span className="text-sm font-semibold text-foreground">{t('data_type')}</span>
                                   <p
                                     className="mt-1 text-xs font-light text-muted-foreground"
-                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Type de données')}
+                                    dangerouslySetInnerHTML={getHighlightedText(hit, 'Type de données')}
                                   />
                                 </div>
                               )}
@@ -900,7 +900,7 @@ export const SearchResults: React.FC = () => {
                                   <span className="text-sm font-semibold text-foreground">{t('uncertainty')}</span>
                                   <p
                                     className="mt-1 text-xs font-light text-muted-foreground"
-                                    dangerouslySetInnerHTML={getHighlightedText(hit as any, 'Incertitude')}
+                                    dangerouslySetInnerHTML={getHighlightedText(hit, 'Incertitude')}
                                   />
                               </div>
                               )}
