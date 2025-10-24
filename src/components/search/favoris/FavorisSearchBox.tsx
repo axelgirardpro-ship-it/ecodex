@@ -14,15 +14,9 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
   const { nbHits } = useStats();
   const { refresh } = useInstantSearch();
   
-  // Call hook at top level, handle error gracefully
-  let controls = null;
-  try {
-    controls = useSearchControls();
-  } catch (error) {
-    // SearchControls not available in this context
-  }
-
-  // debug removed
+  // Always call hooks at the top level (React rules of hooks)
+  // Use optional chaining to handle the case where controls might not be available
+  const controls = useSearchControls();
 
   const handleClear = () => {
     refine("");
@@ -34,11 +28,8 @@ export const FavorisSearchBox: React.FC<FavorisSearchBoxProps> = ({ favoriteIds 
     if (trimmed.length < 3) {
       return;
     }
-    try { 
-      controls?.forceNextSearch(); 
-    } catch (error) {
-      // Ignore errors if controls are not available
-    }
+    // Use optional chaining - if controls is null/undefined, this is a no-op
+    controls?.forceNextSearch();
     refine(trimmed);
     refresh();
   };
