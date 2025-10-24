@@ -341,9 +341,9 @@ export class AlgoliaPerformanceMonitor {
 
   // Auto-tuning basé sur les métriques
   autoTune(): {
-    cacheAdjustments: any;
-    throttlingAdjustments: any;
-    debounceAdjustments: any;
+    cacheAdjustments: unknown;
+    throttlingAdjustments: unknown;
+    debounceAdjustments: unknown;
   } {
     const adjustments = {
       cacheAdjustments: {},
@@ -383,7 +383,7 @@ export class AlgoliaPerformanceMonitor {
   }
 
   // Méthodes utilitaires
-  private limitArraySize(array: any[]) {
+  private limitArraySize(array: unknown[]) {
     if (array.length > this.maxHistorySize) {
       array.splice(0, array.length - this.maxHistorySize);
     }

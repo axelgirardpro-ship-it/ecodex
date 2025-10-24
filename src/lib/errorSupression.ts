@@ -126,7 +126,7 @@ export function initErrorSuppression(): void {
     
     // Ajouter aux outils de debug
     if (typeof window !== 'undefined') {
-      (window as any).errorSuppressor = {
+      (window as Record<string, unknown>).errorSuppressor = {
         getStats: () => suppressor.getErrorStats(),
         clear: () => suppressor.clearErrorCounts()
       };

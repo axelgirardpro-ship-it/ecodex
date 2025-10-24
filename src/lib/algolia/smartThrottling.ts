@@ -278,7 +278,7 @@ export class SmartRequestManager {
       debounce?: boolean;
       throttle?: boolean;
       priority?: number;
-      context?: any;
+      context?: unknown;
     } = {}
   ): Promise<T> {
     const {

@@ -42,8 +42,8 @@ export function resolveOriginFromFacetFilters(facetFilters: any): Origin {
   return origin;
 }
 
-export function resolveOrigin(params: any): Origin {
-  const rc: any[] = Array.isArray(params?.ruleContexts) ? params.ruleContexts : [];
+export function resolveOrigin(params: Record<string, unknown>): Origin {
+  const rc: unknown[] = Array.isArray(params?.ruleContexts) ? params.ruleContexts : [];
   if (rc.includes('origin:public')) return 'public';
   if (rc.includes('origin:private')) return 'private';
   return resolveOriginFromFacetFilters(params?.facetFilters);

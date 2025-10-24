@@ -10,7 +10,7 @@ export class RequestDeduplicator {
   private requestQueue = new Map<string, any[]>();
   private readonly timeout = 5000; // 5 secondes timeout
 
-  private generateRequestKey(request: any): string {
+  private generateRequestKey(request: Record<string, unknown>): string {
     // Même logique que le cache pour cohérence, avec fallback sur request.params
     const req = request || {};
     const p = (req.params || {}) as any;
@@ -41,7 +41,7 @@ export class RequestDeduplicator {
   }
 
   async deduplicateRequest<T>(
-    request: any, 
+    request: Record<string, unknown>, 
     executeRequest: () => Promise<T>
   ): Promise<T> {
     this.cleanupExpiredRequests();
@@ -104,7 +104,7 @@ export class RequestDeduplicator {
   }
 
   // Grouper plusieurs requêtes similaires
-  batchSimilarRequests(requests: any[]): Map<string, any[]> {
+  batchSimilarRequests(requests: unknown[]): Map<string, any[]> {
     const batches = new Map<string, any[]>();
     
     for (const request of requests) {
@@ -120,7 +120,7 @@ export class RequestDeduplicator {
     return batches;
   }
 
-  private generateBatchKey(request: any): string {
+  private generateBatchKey(request: Record<string, unknown>): string {
     // Clé simplifiée pour regrouper les requêtes similaires
     const req = request || {};
     const p = (req.params || {}) as any;

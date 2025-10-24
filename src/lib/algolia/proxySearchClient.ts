@@ -3,23 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ProxySearchRequest {
   query?: string;
   filters?: string;
-  facetFilters?: any;
+  facetFilters?: unknown;
   origin?: 'public' | 'private';
   hitsPerPage?: number;
   page?: number;
   attributesToRetrieve?: string[];
   restrictSearchableAttributes?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ProxySearchResponse {
-  hits: any[];
+  hits: unknown[];
   nbHits: number;
   page: number;
   nbPages: number;
   hitsPerPage: number;
-  facets?: any;
-  [key: string]: any;
+  facets?: unknown;
+  [key: string]: unknown;
 }
 
 class ProxySearchClient {
@@ -58,12 +58,12 @@ export const proxySearchClient = new ProxySearchClient();
 export const createProxyClient = (
   _type: 'unified' = 'unified'
 ) => ({
-  search: async (requests: any[]) => {
+  search: async (requests: unknown[]) => {
     const proxyRequests = requests.map(req => {
       const origin = (req.origin as 'public'|'private'|undefined) || undefined;
       const params = req.params || {};
       const ws = params?._search_context?.workspace_id || params?.workspace_id;
-      const base: any = { origin: origin || 'public', ...params } as ProxySearchRequest;
+      const base: Record<string, unknown> = { origin: origin || 'public', ...params } as ProxySearchRequest;
       if ((origin || 'public') === 'private' && typeof ws === 'string' && ws.length >= 36) {
         base.workspace_id = ws;
       }

@@ -2,7 +2,7 @@
 import { createUnifiedClient } from './unifiedSearchClient';
 
 export class PerformanceTester {
-  private client: any;
+  private client: unknown;
   constructor() {
     this.client = createUnifiedClient();
   }
