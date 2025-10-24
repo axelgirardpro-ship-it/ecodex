@@ -41,6 +41,14 @@ export interface AlertConfig {
   requestRateThreshold: number; // req/min
 }
 
+export interface PerformanceAlert {
+  type: string;
+  severity: string;
+  message: string;
+  threshold: number;
+  current: number;
+}
+
 export interface OptimizationRecommendation {
   type: 'cache' | 'throttling' | 'architecture' | 'indexing';
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -60,7 +68,7 @@ export class AlgoliaPerformanceMonitor {
   private readonly maxHistorySize = 1000;
   private readonly metricsRetentionTime = 24 * 60 * 60 * 1000; // 24 heures
   private alertConfig: AlertConfig;
-  private alertCallbacks: Array<(alert: any) => void> = [];
+  private alertCallbacks: Array<(alert: PerformanceAlert) => void> = [];
 
   constructor(alertConfig?: Partial<AlertConfig>) {
     this.alertConfig = {
@@ -416,11 +424,11 @@ export class AlgoliaPerformanceMonitor {
     return { ...this.metrics };
   }
 
-  onAlert(callback: (alert: any) => void) {
+  onAlert(callback: (alert: PerformanceAlert) => void) {
     this.alertCallbacks.push(callback);
   }
 
-  offAlert(callback: (alert: any) => void) {
+  offAlert(callback: (alert: PerformanceAlert) => void) {
     const index = this.alertCallbacks.indexOf(callback);
     if (index > -1) {
       this.alertCallbacks.splice(index, 1);

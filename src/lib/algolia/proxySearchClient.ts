@@ -22,6 +22,11 @@ export interface ProxySearchResponse {
   [key: string]: unknown;
 }
 
+interface EdgeFunctionResponse {
+  results?: ProxySearchResponse[];
+  [key: string]: unknown;
+}
+
 class ProxySearchClient {
   async search(requests: ProxySearchRequest[]): Promise<{ results: ProxySearchResponse[] }> {
     try {
@@ -37,9 +42,9 @@ class ProxySearchClient {
       if (error) {
         throw new Error(`Search proxy error: ${error.message || JSON.stringify(error)}`);
       }
-      const json = data as any;
+      const json = data as EdgeFunctionResponse;
       if (Array.isArray(json?.results)) return { results: json.results };
-      return { results: [json] };
+      return { results: [json as ProxySearchResponse] };
     } catch (error) {
       console.error('Proxy search client error:', error);
       throw error;
@@ -78,8 +83,8 @@ export const createProxyClient = (
       headers
     });
     if (error) throw new Error(`Search proxy error: ${error.message || JSON.stringify(error)}`);
-    const json = data as any;
+    const json = data as EdgeFunctionResponse;
     if (Array.isArray(json?.results)) return { results: json.results };
-    return { results: [json] };
+    return { results: [json as ProxySearchResponse] };
   }
 });

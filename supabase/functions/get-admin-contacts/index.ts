@@ -115,7 +115,7 @@ serve(async (req) => {
       query = query.eq('workspace_id', workspaceFilter);
     }
 
-    const { data: userRoles, error: rolesError, count: total } = await query as any;
+    const { data: userRoles, error: rolesError, count: total } = await query;
     if (rolesError) throw rolesError;
 
     console.log('Found user roles:', userRoles?.length);

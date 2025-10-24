@@ -12,7 +12,7 @@ import { BenchmarkValidationError } from '@/components/benchmark/BenchmarkValida
 import { BenchmarkUnsavedWarning } from '@/components/benchmark/BenchmarkUnsavedWarning';
 import { useBenchmarkGeneration } from '@/hooks/useBenchmarkGeneration';
 import { useBenchmarkStorage } from '@/hooks/useBenchmarkStorage';
-import type { DisplayMode, SortOrder } from '@/types/benchmark';
+import type { DisplayMode, SortOrder, BenchmarkData } from '@/types/benchmark';
 
 export const BenchmarkView = () => {
   const location = useLocation();
@@ -100,7 +100,7 @@ export const BenchmarkView = () => {
   }, [savedBenchmarkRaw]);
 
   // Déterminer quelle source de données utiliser
-  const benchmarkData = id ? savedBenchmark : generatedBenchmark;
+  const benchmarkData: BenchmarkData | null = (id ? savedBenchmark : generatedBenchmark) as BenchmarkData | null;
   const isLoading = id ? isLoadingSaved : isGenerating;
 
   // Handler pour mise à jour du titre

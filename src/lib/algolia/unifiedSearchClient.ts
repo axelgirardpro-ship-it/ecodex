@@ -18,6 +18,10 @@ import type { AlgoliaHit } from '@/types/algolia';
 let ALGOLIA_BLOCKED_UNTIL = 0;
 let ALGOLIA_BLOCK_CONSECUTIVE_COUNT = 0;
 
+interface WindowWithAlgoliaStatus extends Window {
+  __algoliaBlockedUntil?: number;
+}
+
 function isAlgoliaTemporarilyBlocked(): boolean {
   return Date.now() < ALGOLIA_BLOCKED_UNTIL;
 }
@@ -28,7 +32,7 @@ function markAlgoliaBlocked(): void {
   const computed = Math.min(baseBackoffMs * Math.pow(2, ALGOLIA_BLOCK_CONSECUTIVE_COUNT - 1), 60 * 60 * 1000); // cap à 60 min
   ALGOLIA_BLOCKED_UNTIL = Date.now() + computed;
   if (typeof window !== 'undefined') {
-    (window as any).__algoliaBlockedUntil = ALGOLIA_BLOCKED_UNTIL;
+    (window as WindowWithAlgoliaStatus).__algoliaBlockedUntil = ALGOLIA_BLOCKED_UNTIL;
   }
 }
 
@@ -36,7 +40,7 @@ function clearAlgoliaBlocked(): void {
   ALGOLIA_BLOCKED_UNTIL = 0;
   ALGOLIA_BLOCK_CONSECUTIVE_COUNT = 0;
   if (typeof window !== 'undefined') {
-    (window as any).__algoliaBlockedUntil = 0;
+    (window as WindowWithAlgoliaStatus).__algoliaBlockedUntil = 0;
   }
 }
 
@@ -92,6 +96,7 @@ export interface SearchRequest {
   // Ajouté pour les résolutions de promesses en mode batch
   resolve?: (value: MultipleSearchResponse) => void;
   reject?: (reason: unknown) => void;
+  [key: string]: unknown;
 }
 
 export interface OptimizedSearchOptions {
@@ -114,7 +119,7 @@ export interface OptimizedSearchOptions {
  * - Sécurité garantie côté serveur
  */
 interface ProxyClient {
-  search: (requests: SearchRequest[]) => Promise<{ results: SearchResponse<AlgoliaHit>[] }>;
+  search: (requests: unknown[]) => Promise<{ results: unknown[] }>;
 }
 
 export class UnifiedAlgoliaClient {
@@ -373,7 +378,7 @@ export class UnifiedAlgoliaClient {
       // Debug des filtres entrants
       debugFacetFilters('1. Raw incoming facetFilters', baseParams.facetFilters, { origin });
       
-      const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters);
+      const safeFacetFilters = sanitizeFacetFilters(baseParams.facetFilters) as FacetFilters;
       
       // Debug après sanitization
       debugFacetFilters('2. After sanitizeFacetFilters', safeFacetFilters);
@@ -415,7 +420,7 @@ export class UnifiedAlgoliaClient {
     
     // Délégation complète au client proxy vers l'Edge Function
     const result = await this.client!.search([searchRequest]);
-    return this.ensureObjectIdOnHits(result.results[0]);
+    return this.ensureObjectIdOnHits(result.results[0] as SearchResponse<AlgoliaHit>);
   }
 
   private combineFilters(...filters: (string | undefined)[]): string | undefined {

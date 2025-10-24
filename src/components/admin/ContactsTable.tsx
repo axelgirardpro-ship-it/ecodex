@@ -72,7 +72,7 @@ export const ContactsTable = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, [selectedCompany, page, fetchContacts]);
+  }, [selectedCompany, page]);
 
   const getPlanBadgeVariant = (plan: string) => {
     switch (plan) {
