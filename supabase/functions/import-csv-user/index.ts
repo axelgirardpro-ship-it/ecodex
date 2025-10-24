@@ -1,17 +1,34 @@
-// @ts-nocheck
-// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
-// Ce fichier nécessite des interfaces TypeScript pour :
-// - Les réponses Supabase (storage, workspaces, profiles, CSV parsing)
-// - Les types de données métier (colonnes CSV, facteurs d'émission)
-/* eslint-disable */
-// Import privé (user): parse fichier depuis Storage, ingestion SCD2 en bulk,
-// refresh projection par source, sync Algolia incrémentale (updateObject)
-
+/**
+ * Edge Function: import-csv-user
+ * Import privé (user): parse fichier depuis Storage, ingestion SCD2 en bulk,
+ * refresh projection par source, sync Algolia incrémentale (updateObject)
+ */
+// @ts-ignore Deno runtime types
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Import du parser CSV robuste
 import { RobustCsvParser } from './csv-parser.ts'
 
-type Json = Record<string, any>
+// ============================================
+// TYPES & INTERFACES
+// ============================================
+
+type Json = Record<string, unknown>
+
+interface JWTPayload {
+  sub: string;
+  [key: string]: unknown;
+}
+
+interface ImportCsvRequest {
+  file_path: string;
+  dataset_name: string;
+  language?: string;
+  add_to_favorites?: boolean;
+}
+
+interface CsvRow {
+  [key: string]: string;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,23 +36,24 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-function json(status: number, body: unknown) {
+function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
-function formatError(err: any): string {
+function formatError(err: unknown): string {
   try {
     if (!err) return 'unknown_error'
     if (typeof err === 'string') return err
-    const message = (err as any).message || (err as any).error_description || (err as any).msg || (err as any).code || 'error'
-    const details = (err as any).details || (err as any).hint || (err as any).explanation || ''
+    const e = err as Record<string, unknown>;
+    const message = (e.message || e.error_description || e.msg || e.code || 'error') as string
+    const details = (e.details || e.hint || e.explanation || '') as string
     return details ? `${message} | ${details}` : String(message)
   } catch {
     return String(err)
   }
 }
 
-function computeFactorKey(row: Record<string,string>, language: string) {
+function computeFactorKey(row: CsvRow, language: string): string {
   const nom = (row['Nom'] || '').toLowerCase().trim();
   const unite = (row["Unité donnée d'activité"] || '').toLowerCase().trim();
   const source = (row['Source'] || '').toLowerCase().trim();
@@ -62,7 +80,7 @@ async function readCsvContent(url: string): Promise<string> {
 async function readGzipCsvContent(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error('Cannot fetch GZ CSV from storage');
-  // @ts-ignore
+  // @ts-ignore DecompressionStream is a web standard not in TS lib
   const decompressed = res.body.pipeThrough(new DecompressionStream('gzip'));
   const reader = decompressed.getReader();
   const decoder = new TextDecoder();
@@ -104,12 +122,15 @@ async function readFileContent(url: string): Promise<string> {
   }
 }
 
+// @ts-ignore Deno runtime
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   try {
     if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
 
+    // @ts-ignore Deno.env
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    // @ts-ignore Deno.env
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     const authHeader = req.headers.get('Authorization')
@@ -130,7 +151,7 @@ Deno.serve(async (req) => {
         throw new Error('Invalid JWT format')
       }
       
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as JWTPayload
       userId = payload.sub
       
       if (!userId) {
@@ -156,7 +177,7 @@ Deno.serve(async (req) => {
     const user = authUser.user
     console.log('[import-csv-user] User authenticated successfully:', user.id)
 
-    const body = await req.json().catch(()=> ({})) as any
+    const body = await req.json().catch(()=> ({})) as ImportCsvRequest
     const filePath = String(body.file_path || '')
     const language = String(body.language || 'fr')
     const datasetNameRaw = String(body.dataset_name || '')
@@ -370,7 +391,7 @@ Deno.serve(async (req) => {
       db_ms: t1 - t0
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Import utilisateur error:', error)
     return json(500, { error: formatError(error) })
   }
