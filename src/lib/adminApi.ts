@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client'
 import type { PlanTier, TierLimitCheck } from '@/types/plan-tiers'
 
 // Cache mémoire simple pour éviter les appels redondants vers get-admin-workspaces
-type WorkspacesCacheEntry = { data:Record<string, unknown>[]; expiresAt: number; inflight?: Promise<any[]> }
+type WorkspacesCacheEntry = { data:Record<string, unknown>[]; expiresAt: number; inflight?: Promise<unknown[]> }
 const WORKSPACES_CACHE_TTL_MS = 60_000
 const workspacesCache: Record<string, WorkspacesCacheEntry> = {}
 
@@ -17,8 +17,8 @@ export function invalidateAdminWorkspacesCache() {
  * @param options Options (body, headers)
  * @returns Promise avec data et error
  */
-export async function invokeWithAuth<T = any>(fn: string, options?: {
-  body?: any,
+export async function invokeWithAuth<T = unknown>(fn: string, options?: {
+  body?: unknown,
   headers?: Record<string, string>,
 }): Promise<{ data: T | null; error: unknown | null }> {
   // Tenter de récupérer la session, et forcer un refresh si nécessaire

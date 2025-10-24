@@ -47,7 +47,7 @@ class ErrorSuppressor {
     // Intercepter les console.error pour Supabase
     const originalError = console.error;
     
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const message = args.join(' ');
       
       // Identifier les erreurs Supabase répétitives
@@ -116,7 +116,7 @@ export function initErrorSuppression(): void {
 
       // Eviter les Uncaught (in promise) pour Algolia bloqué
       window.addEventListener('unhandledrejection', (ev: PromiseRejectionEvent) => {
-        const reason: any = ev.reason;
+        const reason: unknown = ev.reason;
         const msg = String(reason?.message || reason || '').toLowerCase();
         if (msg.includes('application is blocked') || msg.includes('forbidden') || msg.includes('blocked')) {
           ev.preventDefault?.();
