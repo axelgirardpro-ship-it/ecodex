@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 export const TrialWidget: React.FC = () => {
   const { trialData, isLoading, isFreemium, hasAccess, daysRemaining } = useTrialAccess();
-  const { t } = useTranslation('quota' as any);
+  const { t } = useTranslation('quota');
 
   if (isLoading || !isFreemium) {
     return null;
@@ -18,7 +18,7 @@ export const TrialWidget: React.FC = () => {
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
         <AlertCircle className="h-4 w-4 text-destructive" />
         <span className="text-sm font-medium text-destructive">
-          {(t as any)('trial.expired')}
+          {t('trial.expired')}
         </span>
       </div>
     );
@@ -32,9 +32,9 @@ export const TrialWidget: React.FC = () => {
       <Clock className="h-4 w-4 text-muted-foreground" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-sm font-medium">{(t as any)('trial.title')}</span>
+          <span className="text-sm font-medium">{t('trial.title')}</span>
           <Badge variant={isNearExpiry ? "destructive" : "secondary"} className="text-xs">
-            {(t as any)('trial.days_remaining', { count: daysRemaining })}
+            {t('trial.days_remaining', { count: daysRemaining })}
           </Badge>
         </div>
         <Progress 
