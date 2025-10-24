@@ -85,7 +85,7 @@ export function buildFavoriteIdsFilter(favoriteIds?: string[]): string {
   // Algolia: valeurs string doivent être entre guillemets (UUID avec tirets)
   const parts = favoriteIds
     .filter(Boolean)
-    .map(id => `objectID:"${String(id).replace(/"/g, '\"')}"`);
+    .map(id => `objectID:"${String(id).replace(/"/g, '"')}"`);
   return parts.length > 0 ? parts.join(' OR ') : 'objectID:_none_';
 }
 

@@ -1,4 +1,8 @@
 // @ts-nocheck
+// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
+// Ce fichier nécessite des interfaces TypeScript pour :
+// - Les réponses Supabase (workspace_invitations, workspaces, profiles, auth.admin)
+// - Les paramètres d'invitation et de gestion d'utilisateurs
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {

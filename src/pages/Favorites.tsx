@@ -86,7 +86,7 @@ const FavoritesAlgoliaContent: React.FC = () => {
     try {
       // Supprimer en série pour garantir la cohérence UI + provider (évite collisions debounce/refresh)
       for (const id of toRemove) {
-        // eslint-disable-next-line no-await-in-loop
+         
         await removeFromFavorites(id);
       }
       setSelectedItems(new Set());

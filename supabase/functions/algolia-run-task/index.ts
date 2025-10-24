@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-// @ts-ignore: types fournis par l'environnement Edge Functions
+// @ts-expect-error - Deno std types are provided by the Edge Functions runtime
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -48,9 +48,9 @@ serve(async (req) => {
   try {
     if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
-    // @ts-ignore: Deno fourni à l'exécution (Edge Functions)
+    // @ts-expect-error - Deno global is provided by Edge Functions runtime
     const ALGOLIA_APP_ID = (globalThis as any).Deno?.env.get("ALGOLIA_APP_ID") ?? (globalThis as any).Deno?.env.get("ALGOLIA_APPLICATION_ID") ?? "";
-    // @ts-ignore
+    // @ts-expect-error - Deno env is provided by Edge Functions runtime
     const ALGOLIA_ADMIN_KEY = (globalThis as any).Deno?.env.get("ALGOLIA_ADMIN_KEY") ?? (globalThis as any).Deno?.env.get("ALGOLIA_WRITE_API_KEY") ?? "";
     if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) return json(500, { error: "Algolia credentials missing in environment" });
 

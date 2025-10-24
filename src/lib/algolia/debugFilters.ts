@@ -7,10 +7,11 @@ export function debugFacetFilters(label: string, filters: FacetFilters, context?
   // Ne loguer qu'en dev
   // import.meta.env n'est disponible qu'à l'exécution Vite
   try {
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env is a Vite-specific feature
     const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
     if (!isDev) return;
-  } catch {
+  } catch (error) {
+    // import.meta not available in this environment
     return;
   }
 
