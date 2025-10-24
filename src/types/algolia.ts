@@ -1,34 +1,56 @@
 // ============================================
-// ALGOLIA HIT - Facteur d'émission
+// IMPORTS FROM OFFICIAL ALGOLIA TYPES
 // ============================================
 
-export interface AlgoliaHighlightResult {
-  value: string;
-  matchLevel: 'none' | 'partial' | 'full';
-  matchedWords: string[];
-  fullyHighlighted?: boolean;
-}
+// Réexporter les types officiels d'Algolia v5
+export type {
+  SearchResponse,
+  SearchParams,
+  SearchParamsObject,
+  SearchMethodParams,
+  Hit,
+  FacetFilters,
+  SearchForHits,
+  SearchQuery,
+  HighlightResult,
+  SnippetResult,
+  SearchHits,
+  SearchStrategy
+} from 'algoliasearch';
 
-export interface AlgoliaHighlightResultRecord {
-  [key: string]: AlgoliaHighlightResult | AlgoliaHighlightResultRecord;
-}
+// ============================================
+// TYPES ÉTENDUS SPÉCIFIQUES À L'APPLICATION
+// ============================================
 
-export interface AlgoliaHit {
-  objectID: string;
+import type { Hit as AlgoliaBaseHit } from 'algoliasearch';
+
+/**
+ * Extension du type Hit d'Algolia avec nos champs spécifiques
+ * pour les facteurs d'émission (Emission Factors)
+ */
+export interface EmissionFactorData {
   Source: string;
   Date?: number;
   FE?: number;
   Incertitude?: string;
   // Multi-langues
-  Nom_fr?: string; Nom_en?: string;
-  Description_fr?: string; Description_en?: string;
-  Commentaires_fr?: string; Commentaires_en?: string;
-  Secteur_fr?: string; Secteur_en?: string;
-  'Sous-secteur_fr'?: string; 'Sous-secteur_en'?: string;
-  'Périmètre_fr'?: string; 'Périmètre_en'?: string;
-  Localisation_fr?: string; Localisation_en?: string;
-  Unite_fr?: string; Unite_en?: string;
-  // Compat: certains enregistrements historiques peuvent garder l'ancien nom FR
+  Nom_fr?: string;
+  Nom_en?: string;
+  Description_fr?: string;
+  Description_en?: string;
+  Commentaires_fr?: string;
+  Commentaires_en?: string;
+  Secteur_fr?: string;
+  Secteur_en?: string;
+  'Sous-secteur_fr'?: string;
+  'Sous-secteur_en'?: string;
+  'Périmètre_fr'?: string;
+  'Périmètre_en'?: string;
+  Localisation_fr?: string;
+  Localisation_en?: string;
+  Unite_fr?: string;
+  Unite_en?: string;
+  // Compat: certains enregistrements historiques
   "Unité donnée d'activité"?: string;
   // Legacy non localisés (compat)
   Nom?: string;
@@ -48,99 +70,16 @@ export interface AlgoliaHit {
   __indexName?: string;
   // Server-side processing
   is_blurred?: boolean;
-  // Highlight results
-  _highlightResult?: AlgoliaHighlightResultRecord;
 }
 
-// ============================================
-// ALGOLIA SEARCH PARAMS
-// ============================================
+/**
+ * Type principal pour nos hits Algolia
+ * Combine le Hit de base d'Algolia avec nos données métier
+ */
+export type AlgoliaHit = AlgoliaBaseHit<EmissionFactorData>;
 
-export type AlgoliaFacetFilter = string | string[];
-export type AlgoliaFacetFilters = (AlgoliaFacetFilter | AlgoliaFacetFilter[])[];
-
-export interface AlgoliaSearchParams {
-  query?: string;
-  filters?: string;
-  facetFilters?: AlgoliaFacetFilters;
-  facets?: string[];
-  attributesToRetrieve?: string[];
-  attributesToHighlight?: string[];
-  attributesToSnippet?: string[];
-  hitsPerPage?: number;
-  page?: number;
-  offset?: number;
-  length?: number;
-  getRankingInfo?: boolean;
-  analytics?: boolean;
-  analyticsTags?: string[];
-  clickAnalytics?: boolean;
-  userToken?: string;
-}
-
-// ============================================
-// ALGOLIA SEARCH RESPONSE
-// ============================================
-
-export interface AlgoliaFacetStats {
-  min: number;
-  max: number;
-  avg: number;
-  sum: number;
-}
-
-export interface AlgoliaFacets {
-  [facetName: string]: {
-    [facetValue: string]: number;
-  };
-}
-
-export interface AlgoliaFacetStatsRecord {
-  [facetName: string]: AlgoliaFacetStats;
-}
-
-export interface AlgoliaSearchResponse<T = AlgoliaHit> {
-  hits: T[];
-  nbHits: number;
-  page: number;
-  nbPages: number;
-  hitsPerPage: number;
-  exhaustiveNbHits: boolean;
-  exhaustiveFacetsCount: boolean;
-  exhaustiveTypo: boolean;
-  processingTimeMS: number;
-  query: string;
-  params?: string;
-  index?: string;
-  facets?: AlgoliaFacets;
-  facets_stats?: AlgoliaFacetStatsRecord;
-  queryID?: string;
-  serverTimeMS?: number;
-}
-
-// ============================================
-// ALGOLIA CLIENT TYPES
-// ============================================
-
-export interface AlgoliaSearchOptions {
-  cacheable?: boolean;
-  timeout?: number;
-  headers?: Record<string, string>;
-}
-
-export interface AlgoliaMultipleQueriesOptions {
-  strategy?: 'none' | 'stopIfEnoughMatches';
-}
-
-export interface AlgoliaIndexQuery {
-  indexName: string;
-  params?: AlgoliaSearchParams;
-  query?: string;
-}
-
-export interface AlgoliaMultipleQueriesResponse {
-  results: AlgoliaSearchResponse[];
-}
+// Note: Les types de base (SearchParams, SearchResponse, FacetFilters, etc.)
+// sont importés depuis 'algoliasearch' ci-dessus
 
 // ============================================
 // CACHE & REQUEST TYPES
