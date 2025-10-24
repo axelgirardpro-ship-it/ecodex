@@ -1,9 +1,3 @@
-// @ts-nocheck
-// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
-// Ce fichier nécessite des interfaces TypeScript pour :
-// - Les paramètres de requête Algolia (SearchParams, FacetFilters, etc.)
-// - Les réponses Supabase (workspace_source_assignments, profiles)
-// - Les résultats Algolia (AlgoliaHit avec tous les attributs)
 /**
  * ALGOLIA SEARCH PROXY - Architecture de recherche unifiée
  * 
@@ -20,7 +14,84 @@
  * 4. Post-traitement pour blur/teaser selon assignations workspace
  * 5. Réponse avec flag is_blurred pour éléments premium non-assignés
  */
+// @ts-ignore Deno runtime types
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+
+// ============================================
+// TYPES & INTERFACES
+// ============================================
+
+type Origin = 'public' | 'private';
+
+interface ValidationResult {
+  valid: boolean;
+  message?: string;
+}
+
+interface SearchRequest {
+  params?: SearchParams;
+  origin?: Origin;
+  [key: string]: unknown;
+}
+
+interface SearchParams {
+  query?: string;
+  filters?: string;
+  facetFilters?: unknown;
+  facets?: string[];
+  maxValuesPerFacet?: number;
+  sortFacetValuesBy?: string;
+  maxFacetHits?: number;
+  ruleContexts?: string[];
+  searchType?: string;
+  hitsPerPage?: number;
+  page?: number;
+  attributesToRetrieve?: string[];
+  attributesToHighlight?: string[];
+  restrictSearchableAttributes?: string[];
+  origin?: Origin;
+}
+
+interface AlgoliaHit {
+  Source: string;
+  access_level?: 'public' | 'premium' | 'paid';
+  FE?: number;
+  is_blurred?: boolean;
+  [key: string]: unknown;
+}
+
+interface AlgoliaSearchResponse {
+  hits: AlgoliaHit[];
+  nbHits: number;
+  page: number;
+  nbPages: number;
+  hitsPerPage: number;
+  processingTimeMS?: number;
+  query?: string;
+  params?: string;
+  facets?: Record<string, Record<string, number>>;
+  [key: string]: unknown;
+}
+
+interface AlgoliaMultiResponse {
+  results: AlgoliaSearchResponse[];
+}
+
+interface AlgoliaRequestBody {
+  indexName: string;
+  params: string;
+}
+
+interface UnifiedParams {
+  appliedFilters: string;
+  appliedFacetFilters: unknown[];
+  attributesToRetrieve: string[] | undefined;
+}
+
+interface JWTPayload {
+  sub: string;
+  [key: string]: unknown;
+}
 
 // CACHE DÉSACTIVÉ : Le cache par instance créait des inconsistances
 // Algolia a déjà son propre cache, pas besoin d'ajouter une couche supplémentaire
@@ -46,12 +117,13 @@ const SENSITIVE_ATTRIBUTES = ['FE'];
  * Cette validation côté serveur empêche les requêtes Algolia vides/courtes
  * EXCEPTION: Permet les requêtes avec facettes pour initialiser les filtres
  */
-function validateQuery(query: string, request: any): { valid: boolean; message?: string } {
+function validateQuery(query: string, request: SearchRequest): ValidationResult {
   const trimmed = (query || '').trim();
   
   // Permettre les requêtes avec facettes même sans query (pour initialiser les filtres)
-  const hasFacets = Array.isArray(request?.facets) && request.facets.length > 0;
-  const hasFilters = request?.filters || request?.facetFilters;
+  const params = request?.params || request;
+  const hasFacets = Array.isArray(params?.facets) && params.facets.length > 0;
+  const hasFilters = params?.filters || params?.facetFilters;
   
   if (trimmed.length < 3 && !hasFacets && !hasFilters) {
     return { 
@@ -66,7 +138,7 @@ function validateQuery(query: string, request: any): { valid: boolean; message?:
  * Post-traitement sécurisé des résultats Algolia
  * Applique le blur/teaser selon les assignations workspace
  */
-function postProcessResults(results: any[], hasWorkspaceAccess: boolean, assignedSources: string[] = []): any[] {
+function postProcessResults(results: AlgoliaHit[], hasWorkspaceAccess: boolean, assignedSources: string[] = []): AlgoliaHit[] {
   return results.map(hit => {
     // Vérifier si c'est une source payante (premium ou paid)
     const isPaid = hit.access_level === 'premium' || hit.access_level === 'paid';
@@ -85,7 +157,7 @@ function postProcessResults(results: any[], hasWorkspaceAccess: boolean, assigne
   });
 }
 
-function encodeParams(params: Record<string, any>): string {
+function encodeParams(params: Record<string, unknown>): string {
   const flat: Record<string, string> = {};
   for (const [k, v] of Object.entries(params || {})) {
     if (v === undefined || v === null) continue;
@@ -106,12 +178,13 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-function jsonResponse(status: number, data: any, origin?: string | null) {
-  const headers = { ...corsHeaders, 'Content-Type': 'application/json' }
+function jsonResponse(status: number, data: unknown, origin?: string | null): Response {
+  const headers: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' }
   if (origin) headers['Access-Control-Allow-Origin'] = origin
   return new Response(JSON.stringify(data), { status, headers })
 }
 
+// @ts-ignore Deno runtime
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -123,12 +196,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // @ts-ignore Deno.env
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+    // @ts-ignore Deno.env
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+    // @ts-ignore Deno.env
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     // Utiliser les noms de secrets Supabase
+    // @ts-ignore Deno.env
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID')!
+    // @ts-ignore Deno.env
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!
+    // @ts-ignore Deno.env
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') || 'ef_all'
     
     // Debug des variables d'environnement
@@ -157,7 +236,7 @@ Deno.serve(async (req) => {
       try {
         const parts = token.split('.')
         if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as JWTPayload
           const extractedUserId = payload.sub
           
           if (extractedUserId) {
@@ -178,9 +257,9 @@ Deno.serve(async (req) => {
     }
 
     // Récupérer le body de la requête
-    const rawBody = await req.json()
-    const isBatch = Array.isArray(rawBody?.requests)
-    const incomingRequests = isBatch ? rawBody.requests : [rawBody]
+    const rawBody = await req.json() as { requests?: SearchRequest[] } | SearchRequest
+    const isBatch = Array.isArray((rawBody as { requests?: SearchRequest[] }).requests)
+    const incomingRequests: SearchRequest[] = isBatch ? (rawBody as { requests: SearchRequest[] }).requests : [rawBody as SearchRequest]
 
     // Récupérer le workspace et les sources assignées de l'utilisateur
     let workspaceId: string | null = null
@@ -217,11 +296,11 @@ Deno.serve(async (req) => {
      * - Workspace: filtré selon workspace_id de l'utilisateur
      * - Pas de teaser: accès complet aux données du workspace
      */
-    const buildUnified = (originParam: 'public'|'private'|undefined, searchTypeParam?: string) => {
+    const buildUnified = (originParam: Origin | undefined, searchTypeParam?: string): UnifiedParams => {
       // Nettoyer les paramètres legacy
       const origin = originParam || 'public' // Plus de support 'fullPrivate'
       let appliedFilters = ''
-      let appliedFacetFilters: any[] = []
+      let appliedFacetFilters: unknown[] = []
       let attributesToRetrieve: string[] | undefined
       
       if (origin === 'public') {
@@ -251,9 +330,9 @@ Deno.serve(async (req) => {
     // Validation supprimée: permettre les requêtes vides/courtes pour initialiser les facettes
 
     // Construire les requêtes Algolia (multi)
-    const built = incomingRequests.map((r: any, idx: number) => {
+    const built = incomingRequests.map((r: SearchRequest, idx: number) => {
       const params = r?.params || r || {}
-      const reqOrigin = r?.origin || params?.origin
+      const reqOrigin = (r?.origin || (params as SearchParams)?.origin) as Origin | undefined
       const {
         query,
         filters,
@@ -271,7 +350,7 @@ Deno.serve(async (req) => {
         restrictSearchableAttributes
       } = params
       const { appliedFilters, appliedFacetFilters, attributesToRetrieve } = buildUnified(
-        (reqOrigin as 'public'|'private'|undefined), String(searchType || '')
+        reqOrigin, String(searchType || '')
       )
       
       // DEBUG: Log pour diagnostiquer le filtrage
@@ -284,12 +363,12 @@ Deno.serve(async (req) => {
         })
       }
       const combinedFilters = filters ? `(${appliedFilters}) AND (${filters})` : appliedFilters
-      let combinedFacetFilters: any[] = [...appliedFacetFilters]
+      let combinedFacetFilters: unknown[] = [...appliedFacetFilters]
       if (facetFilters) {
         if (Array.isArray(facetFilters)) combinedFacetFilters = [...combinedFacetFilters, ...facetFilters]
         else combinedFacetFilters.push(facetFilters)
       }
-      const paramsObj: Record<string, any> = {
+      const paramsObj: Record<string, unknown> = {
         query: query || '',
         filters: combinedFilters,
         facetFilters: combinedFacetFilters.length > 0 ? combinedFacetFilters : undefined,
@@ -339,12 +418,12 @@ Deno.serve(async (req) => {
       return jsonResponse(500, { error: 'Search failed', details: errorText }, origin)
     }
     
-    const multiJson = await response.json()
+    const multiJson = await response.json() as AlgoliaMultiResponse
     let results = (multiJson?.results || [])
     
     // Post-traitement sécurisé: appliquer le blur/teaser selon les assignations
     // IMPORTANT: On DOIT préserver TOUS les champs du result Algolia (facets, nbHits, etc.)
-    results = results.map((result: any) => {
+    results = results.map((result: AlgoliaSearchResponse) => {
       if (result?.hits) {
         const processedHits = postProcessResults(
           result.hits, 
@@ -363,15 +442,16 @@ Deno.serve(async (req) => {
     // Compatibilité: si la requête initiale n'était pas batch, retourner objet simple
     if (!isBatch) {
       const firstParams = incomingRequests[0]?.params || incomingRequests[0] || {}
-      const hitsPerPage = Number(firstParams.hitsPerPage || 20)
+      const hitsPerPage = Number((firstParams as SearchParams).hitsPerPage || 20)
       return jsonResponse(200, results[0] || { hits: [], nbHits: 0, page: 0, nbPages: 0, hitsPerPage }, origin)
     }
 
     return jsonResponse(200, { results }, origin)
 
-  } catch (error) {
-    console.error('Proxy error:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Proxy error:', errorMessage)
     const origin = req.headers.get('Origin')
-    return jsonResponse(500, { error: 'Internal server error', details: String(error) }, origin)
+    return jsonResponse(500, { error: 'Internal server error', details: errorMessage }, origin)
   }
 })
