@@ -1,11 +1,9 @@
-// Edge Function: generate-benchmark
-// Version: 1.1.1 - FEATURE: Allow benchmark generation without search query (filters only)
-// @ts-nocheck - This is a Deno Edge Function
-// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
-// Ce fichier nécessite des interfaces TypeScript pour :
-// - Les réponses Algolia (hits, facets, pagination)
-// - Les structures de benchmark (BenchmarkItem, BenchmarkData)
-// - Les réponses Supabase (benchmarks, workspaces)
+/**
+ * Edge Function: generate-benchmark
+ * Version: 1.1.1 - FEATURE: Allow benchmark generation without search query (filters only)
+ * Génère des benchmarks basés sur des recherches Algolia avec statistiques
+ */
+// @ts-ignore Deno runtime types
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -14,7 +12,46 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-function jsonResponse(status: number, data: any) {
+interface BenchmarkStatistics {
+  sampleSize: number;
+  median: number;
+  q1: number;
+  q3: number;
+  min: number;
+  max: number;
+  mean: number;
+  standardDeviation: number;
+  iqr: number;
+  percentRange: number;
+}
+
+interface BenchmarkRequestBody {
+  query?: string;
+  filters?: Record<string, unknown>;
+  facetFilters?: unknown[];
+  workspaceId: string;
+}
+
+interface AlgoliaSearchParams {
+  query?: string;
+  filters?: string;
+  facetFilters?: unknown[];
+  hitsPerPage?: number;
+  [key: string]: unknown;
+}
+
+interface AlgoliaHit {
+  FE?: number;
+  [key: string]: unknown;
+}
+
+interface AlgoliaSearchResponse {
+  hits: AlgoliaHit[];
+  nbHits: number;
+  [key: string]: unknown;
+}
+
+function jsonResponse(status: number, data: unknown): Response {
   const headers = { ...corsHeaders, 'Content-Type': 'application/json' };
   return new Response(JSON.stringify(data), { status, headers });
 }
@@ -59,7 +96,12 @@ function calculateStatistics(values: number[]) {
 }
 
 // Fonction pour appeler l'API Algolia directement
-async function algoliaSearch(appId: string, apiKey: string, indexName: string, params: any) {
+async function algoliaSearch(
+  appId: string,
+  apiKey: string,
+  indexName: string,
+  params: AlgoliaSearchParams
+): Promise<AlgoliaSearchResponse> {
   const url = `https://${appId}-dsn.algolia.net/1/indexes/${indexName}/query`;
   
   const response = await fetch(url, {
@@ -80,7 +122,7 @@ async function algoliaSearch(appId: string, apiKey: string, indexName: string, p
 }
 
 // Encoder les paramètres Algolia
-function encodeParams(params: Record<string, any>): string {
+function encodeParams(params: Record<string, unknown>): string {
   const flat: Record<string, string> = {};
   for (const [k, v] of Object.entries(params || {})) {
     if (v === undefined || v === null) continue;
@@ -95,6 +137,7 @@ function encodeParams(params: Record<string, any>): string {
     .join('&');
 }
 
+// @ts-ignore Deno runtime
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -105,10 +148,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // @ts-ignore Deno.env
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    // @ts-ignore Deno.env
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // @ts-ignore Deno.env
     const ALGOLIA_APP_ID = Deno.env.get('ALGOLIA_APP_ID')!;
+    // @ts-ignore Deno.env
     const ALGOLIA_ADMIN_KEY = Deno.env.get('ALGOLIA_ADMIN_KEY')!;
+    // @ts-ignore Deno.env
     const ALGOLIA_INDEX_ALL = Deno.env.get('ALGOLIA_INDEX_ALL') || 'ef_all';
 
     // Auth - Créer le client et valider le JWT
@@ -151,7 +199,7 @@ Deno.serve(async (req) => {
     // Créer un client admin pour les requêtes privilégiées
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const requestBody = await req.json();
+    const requestBody = await req.json() as BenchmarkRequestBody;
     const { query, filters, facetFilters, workspaceId } = requestBody;
 
     if (!workspaceId) {
