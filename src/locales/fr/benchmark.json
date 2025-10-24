@@ -15,6 +15,10 @@
   },
   "header": {
     "sample_size": "{{count}} facteurs d'émission analysés",
+    "title_placeholder": "Titre du benchmark",
+    "edit_title": "Éditer le titre",
+    "title_updated": "Titre mis à jour",
+    "title_updated_desc": "Le titre du benchmark a été modifié avec succès",
     "actions": {
       "save": "Sauvegarder",
       "share": "Partager",

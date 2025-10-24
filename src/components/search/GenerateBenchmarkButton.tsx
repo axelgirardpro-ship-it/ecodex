@@ -29,11 +29,15 @@ export const GenerateBenchmarkButton = () => {
   const hasResults = results && results.nbHits > 0;
   const isFreePlan = currentWorkspace?.plan_type === 'freemium';
   const hasNoQuery = !query || query.trim() === '';
+  const hasActiveFilters = indexUiState.refinementList 
+    && Object.keys(indexUiState.refinementList).length > 0;
 
   // Déterminer la raison de la désactivation
   const getDisabledReason = () => {
-    if (hasNoQuery) {
-      return t('search:benchmark.errors.no_query', 'Please enter a search query');
+    // Autoriser si recherche OU filtres actifs
+    if (hasNoQuery && !hasActiveFilters) {
+      return t('search:benchmark.errors.no_query_or_filters', 
+        'Please enter a search query or apply filters');
     }
     if (!hasResults) {
       return t('search:benchmark.errors.no_results', 'No results found for this search');
@@ -68,7 +72,11 @@ export const GenerateBenchmarkButton = () => {
 
     // Si validation OK, construire les paramètres pour la page benchmark
     const searchParams = new URLSearchParams();
-    searchParams.set('query', query);
+    
+    // Rendre query optionnel
+    if (query && query.trim()) {
+      searchParams.set('query', query);
+    }
 
     // Ajouter les filtres si présents
     if (indexUiState.refinementList) {

@@ -15,6 +15,10 @@
   },
   "header": {
     "sample_size": "{{count}} emission factors analyzed",
+    "title_placeholder": "Benchmark title",
+    "edit_title": "Edit title",
+    "title_updated": "Title updated",
+    "title_updated_desc": "The benchmark title has been successfully updated",
     "actions": {
       "save": "Save",
       "share": "Share",

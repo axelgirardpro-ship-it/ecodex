@@ -22,7 +22,15 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ## 2025-10
 
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
+
 ### 2025-10-23 🐛 Hotfix
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **2025-10-23_FIX_benchmark_date_range_period_2025-10-23.md** - Fix période du benchmark (champ Publication fantôme)
 - **2025-10-23_HOTFIX_2025-10-23_jwt_edge_functions_config.md** - Hotfix JWT authentication error 401 sur generate-benchmark (config verify_jwt manquante)
 - **2025-10-23_HOTFIX_2025-10-23_jwt_generate_benchmark.md** - Hotfix JWT authentication error 401 sur generate-benchmark (pattern robuste décodage manuel)
@@ -32,6 +40,10 @@ Ce fichier liste tous les documents historiques de développement classés par o
 - **2025-10-23_HOTFIX_2025-10-23_algolia_10kb_limit.md** - Suppression commentaires pour 316 records BEIS dépassant la limite Algolia de 10KB
 
 ### 2025-10-22 🎯 Feature Benchmark (Phase 7)
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **2025-10-22_PR_BENCHMARK_IMPROVEMENTS.md** - PR améliorations Benchmark : validation pré-navigation, correction header UI et boot Edge Function
 - **PHASE7_TESTS_CHECKLIST.md** - Checklist complète des tests pour la feature Benchmark
 - **PHASE7_CORRECTIONS_APPLIQUEES.md** - Corrections immédiates appliquées (export default, clés React)
@@ -41,6 +53,10 @@ Ce fichier liste tous les documents historiques de développement classés par o
 - **IMPLEMENTATION_COMPLETE.md** - Résumé de l'implémentation (6/7 phases terminées)
 
 ### 2025-10-20 🐛 Hotfix Filtre Private + ⚡ Optimisations
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **HOTFIX_FILTRE_PRIVATE_ALGOLIA_20251020.md** - Correction du filtre "Base personnelle" (0 résultats)
 - **DIAGNOSTIC_FINAL_FILTRE_PRIVATE.md** - Diagnostic complet du problème de filtre Private
 - **INSTRUCTIONS_TEST_FINAL.md** - Instructions pour tester le filtre Private
@@ -54,6 +70,10 @@ Ce fichier liste tous les documents historiques de développement classés par o
 - **RAPPORT_ANALYSE_PHASE2_20251020.md** - Phase 2 : Analyse diagnostique complète
 
 ### 2025-10-16 ⚡ Optimisation React Query
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **OPTIMISATION_REACT_QUERY_COMPLETE.md** - Documentation technique complète de l'optimisation
 - **CHANGELOG_REACT_QUERY.md** - Changelog détaillé avec avant/après
 - **MIGRATION_SUMMARY.md** - Résumé de la migration React Query
@@ -62,9 +82,17 @@ Ce fichier liste tous les documents historiques de développement classés par o
 - **CORRECTIONS_REALTIME_ET_QUOTAS.md** - Corrections des erreurs Realtime
 
 ### 2025-10-16 📊 Audit Réseau
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **AUDIT_RESEAU_MANGUE_20241016.md** - Audit complet de la recherche "mangue" (150 requêtes détectées)
 
 ### 2025-10-15 📦 Migrations & 🧹 Maintenance
+
+### 2025-10-24 📊 Rapport
+- **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
+- **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **MIGRATION_SCORES_ALGOLIA_20251015.md** - Migration des champs de score Algolia
 - **NETTOYAGE_LEGACY_20251015.md** - Nettoyage de ~80+ fichiers obsolètes
 - **COMPARATIF_VECTOR_DB_OCT2025.md** - Comparatif Pinecone vs Qdrant vs pgvector
@@ -91,7 +119,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 42
+**Total de documents indexés** : 44
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11
