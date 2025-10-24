@@ -40,32 +40,42 @@ export const BenchmarkView = () => {
     };
   }, [location]);
 
-  // Redirection si route invalide (pas d'ID et pas de query valide)
+  // Redirection si route invalide (pas d'ID, pas de query, et pas de filtres)
   useEffect(() => {
-    if (!id && !searchParams.query) {
+    const hasQuery = searchParams.query && searchParams.query.trim();
+    const hasFilters = (searchParams.filters && Object.keys(searchParams.filters).length > 0)
+      || (searchParams.facetFilters && searchParams.facetFilters.length > 0);
+    
+    if (!id && !hasQuery && !hasFilters) {
       navigate('/search', { replace: true });
     }
-  }, [id, searchParams.query, navigate]);
+  }, [id, searchParams, navigate]);
 
   // State pour l'affichage
   const [displayMode, setDisplayMode] = useState<DisplayMode>(25);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [customTitle, setCustomTitle] = useState<string | null>(null);
 
   // Hook pour benchmark sauvegardé (si ID fourni)
-  const { useBenchmarkDetail } = useBenchmarkStorage();
+  const { useBenchmarkDetail, updateBenchmark } = useBenchmarkStorage();
   const { data: savedBenchmarkRaw, isLoading: isLoadingSaved } = useBenchmarkDetail(id);
 
   // Hook pour génération (si pas d'ID)
+  // Activer la génération si query OU filtres présents
+  const hasQuery = searchParams.query && searchParams.query.trim();
+  const hasFilters = (searchParams.filters && Object.keys(searchParams.filters).length > 0)
+    || (searchParams.facetFilters && searchParams.facetFilters.length > 0);
+  
   const {
     data: generatedBenchmark,
     isLoading: isGenerating,
     error: generationError,
   } = useBenchmarkGeneration(
-    searchParams.query,
+    searchParams.query || '',
     searchParams.filters,
     searchParams.facetFilters,
     {
-      enabled: !id && !!searchParams.query,
+      enabled: !id && (hasQuery || hasFilters),
     }
   );
 
@@ -92,6 +102,48 @@ export const BenchmarkView = () => {
   // Déterminer quelle source de données utiliser
   const benchmarkData = id ? savedBenchmark : generatedBenchmark;
   const isLoading = id ? isLoadingSaved : isGenerating;
+
+  // Handler pour mise à jour du titre
+  const handleTitleChange = async (newTitle: string) => {
+    if (id) {
+      // Benchmark sauvegardé : mettre à jour en base
+      try {
+        await updateBenchmark({ id, title: newTitle });
+        setCustomTitle(newTitle);
+      } catch (error) {
+        console.error('Failed to update benchmark title:', error);
+      }
+    } else {
+      // Benchmark non sauvegardé : mettre à jour le state local
+      setCustomTitle(newTitle);
+    }
+  };
+
+  // Calculer le titre affiché (customTitle > savedBenchmark.title > metadata.query + filtres)
+  const displayTitle = useMemo(() => {
+    if (customTitle) return customTitle;
+    if (savedBenchmarkRaw?.title) return savedBenchmarkRaw.title;
+    
+    const parts: string[] = [];
+    
+    // 1. Ajouter la recherche si elle existe et n'est pas "Filtres uniquement"
+    if (benchmarkData?.metadata.query && benchmarkData.metadata.query !== 'Filtres uniquement') {
+      parts.push(benchmarkData.metadata.query);
+    }
+    
+    // 2. Toujours afficher unité et périmètre
+    if (benchmarkData?.metadata.unit && benchmarkData?.metadata.scope) {
+      parts.push(`kgCO2eq/${benchmarkData.metadata.unit}`);
+      parts.push(benchmarkData.metadata.scope);
+    }
+    
+    // 3. Ajouter la source si une seule source active
+    if (benchmarkData?.metadata.sources?.length === 1) {
+      parts.push(benchmarkData.metadata.sources[0]);
+    }
+    
+    return parts.join(' - ') || 'Benchmark';
+  }, [customTitle, savedBenchmarkRaw, benchmarkData]);
 
   // Sélectionner les points à afficher selon displayMode
   const displayedChartData = useMemo(() => {
@@ -194,15 +246,12 @@ export const BenchmarkView = () => {
     return sortedData;
   }, [benchmarkData, displayMode, sortOrder]);
 
-  // Redirection si pas de query et pas d'ID avec useEffect pour éviter les erreurs
-  React.useEffect(() => {
-    if (!id && !searchParams.query) {
-      navigate('/benchmark');
-    }
-  }, [id, searchParams.query, navigate]);
-
-  // Si pas de query ni d'ID, afficher un message temporaire
-  if (!id && !searchParams.query) {
+  // Si pas de query, pas de filtres et pas d'ID, afficher un message temporaire
+  const hasQueryForDisplay = searchParams.query && searchParams.query.trim();
+  const hasFiltersForDisplay = (searchParams.filters && Object.keys(searchParams.filters).length > 0)
+    || (searchParams.facetFilters && searchParams.facetFilters.length > 0);
+  
+  if (!id && !hasQueryForDisplay && !hasFiltersForDisplay) {
     return (
       <div className="min-h-screen bg-background">
         <UnifiedNavbar />
@@ -230,11 +279,12 @@ export const BenchmarkView = () => {
         ) : benchmarkData ? (
           <>
             <BenchmarkHeader
-              title={savedBenchmarkRaw?.title || `Benchmark : ${benchmarkData.metadata.query} - ${benchmarkData.metadata.unit} - ${benchmarkData.metadata.scope}`}
+              title={displayTitle}
               benchmarkData={benchmarkData}
               searchParams={searchParams}
               savedBenchmarkId={id}
               benchmarkContainerId="benchmark-content"
+              onTitleChange={handleTitleChange}
             />
 
             {benchmarkData.warnings.length > 0 && (

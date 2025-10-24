@@ -1,5 +1,5 @@
 // Edge Function: generate-benchmark
-// Version: 1.0.5 - HOTFIX: Fix JWT authentication (use manual decode + admin.getUserById)
+// Version: 1.1.1 - FEATURE: Allow benchmark generation without search query (filters only)
 // @ts-nocheck - This is a Deno Edge Function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -149,8 +149,19 @@ Deno.serve(async (req) => {
     const requestBody = await req.json();
     const { query, filters, facetFilters, workspaceId } = requestBody;
 
-    if (!query || !workspaceId) {
-      return jsonResponse(400, { error: 'Missing required parameters: query and workspaceId' });
+    if (!workspaceId) {
+      return jsonResponse(400, { error: 'Missing required parameter: workspaceId' });
+    }
+
+    // Vérifier qu'on a soit une query, soit des filtres
+    const hasQuery = query && query.trim();
+    const hasFilters = (filters && Object.keys(filters).length > 0) 
+      || (facetFilters && facetFilters.length > 0);
+
+    if (!hasQuery && !hasFilters) {
+      return jsonResponse(400, { 
+        error: 'Missing required parameters: query or filters are required' 
+      });
     }
 
     console.log('✅ Starting benchmark generation for workspace:', workspaceId);
@@ -236,7 +247,7 @@ Deno.serve(async (req) => {
 
     // Étape 1 : Validation (requête facets-only)
     const validationParams: any = {
-      query,
+      query: query || '', // Algolia accepte query vide
       hitsPerPage: 0,
       facets: ['Unite_fr', 'Périmètre_fr', 'Source', 'Date'],
     };
@@ -295,7 +306,7 @@ Deno.serve(async (req) => {
     // Étape 2 : Requête complète
     // Note: Augmenter hitsPerPage car on filtre côté serveur (teasers, sources payantes non-assignées)
     const searchParams: any = {
-      query,
+      query: query || '', // Algolia accepte query vide
       hitsPerPage: 1000, // Max Algolia
       attributesToRetrieve: [
         'FE', 
@@ -472,7 +483,7 @@ Deno.serve(async (req) => {
       top10,
       worst10,
       metadata: {
-        query: query || '',
+        query: query || 'Filtres uniquement',
         unit: units[0],
         scope: scopes[0],
         sourcesCount: sources.length,

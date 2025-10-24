@@ -95,6 +95,7 @@
     "generate_button": "Generate benchmark",
     "errors": {
       "no_query": "Please enter a search query",
+      "no_query_or_filters": "Please enter a search query or apply filters",
       "no_results": "No results found for this search",
       "quota_exceeded": "Quota exceeded ({{used}}/{{limit}}). Upgrade to Pro plan for unlimited benchmarks."
     }
