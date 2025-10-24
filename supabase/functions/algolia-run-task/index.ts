@@ -49,9 +49,9 @@ serve(async (req) => {
     if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
     // @ts-expect-error - Deno global is provided by Edge Functions runtime
-    const ALGOLIA_APP_ID = (globalThis as any).Deno?.env.get("ALGOLIA_APP_ID") ?? (globalThis as any).Deno?.env.get("ALGOLIA_APPLICATION_ID") ?? "";
+    const ALGOLIA_APP_ID = Deno.env.get("ALGOLIA_APP_ID") ?? Deno.env.get("ALGOLIA_APPLICATION_ID") ?? "";
     // @ts-expect-error - Deno env is provided by Edge Functions runtime
-    const ALGOLIA_ADMIN_KEY = (globalThis as any).Deno?.env.get("ALGOLIA_ADMIN_KEY") ?? (globalThis as any).Deno?.env.get("ALGOLIA_WRITE_API_KEY") ?? "";
+    const ALGOLIA_ADMIN_KEY = Deno.env.get("ALGOLIA_ADMIN_KEY") ?? Deno.env.get("ALGOLIA_WRITE_API_KEY") ?? "";
     if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) return json(500, { error: "Algolia credentials missing in environment" });
 
     const body = await req.json().catch(() => ({}));
