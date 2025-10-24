@@ -1,10 +1,27 @@
-// @ts-nocheck
-// TODO Phase 2: Remplacer @ts-nocheck par des types appropriés
-// Ce fichier nécessite des interfaces TypeScript pour :
-// - Les réponses Supabase (storage, chunks, profiles)
-// - La validation JWT et le décodage de payload
-/* eslint-disable */
+/**
+ * Edge Function: chunked-upload
+ * Délègue l'import CSV à import-csv-user après validation JWT
+ */
+// @ts-ignore Deno runtime types
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// ============================================
+// TYPES & INTERFACES
+// ============================================
+
+interface JWTPayload {
+  sub: string;
+  [key: string]: unknown;
+}
+
+interface ChunkedUploadRequest {
+  dataset_name?: string;
+  name?: string;
+  file_path?: string;
+  path?: string;
+  language?: string;
+  add_to_favorites?: boolean;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +29,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-function json(status: number, body: unknown) {
+function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
+// @ts-ignore Deno runtime
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   try {
     if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
 
+    // @ts-ignore Deno.env
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    // @ts-ignore Deno.env
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
     const authHeader = req.headers.get('Authorization')
@@ -42,7 +62,7 @@ Deno.serve(async (req) => {
         throw new Error('Invalid JWT format')
       }
       
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as JWTPayload
       userId = payload.sub
       
       if (!userId) {
@@ -68,7 +88,7 @@ Deno.serve(async (req) => {
     const user = authUser.user
     console.log('[chunked-upload] User authenticated successfully:', user.id)
 
-    const body = await req.json().catch(()=> ({})) as any
+    const body = await req.json().catch(()=> ({})) as ChunkedUploadRequest
     // Nouveau flux: délègue intégralement à import-csv-user
     const datasetName = String(body.dataset_name || body.name || '')
     const filePath = String(body.file_path || body.path || '')
@@ -91,12 +111,13 @@ Deno.serve(async (req) => {
 
     const contentType = resp.headers.get('content-type') || ''
     if (!resp.ok) {
-      let details: any = await (contentType.includes('application/json') ? resp.json() : resp.text())
+      const details: unknown = await (contentType.includes('application/json') ? resp.json() : resp.text())
       return json(resp.status, { error: 'delegate_failed', details })
     }
-    const data = await resp.json()
+    const data = await resp.json() as unknown
     return json(200, { delegated: true, data })
-  } catch (e) {
-    return json(500, { error: String(e && (e as any).message || e) })
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return json(500, { error: errorMessage })
   }
 })
