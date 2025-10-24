@@ -1,13 +1,13 @@
 // Système de déduplication des requêtes Algolia
 export interface PendingRequest {
-  promise: Promise<any>;
+  promise: Promise<unknown>;
   timestamp: number;
   requestCount: number;
 }
 
 export class RequestDeduplicator {
   private pendingRequests = new Map<string, PendingRequest>();
-  private requestQueue = new Map<string, any[]>();
+  private requestQueue = new Map<string, unknown[]>();
   private readonly timeout = 5000; // 5 secondes timeout
 
   private generateRequestKey(request: Record<string, unknown>): string {

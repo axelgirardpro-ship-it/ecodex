@@ -203,7 +203,7 @@ export const optimizeConfigForEnvironment = (): ProductionConfig => {
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   const isSlowConnection = typeof navigator !== 'undefined' && 
     'connection' in navigator && 
-    (navigator as any).connection?.effectiveType === 'slow-2g';
+    (navigator as unknown as { connection?: { effectiveType?: string } }).connection?.effectiveType === 'slow-2g';
   
   // Ajustements pour mobile ou connexion lente
   if (isMobile || isSlowConnection) {

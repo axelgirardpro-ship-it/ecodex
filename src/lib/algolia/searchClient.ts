@@ -30,7 +30,7 @@ export type Origin = 'public' | 'private';
  * Résout l'origine depuis les facetFilters Algolia
  * Fallback sur 'public' si aucune origine explicite trouvée
  */
-export function resolveOriginFromFacetFilters(facetFilters: any): Origin {
+export function resolveOriginFromFacetFilters(facetFilters: unknown): Origin {
   let origin: Origin = 'public'; // Fallback sur base commune
   const flat = Array.isArray(facetFilters) ? facetFilters.flat() : [];
   for (const f of flat) {
@@ -49,9 +49,9 @@ export function resolveOrigin(params: Record<string, unknown>): Origin {
   return resolveOriginFromFacetFilters(params?.facetFilters);
 }
 
-export function sanitizeFacetFilters(facetFilters: any): any {
+export function sanitizeFacetFilters(facetFilters: unknown): unknown {
   if (!facetFilters) return facetFilters;
-  const isTechnicalFacet = (v: any) => {
+  const isTechnicalFacet = (v: unknown) => {
     if (typeof v !== 'string') return false;
     // Retirer les facettes techniques pilotées par le provider
     return v.startsWith('source_index:') || v.startsWith('scope:');
