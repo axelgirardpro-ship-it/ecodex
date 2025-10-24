@@ -75,6 +75,12 @@ export const useBenchmarkGeneration = (
     return data as BenchmarkData;
   };
 
+  // Vérifier si on a une query OU des filtres
+  const hasQuery = query && query.trim().length > 0;
+  const hasFilters = (filters && Object.keys(filters).length > 0) || 
+    (facetFilters && facetFilters.length > 0);
+  const hasQueryOrFilters = hasQuery || hasFilters;
+
   // Utiliser useQuery pour le cache automatique
   const {
     data,
@@ -82,9 +88,9 @@ export const useBenchmarkGeneration = (
     error,
     refetch,
   } = useQuery({
-    queryKey: queryKeys.benchmark.generate(queryHash),
+    queryKey: [...queryKeys.benchmark.generate(queryHash), currentWorkspace?.id],
     queryFn: generateBenchmark,
-    enabled: options?.enabled !== false && !!user && !!currentWorkspace && !!query,
+    enabled: options?.enabled !== false && !!user && !!currentWorkspace && hasQueryOrFilters,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     onSuccess: options?.onSuccess,

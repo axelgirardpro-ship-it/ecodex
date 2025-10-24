@@ -7,6 +7,23 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-24n- **FEATURE_2025-10-24_benchmark_title_edition_inline.md** : FEATURE: Édition inline du titre des benchmarks avec tooltip intelligentn  - Documentation complète dans `docs/history/2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md`n
+
+### 2025-10-24n- **FIX_benchmark_date_range_period_2025-10-23.md** : FIX: Période du benchmark avec filtrage de date uniquen  - Documentation complète dans `docs/history/2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md`n
+
+### 2025-10-24
+- **✨ FEAT - Génération Benchmark sans recherche (filtres uniquement)** : Permet de générer un benchmark avec uniquement des filtres Périmètre + Unité
+  - **Frontend** : Bouton "Générer un benchmark" actif si recherche OU filtres actifs (≥5 FE)
+  - **Backend** : Edge Function accepte `query` vide si des filtres sont fournis
+  - **Hook** : `useBenchmarkGeneration` s'active avec `hasQueryOrFilters` (query OU filters)
+  - **Validation** : Vérification query OU filtres à tous les niveaux (bouton, page, hook)
+  - **Fix redirection** : Suppression du useEffect redondant qui redirigeait vers `/benchmark` sans vérifier les filtres
+  - **Fix condition** : Ajout de `currentWorkspace.id` dans la `queryKey` pour réactivation automatique du hook
+  - **Titre benchmark** : Affiche "Filtres uniquement" si pas de query
+  - **Version Edge Function** : v1.1.1 (v34)
+  - **Minimum FE** : 5 FE requis (au lieu de 10) pour génération avec filtres uniquement
+  - Impact : Flexibilité accrue, génération benchmark possible même sans recherche textuelle
+
 ### 2025-10-23n- **FIX_benchmark_date_range_period_2025-10-23.md** : Fix période du benchmark (champ Publication fantôme)n  - Documentation complète dans `docs/history/2025-10-23_FIX_benchmark_date_range_period_2025-10-23.md`n
 
 ### 2025-10-23n- **HOTFIX_2025-10-23_jwt_edge_functions_config.md** : Hotfix JWT authentication error 401 sur generate-benchmark (config verify_jwt manquante)n  - Documentation complète dans `docs/history/2025-10-23_HOTFIX_2025-10-23_jwt_edge_functions_config.md`n
