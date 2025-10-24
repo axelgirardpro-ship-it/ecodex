@@ -43,19 +43,10 @@ export const ContactsTable = () => {
   const { toast } = useToast();
   const { startImpersonation } = useImpersonation();
 
-  useEffect(() => {
-    fetchCompanies();
-    fetchContacts();
-  }, []);
-
-  useEffect(() => {
-    fetchContacts();
-  }, [selectedCompany, page]);
-
   const fetchCompanies = async () => {
     try {
       const data = await getAdminWorkspaces('all')
-      setCompanies((data || []).map((w:any)=>({ id: w.id, name: w.name })))
+      setCompanies((data || []).map((w: { id: string; name: string })=>({ id: w.id, name: w.name })))
     } catch (error) {
       console.error('Error fetching workspaces:', error);
     }
@@ -64,7 +55,7 @@ export const ContactsTable = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const { items, total } = await getAdminContacts(selectedCompany as any, page, pageSize)
+      const { items, total } = await getAdminContacts(selectedCompany === 'all' ? null : selectedCompany, page, pageSize)
       setContacts(items)
       setTotal(total)
     } catch (error) {
@@ -73,6 +64,15 @@ export const ContactsTable = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCompanies();
+    fetchContacts();
+  }, []);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [selectedCompany, page, fetchContacts]);
 
   const getPlanBadgeVariant = (plan: string) => {
     switch (plan) {
@@ -103,7 +103,7 @@ export const ContactsTable = () => {
   const handlePlanChange = async (contact: Contact, newPlan: string) => {
     setUpdating(`plan-${contact.workspace_id}`);
     try {
-      const data = await updateWorkspacePlan(contact.workspace_id, newPlan as any)
+      const data = await updateWorkspacePlan(contact.workspace_id, newPlan as 'freemium' | 'starter' | 'pro' | 'enterprise')
       toast({ title: "Plan du workspace mis à jour", description: `Plan changé vers ${newPlan}. ${data?.updatedUsers ?? 0} utilisateur(s) mis à jour.` })
 
       // Recharger les données
@@ -123,7 +123,7 @@ export const ContactsTable = () => {
   const handleRoleChange = async (contact: Contact, newRole: string) => {
     setUpdating(`role-${contact.user_id}`);
     try {
-      await updateUserRole(contact.user_id, contact.workspace_id, newRole as any)
+      await updateUserRole(contact.user_id, contact.workspace_id, newRole as 'admin' | 'gestionnaire' | 'lecteur')
       toast({ title: "Rôle mis à jour", description: `Rôle changé vers ${newRole}` })
 
       // Recharger les données

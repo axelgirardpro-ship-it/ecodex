@@ -71,7 +71,7 @@ export const BenchmarkStatistics = ({ statistics, unit }: BenchmarkStatisticsPro
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('statistics.title' as any)}</CardTitle>
+        <CardTitle>{t('statistics.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -83,7 +83,7 @@ export const BenchmarkStatistics = ({ statistics, unit }: BenchmarkStatisticsPro
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-sm font-medium text-muted-foreground">
-                    {t(`statistics.${stat.key}.label` as any)}
+                    {t(`statistics.${stat.key}.label`)}
                   </span>
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
@@ -91,7 +91,7 @@ export const BenchmarkStatistics = ({ statistics, unit }: BenchmarkStatisticsPro
                         <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        <p>{t(`statistics.${stat.key}.tooltip` as any)}</p>
+                        <p>{t(`statistics.${stat.key}.tooltip`)}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

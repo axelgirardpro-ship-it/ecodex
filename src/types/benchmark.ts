@@ -1,4 +1,6 @@
-// Types pour la fonctionnalité Benchmark
+/**
+ * Types pour les benchmarks
+ */
 
 export interface BenchmarkStatistics {
   sampleSize: number;
@@ -21,8 +23,8 @@ export interface BenchmarkChartDataPoint {
   scope: string;
   source: string;
   date: number | null;
-  localisation: string;
-  sector: string;
+  localisation?: string;
+  sector?: string;
   description?: string;
   comments?: string;
 }
@@ -34,15 +36,15 @@ export interface BenchmarkEmissionFactor {
   Unite_fr: string;
   Périmètre_fr: string;
   Source: string;
-  Date?: number;
-  Localisation_fr?: string;
-  Secteur_fr?: string;
-  'Sous-secteur_fr'?: string;
-  Description_fr?: string;
-  Commentaires_fr?: string;
-  Méthodologie?: string;
-  Type_de_données?: string;
-  Contributeur?: string;
+  Date: number | null;
+  Localisation_fr?: string | null;
+  Secteur_fr?: string | null;
+  'Sous-secteur_fr'?: string | null;
+  Description_fr?: string | null;
+  Commentaires_fr?: string | null;
+  Méthodologie?: string | null;
+  Type_de_données?: string | null;
+  Contributeur?: string | null;
 }
 
 export interface BenchmarkMetadata {
@@ -53,11 +55,11 @@ export interface BenchmarkMetadata {
   sources: string[];
   hasMultipleSources: boolean;
   hasMultipleYears: boolean;
+  hasLargeSample: boolean;
   dateRange: {
     min: number;
     max: number;
   } | null;
-  hasLargeSample: boolean;
 }
 
 export interface BenchmarkData {
@@ -68,46 +70,3 @@ export interface BenchmarkData {
   metadata: BenchmarkMetadata;
   warnings: string[];
 }
-
-export interface BenchmarkRequest {
-  query: string;
-  filters?: Record<string, any>;
-  facetFilters?: string[][];
-  workspaceId: string;
-  userId: string;
-}
-
-export interface SavedBenchmark {
-  id: string;
-  workspace_id: string;
-  created_by: string;
-  search_query: string;
-  search_filters: Record<string, any> | null;
-  facet_filters: string[][] | null;
-  title: string;
-  description: string | null;
-  unit: string;
-  scope: string;
-  sample_size: number;
-  sources: string[];
-  statistics: BenchmarkStatistics;
-  chart_data: BenchmarkChartDataPoint[];
-  top10: BenchmarkEmissionFactor[];
-  worst10: BenchmarkEmissionFactor[];
-  metadata: BenchmarkMetadata;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
-
-export interface BenchmarkHistoryItem {
-  id: string;
-  title: string;
-  created_at: string;
-  sample_size: number;
-  unit: string;
-}
-
-export type DisplayMode = 25 | 50;
-export type SortOrder = 'asc' | 'desc';
-

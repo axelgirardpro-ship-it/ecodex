@@ -324,7 +324,7 @@ export const ResultsTable = ({
                       <div className="truncate">{item.nom}</div>
                       {(() => {
                         const label = getSourceLabel(
-                          !!(item as any).workspace_id, 
+                          !!('workspace_id' in item && item.workspace_id), 
                           item.source
                         );
                         return label ? (

@@ -120,13 +120,13 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         };
 
     const candidates = langSpecific[base as keyof typeof langSpecific] || [base];
-    const highlight = (hit as any)._highlightResult || {};
+    const highlight = (hit._highlightResult as Record<string, { value?: string }> | undefined) || {};
     for (const attribute of candidates) {
       const highlighted = highlight[attribute];
       if (highlighted?.value) {
         return highlighted.value as string;
       }
-      const raw = (hit as any)[attribute];
+      const raw = hit[attribute];
       if (raw) return String(raw);
     }
     return '';
@@ -143,7 +143,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   }, [removeFromFavorites, tResults, toast]);
 
   const getLocalizedValue = useCallback((hit: AlgoliaHit, frKey: string, enKey: string, fallback: string[] = []) => {
-    const resolve = (key?: string) => (key ? (hit as any)[key] : undefined);
+    const resolve = (key?: string) => (key ? hit[key] : undefined);
     const primaryKey = currentLang === 'fr' ? frKey : enKey;
     const primary = resolve(primaryKey);
     if (primary !== undefined && primary !== null && String(primary).trim() !== '') return String(primary);
@@ -228,7 +228,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   }, [onRemoveSelectedFromFavorites, selectedItems, tResults, toast]);
 
   const isPrivateHit = useCallback((hit: AlgoliaHit) => {
-    return Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
+    return Boolean(hit.workspace_id) || hit.import_type === 'imported';
   }, []);
 
   if (hits.length === 0) {
@@ -395,10 +395,10 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               </p>
                             </div>
                           </div>
-                          {(hit as any).dataset_name && (
+                          {hit.dataset_name && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">{tResults('imported_dataset')}</span>
-                              <p className="text-sm font-light">{(hit as any).dataset_name}</p>
+                              <p className="text-sm font-light">{hit.dataset_name}</p>
                             </div>
                           )}
                         </div>
@@ -419,7 +419,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t space-y-3">
-                          {(hit as any).Description_fr || (hit as any).Description_en ? (
+                          {hit.Description_fr || hit.Description_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Description</span>
                               <div className="text-xs mt-1 text-break-words">
@@ -454,7 +454,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                     )
                                   }}
                                 >
-                                  {getHighlightedText(hit, 'Description') || ((hit as any).Description_fr || (hit as any).Description_en) as string}
+                                  {getHighlightedText(hit, 'Description') || (hit.Description_fr || hit.Description_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>
@@ -468,7 +468,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               />
                             </div>
                           )}
-                          {((hit as any).Contributeur || (hit as any).Contributeur_en) && (
+                          {(hit.Contributeur || hit.Contributeur_en) && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">
                                 {currentLang === 'fr' ? 'Contributeur' : 'Contributor'}
@@ -505,12 +505,12 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                     )
                                   }}
                                 >
-                                  {getHighlightedText(hit, 'Contributeur') || (currentLang === 'fr' ? (hit as any).Contributeur : (hit as any).Contributeur_en) as string}
+                                  {getHighlightedText(hit, 'Contributeur') || (currentLang === 'fr' ? hit.Contributeur : hit.Contributeur_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>
                           )}
-                          {((hit as any).Méthodologie || (hit as any).Méthodologie_en) && (
+                          {(hit.Méthodologie || hit.Méthodologie_en) && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">
                                 {currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}
@@ -547,12 +547,12 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                     )
                                   }}
                                 >
-                                  {getHighlightedText(hit, 'Méthodologie') || (currentLang === 'fr' ? (hit as any).Méthodologie : (hit as any).Méthodologie_en) as string}
+                                  {getHighlightedText(hit, 'Méthodologie') || (currentLang === 'fr' ? hit.Méthodologie : hit.Méthodologie_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>
                           )}
-                          {((hit as any)['Type_de_données'] || (hit as any)['Type_de_données_en']) && (
+                          {(hit['Type_de_données'] || hit['Type_de_données_en']) && (
                             <div>
                               <span className="text-sm font-semibold text-foreground">
                                 {currentLang === 'fr' ? 'Type de données' : 'Data Type'}
@@ -563,7 +563,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               />
                             </div>
                           )}
-                          {(hit as any).Commentaires_fr || (hit as any).Commentaires_en ? (
+                          {hit.Commentaires_fr || hit.Commentaires_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Commentaires</span>
                               <div className="text-xs mt-1 text-break-words">
@@ -598,7 +598,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                     )
                                   }}
                                 >
-                                  {getHighlightedText(hit, 'Commentaires') || ((hit as any).Commentaires_fr || (hit as any).Commentaires_en) as string}
+                                  {getHighlightedText(hit, 'Commentaires') || (hit.Commentaires_fr || hit.Commentaires_en) as string}
                                 </ReactMarkdown>
                               </div>
                             </div>

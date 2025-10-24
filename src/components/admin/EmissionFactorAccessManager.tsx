@@ -34,7 +34,7 @@ export const EmissionFactorAccessManager = () => {
 
   // Derive table data from context sources; avoid extra timers/state
   useEffect(() => {
-    const finalData: SourceAccessData[] = (sources || []).map((source: any) => ({
+    const finalData: SourceAccessData[] = (sources || []).map((source: { source_name: string; access_level: string; record_count?: number }) => ({
       source: source.source_name,
       current_tier: source.access_level as SourceAccessLevel,
       free_count: source.access_level === 'free' ? 1 : 0,

@@ -16,7 +16,7 @@ import { resolveOrigin } from '@/lib/algolia/searchClient';
 import { useLanguage } from '@/providers/LanguageProvider';
 
 function useOptimizedAlgoliaClient(workspaceId?: string, assignedSources: string[] = []) {
-  const [client, setClient] = useState<any>(null);
+  const [client, setClient] = useState<ReturnType<typeof createUnifiedClient> | null>(null);
   useEffect(() => {
     let cancelled = false;
     async function init() {
@@ -103,7 +103,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   }), []);
   // Exposer un fallback global en runtime pour les composants non-contextualisés (sécurité)
   if (typeof window !== 'undefined') {
-    (window as any).algoliaSearchControls = controlsValue;
+    (window as Record<string, unknown>).algoliaSearchControls = controlsValue;
   }
 
   // (Rollback) Ne pas persister l'état UI pour éviter toute incompatibilité de widgets
@@ -116,7 +116,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const teaserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   if (unifiedClient && !searchClientRef.current) {
     searchClientRef.current = {
-      search: async (requests: any[]) => {
+      search: async (requests: Array<{ params?: Record<string, unknown>; [key: string]: unknown }>) => {
         const startTime = Date.now();
         let success = true;
         
@@ -183,7 +183,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
           if (DEBUG_MULTI_INDEX) console.error('[OptimizedSearchProvider] search error', error);
           
           // Retourner des résultats vides en cas d'erreur
-          const emptyRes: any = { 
+          const emptyRes = { 
             hits: [], 
             nbHits: 0, 
             nbPages: 0, 
@@ -222,7 +222,7 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
               <div />
             ) : (
               <InstantSearch
-                searchClient={searchClient as any}
+                searchClient={searchClient as unknown as Parameters<typeof InstantSearch>[0]['searchClient']}
                 indexName={INDEX_ALL}
                 future={{ preserveSharedStateOnUnmount: true }}
                 key={`instant-${language}`}

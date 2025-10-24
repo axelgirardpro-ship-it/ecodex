@@ -7,7 +7,7 @@ export const SourcesPanel: React.FC = () => {
   const [tab, setTab] = React.useState<'access'|'assignments'>('access')
 
   return (
-    <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="w-full">
+    <Tabs value={tab} onValueChange={(v)=>setTab(v as 'access' | 'assignments')} className="w-full">
       <TabsList>
         <TabsTrigger value="access">Accès aux sources</TabsTrigger>
         <TabsTrigger value="assignments">Assignations</TabsTrigger>

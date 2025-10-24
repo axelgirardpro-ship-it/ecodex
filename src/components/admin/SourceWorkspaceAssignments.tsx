@@ -38,7 +38,7 @@ export const SourceWorkspaceAssignments = () => {
 
   const fetchWorkspaces = useCallback(async () => {
     const rows = await getAdminWorkspaces('all')
-    const ws: Workspace[] = (rows || []).map((w: any)=>({ id: w.id, name: w.name, plan_type: w.plan_type }))
+    const ws: Workspace[] = (rows || []).map((w: { id: string; name: string; plan_type: string })=>({ id: w.id, name: w.name, plan_type: w.plan_type }))
     setWorkspaces(ws)
     if (!selectedWorkspaceId && ws.length) setSelectedWorkspaceId(ws[0].id)
   }, [selectedWorkspaceId])
@@ -50,7 +50,7 @@ export const SourceWorkspaceAssignments = () => {
       .select('source_name')
       .eq('workspace_id', workspaceId)
     if (error) throw error
-    setAssignedSet(new Set((data || []).map((r: any)=>r.source_name)))
+    setAssignedSet(new Set((data || []).map((r: { source_name: string })=>r.source_name)))
   }, [])
 
   // Callback optimisé pour les mises à jour Realtime
@@ -65,7 +65,7 @@ export const SourceWorkspaceAssignments = () => {
   // Réactiver quand la configuration Supabase Realtime sera corrigée
   // useWorkspaceAssignmentsRealtime(selectedWorkspaceId, handleAssignmentUpdate);
 
-  useEffect(() => { setSources((ctxSources || []) as any) }, [ctxSources])
+  useEffect(() => { setSources(ctxSources || []) }, [ctxSources])
 
   useEffect(() => {
     (async () => {
@@ -146,9 +146,10 @@ export const SourceWorkspaceAssignments = () => {
                 await syncWorkspaceAssignments(selectedWorkspaceId, assigned, unassigned)
                 toast({ title: 'Synchronisation réussie', description: `Assignés: ${assigned.length} • Désassignés: ${unassigned.length}` })
                 await fetchAssignments(selectedWorkspaceId)
-              } catch (e:any) {
+              } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Synchronisation impossible';
                 console.error(e)
-                toast({ title: 'Erreur', description: e?.message || 'Synchronisation impossible', variant: 'destructive' })
+                toast({ title: 'Erreur', description: errorMessage, variant: 'destructive' })
               }
             }}
           >
