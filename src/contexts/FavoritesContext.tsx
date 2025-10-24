@@ -40,7 +40,7 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
   const lastRefreshRef = useRef<number>(0);
 
   // Helper function to map database format to EmissionFactor
-  const mapDbToEmissionFactor = useCallback((data: any, itemId: string): EmissionFactor => {
+  const mapDbToEmissionFactor = useCallback((data: Record<string, unknown>, itemId: string): EmissionFactor => {
     return {
       id: itemId,
       nom: data["Nom"] || data.nom || '',
@@ -126,7 +126,7 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
           user_id: user.id,
           item_type: 'emission_factor',
           item_id: item.id,
-          item_data: item as any
+          item_data: item as unknown as Record<string, unknown>
         });
 
       if (error) throw error;
@@ -209,16 +209,16 @@ export const FavoritesProvider = ({ children }: FavoritesProviderProps) => {
         { event: '*', schema: 'public', table: 'favorites', filter: `user_id=eq.${user.id}` },
         (payload) => {
           try {
-            if (payload.eventType === 'INSERT' && (payload.new as any)?.item_type === 'emission_factor') {
-              const fav = mapDbToEmissionFactor((payload.new as any).item_data, (payload.new as any).item_id);
+            if (payload.eventType === 'INSERT' && payload.new as Record<string, unknown>?.item_type === 'emission_factor') {
+              const fav = mapDbToEmissionFactor(payload.new as Record<string, unknown>.item_data, payload.new as Record<string, unknown>.item_id);
               setFavorites(prev => (prev.some(f => f.id === fav.id) ? prev : [...prev, fav]));
             }
             if (payload.eventType === 'DELETE') {
-              const id = (payload.old as any)?.item_id;
+              const id = payload.old as Record<string, unknown>?.item_id;
               if (id) setFavorites(prev => prev.filter(f => f.id !== id));
             }
-            if (payload.eventType === 'UPDATE' && (payload.new as any)?.item_type === 'emission_factor') {
-              const fav = mapDbToEmissionFactor((payload.new as any).item_data, (payload.new as any).item_id);
+            if (payload.eventType === 'UPDATE' && payload.new as Record<string, unknown>?.item_type === 'emission_factor') {
+              const fav = mapDbToEmissionFactor(payload.new as Record<string, unknown>.item_data, payload.new as Record<string, unknown>.item_id);
               setFavorites(prev => prev.map(f => (f.id === fav.id ? fav : f)));
             }
           } catch (e) {

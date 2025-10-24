@@ -26,7 +26,7 @@ export const FeSourcesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       .select('source_name, access_level')
       .eq('is_global', true)
       .order('source_name')
-    if (!error) setSources((data || []) as any)
+    if (!error) setSources((data || []) as FeSource[])
     setLoading(false)
   }, [])
 
