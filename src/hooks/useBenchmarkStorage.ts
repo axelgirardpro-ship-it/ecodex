@@ -75,7 +75,7 @@ export const useBenchmarkStorage = () => {
       benchmarkData: BenchmarkData;
       searchParams: {
         query: string;
-        filters?: Record<string, any>;
+        filters?: Record<string, string[]>;
         facetFilters?: string[][];
       };
     }) => {

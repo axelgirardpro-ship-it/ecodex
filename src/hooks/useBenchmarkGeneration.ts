@@ -23,7 +23,7 @@ const generateQueryHash = (query: string, filters: Record<string, unknown>, face
 
 export const useBenchmarkGeneration = (
   query: string,
-  filters?: Record<string, any>,
+  filters?: Record<string, string[]>,
   facetFilters?: string[][],
   options?: {
     enabled?: boolean;
@@ -113,7 +113,7 @@ export const useBenchmarkGenerationMutation = () => {
   return useMutation({
     mutationFn: async (params: {
       query: string;
-      filters?: Record<string, any>;
+      filters?: Record<string, string[]>;
       facetFilters?: string[][];
     }) => {
       if (!user || !currentWorkspace) {
