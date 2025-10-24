@@ -15,7 +15,7 @@ interface PerformanceMonitorProps {
 }
 
 export const PerformanceMonitor = ({ getMetrics }: PerformanceMonitorProps) => {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   // Only show in development

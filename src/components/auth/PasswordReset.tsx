@@ -47,8 +47,9 @@ export const PasswordReset = ({ onBack }: PasswordResetProps) => {
         description: t("toasts.emailSent.description"),
       });
 
-    } catch (error: any) {
-      console.error('Error sending reset email:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'envoi de l\'email';
+      console.error('Error sending reset email:', errorMessage);
       toast({
         variant: "destructive",
         title: t("toasts.error.title"),

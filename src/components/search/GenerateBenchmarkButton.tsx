@@ -22,7 +22,7 @@ export const GenerateBenchmarkButton = () => {
   const { validateBenchmark } = useBenchmarkValidation();
 
   const [isHovered, setIsHovered] = useState(false);
-  const [validationError, setValidationError] = useState<any>(null);
+  const [validationError, setValidationError] = useState<{ code: string; message: string } | null>(null);
 
   // Déterminer si le bouton doit être désactivé
   const query = indexUiState.query || '';

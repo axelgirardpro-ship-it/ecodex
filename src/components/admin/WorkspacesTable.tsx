@@ -50,8 +50,9 @@ export const WorkspacesTable = () => {
       const data = await getAdminWorkspaces(filter, { force: true })
       setRows(data)
       setEditingPlanId(null)
-    } catch (e: any) {
-      console.error(e)
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error(errorMessage)
       // Gérer spécifiquement l'erreur de limite d'utilisateurs
       if (e.message?.includes('User limit exceeded') || e.message?.includes('user limit')) {
         toast({ 

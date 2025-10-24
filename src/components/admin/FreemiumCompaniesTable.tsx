@@ -41,7 +41,7 @@ export const FreemiumCompaniesTable = () => {
       
       // Use edge function to get freemium workspaces
       const rows = await getAdminWorkspaces('freemium')
-      setCompanies(rows as any)
+      setCompanies(rows as FreemiumCompany[])
     } catch (error) {
       console.error('Error fetching freemium companies:', error);
     } finally {

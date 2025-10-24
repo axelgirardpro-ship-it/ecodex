@@ -18,13 +18,14 @@ export class AlgoliaErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     // Gérer toutes les erreurs dans le contexte de recherche
+    const errorWithStatus = error as Error & { status?: number };
     const isSearchRelatedError = error.message?.includes('blocked') || 
                                  error.message?.includes('Algolia') ||
                                  error.message?.includes('length') ||
                                  error.message?.includes('Cannot read properties') ||
                                  error.stack?.includes('SearchBox') ||
                                  error.stack?.includes('SmartSuggestions') ||
-                                 (error as any)?.status === 403;
+                                 errorWithStatus.status === 403;
     
     return { 
       hasError: isSearchRelatedError, 
@@ -32,15 +33,16 @@ export class AlgoliaErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
     // Logger l'erreur pour debug
+    const errorWithStatus = error as Error & { status?: number };
     const isSearchRelatedError = error.message?.includes('blocked') || 
                                  error.message?.includes('Algolia') ||
                                  error.message?.includes('length') ||
                                  error.message?.includes('Cannot read properties') ||
                                  error.stack?.includes('SearchBox') ||
                                  error.stack?.includes('SmartSuggestions') ||
-                                 (error as any)?.status === 403;
+                                 errorWithStatus.status === 403;
     
     if (isSearchRelatedError) {
       console.log('ℹ️ Erreur liée à la recherche gérée gracieusement:', error.message);
@@ -54,9 +56,10 @@ export class AlgoliaErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError && this.state.error) {
       // Déterminer quel type de fallback utiliser
+      const errorWithStatus = this.state.error as Error & { status?: number };
       const isAlgoliaSpecific = this.state.error.message?.includes('blocked') || 
                                this.state.error.message?.includes('Algolia') ||
-                               (this.state.error as any)?.status === 403;
+                               errorWithStatus.status === 403;
       
       // Utiliser un fallback unique et cohérent pour toutes les erreurs de recherche
       return (
