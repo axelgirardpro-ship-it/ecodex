@@ -54,10 +54,10 @@ export const useOptimizedSearch = (
   // États internes
   const [query, setQuery] = useState(initialQuery);
   const [origin, setOrigin] = useState<Origin>(initialOrigin);
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState<Record<string, string[]>>({});
   
   // Refs pour la stabilité
-  const clientRef = useRef<any>(null);
+  const clientRef = useRef<ReturnType<typeof createUnifiedClient> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const searchCountRef = useRef(0);
 
