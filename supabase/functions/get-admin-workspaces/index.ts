@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 // Cache mémoire côté Edge (TTL court) pour limiter les hits
 const CACHE_TTL_MS = Number(Deno.env.get('ADMIN_WS_CACHE_TTL_MS') || '30000')
-type CacheEntry = { expiresAt: number; payload: any }
+type CacheEntry = { expiresAt: number; payload: unknown }
 const cache: Record<string, CacheEntry> = {}
 
 const corsHeaders = {
