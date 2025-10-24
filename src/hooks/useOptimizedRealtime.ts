@@ -27,8 +27,8 @@ interface ChannelOptions {
 export const useOptimizedRealtime = (
   channelName: string,
   config: RealtimeConfig,
-  callback: (payload: any) => void,
-  dependencies: any[] = [],
+  callback: (payload: Record<string, unknown>) => void,
+  dependencies: unknown[] = [],
   channelOptions?: ChannelOptions
 ) => {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -38,7 +38,7 @@ export const useOptimizedRealtime = (
   const maxRetries = 3;
   const isDisabledRef = useRef<boolean>(false);
 
-  const debouncedCallback = useCallback((payload: any) => {
+  const debouncedCallback = useCallback((payload: Record<string, unknown>) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -75,7 +75,7 @@ export const useOptimizedRealtime = (
         }
       })
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: config.event || 'UPDATE',
           schema: config.schema || 'public',
@@ -95,7 +95,7 @@ export const useOptimizedRealtime = (
         }
         
         // Gestion des erreurs avec circuit breaker
-        if ((status as any) === 'CHANNEL_ERROR' || (status as any) === 'TIMED_OUT') {
+        if ((status as string) === 'CHANNEL_ERROR' || (status as string) === 'TIMED_OUT') {
           errorCountRef.current += 1;
           
           if (import.meta.env.DEV) {
@@ -167,7 +167,7 @@ export const useOptimizedRealtime = (
  */
 export const useQuotaRealtime = (
   userId: string | undefined,
-  callback: (payload: any) => void
+  callback: (payload: Record<string, unknown>) => void
 ) => {
   return useOptimizedRealtime(
     `quota-updates-${userId}`,
@@ -191,7 +191,7 @@ export const useQuotaRealtime = (
  */
 export const useWorkspaceAssignmentsRealtime = (
   workspaceId: string | undefined,
-  callback: (payload: any) => void
+  callback: (payload: Record<string, unknown>) => void
 ) => {
   return useOptimizedRealtime(
     `workspace-assignments-${workspaceId}`,

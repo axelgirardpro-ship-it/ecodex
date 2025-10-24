@@ -74,7 +74,7 @@ export const useQuotas = () => {
   });
 
   // Callback optimisé pour Realtime (synchronise React Query cache)
-  const handleQuotaUpdate = useCallback((payload: any) => {
+  const handleQuotaUpdate = useCallback((payload: Record<string, unknown>) => {
     if (payload.eventType === 'UPDATE' && payload.new && payload.new.user_id === user?.id) {
       queryClient.setQueryData(
         queryKeys.quotas.user(user.id),
@@ -91,7 +91,7 @@ export const useQuotas = () => {
   // Injecter plan_type depuis les permissions
   const enrichedQuotaData = useMemo(() => {
     if (!quotaData) return null;
-    return { ...quotaData, plan_type: effectivePlanType as any };
+    return { ...quotaData, plan_type: effectivePlanType as "freemium" | "starter" | "pro" | "enterprise" };
   }, [quotaData, effectivePlanType]);
 
 

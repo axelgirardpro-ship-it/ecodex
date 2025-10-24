@@ -10,7 +10,7 @@ const SUPABASE_URL = 'https://wrodvaatdujbpfpvrzge.supabase.co';
 
 // Générer un hash simple pour la clé de cache
 // Version 2: retourne tous les points (pas juste 24)
-const generateQueryHash = (query: string, filters: any, facetFilters: any): string => {
+const generateQueryHash = (query: string, filters: Record<string, unknown>, facetFilters: unknown): string => {
   const str = JSON.stringify({ query, filters, facetFilters, v: 2 });
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -94,7 +94,7 @@ export const useBenchmarkGeneration = (
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     onSuccess: options?.onSuccess,
-    onError: options?.onError as any,
+    onError: options?.onError,
   });
 
   return {

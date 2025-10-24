@@ -5,7 +5,7 @@ import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
 interface ValidationError {
   code: 'MULTIPLE_UNITS' | 'MULTIPLE_SCOPES' | 'NO_UNIT_OR_SCOPE' | 'INSUFFICIENT_DATA' | 'INSUFFICIENT_ACCESSIBLE_DATA' | 'UNKNOWN';
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 interface ValidationResult {
@@ -44,7 +44,7 @@ export const useBenchmarkValidation = () => {
       }
 
       // Vérifier combien de FEs sont réellement accessibles (non floutés/verrouillés)
-      const accessibleHits = results.hits.filter((hit: any) => {
+      const accessibleHits = results.hits.filter((hit: Record<string, unknown>) => {
         // Exclure les FEs teaser
         if (hit.variant === 'teaser' || hit.is_blurred === true) {
           return false;
@@ -97,8 +97,8 @@ export const useBenchmarkValidation = () => {
 
       // Si aucun filtre actif, on doit vérifier combien d'unités/périmètres UNIQUES dans les résultats
       // Pour cela, on utilise les facets
-      const unitsFacets = results.disjunctiveFacets?.find((f: any) => f.name === 'Unite_fr');
-      const scopesFacets = results.disjunctiveFacets?.find((f: any) => f.name === 'Périmètre_fr');
+      const unitsFacets = results.disjunctiveFacets?.find((f: Record<string, unknown>) => f.name === 'Unite_fr');
+      const scopesFacets = results.disjunctiveFacets?.find((f: Record<string, unknown>) => f.name === 'Périmètre_fr');
 
       // Si pas de filtre unité actif, vérifier qu'il n'y a qu'une seule unité dans les résultats
       let units: string[];

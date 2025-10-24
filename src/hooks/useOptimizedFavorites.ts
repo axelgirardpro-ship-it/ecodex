@@ -17,5 +17,5 @@ export const useOptimizedFavorites = () => {
     createSearchFilter: () => () => true,
     getPerformanceMetrics: () => ({ lastLoadTime: 0, totalLoadTime: 0, cacheHits: 0, cacheMisses: 0, averageLoadTime: 0, favoriteCount: 0 }),
     stats: { total: 0, sources: 0, locations: 0, years: 0 },
-  } as any;
+  };
 };
