@@ -123,7 +123,7 @@ export const InvitationHandler = () => {
           }
           setLoading(false);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Erreur lors du traitement de l\'invitation:', error);
         setError(error.message || 'Erreur lors du traitement de l\'invitation');
         setLoading(false);
@@ -215,7 +215,7 @@ export const InvitationHandler = () => {
       });
 
       navigate('/search');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors de l\'acceptation automatique:', error);
       setError(error.message || "Erreur lors de l'acceptation de l'invitation");
       setLoading(false);

@@ -25,7 +25,7 @@ interface NavbarQuotaWidgetProps {
 
 export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData, isLoading, isAtLimit = false }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useTranslation('quota' as any);
+  const { t } = useTranslation('quota');
 
   if (isLoading) {
     return (
