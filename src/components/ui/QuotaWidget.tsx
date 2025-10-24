@@ -50,12 +50,12 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <CardHeader className="pb-3">
           <Badge variant="destructive">
             <AlertTriangle className="w-3 h-3 mr-1" />
-            {(t as any)('widget.error.badge')}
+            {t('widget.error.badge')}
           </Badge>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            {(t as any)('widget.error.description')}
+            {t('widget.error.description')}
           </p>
         </CardContent>
       </Card>
@@ -93,35 +93,35 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <Badge className={isPro ? "bg-primary text-primary-foreground" : "bg-blue-600 text-white"}>
-              {(t as any)(isUnlimited ? 'plan.supra' : 'plan.pro')}
+              {t(isUnlimited ? 'plan.supra' : 'plan.pro')}
             </Badge>
             <div className="text-sm text-muted-foreground">
-              {(t as any)(isUnlimited || isPro ? 'widget.pro.description_unlimited' : 'widget.pro.description_paid')}
+              {t(isUnlimited || isPro ? 'widget.pro.description_unlimited' : 'widget.pro.description_paid')}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>{(t as any)('searches.label')}</span>
-              <span className="text-primary font-medium">{(t as any)('limits.unlimited')}</span>
+              <span>{t('searches.label')}</span>
+              <span className="text-primary font-medium">{t('limits.unlimited')}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>{(t as any)('exports.label')}</span>
+              <span>{t('exports.label')}</span>
               <span className="text-primary font-medium">
-                {isUnlimited || isPro ? (t as any)('limits.unlimited') : `${exportsUsed} / ${exportsLimit}`}
+                {isUnlimited || isPro ? t('limits.unlimited') : `${exportsUsed} / ${exportsLimit}`}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>{(t as any)('clipboard.label')}</span>
+              <span>{t('clipboard.label')}</span>
               <span className="text-primary font-medium">
-                {isUnlimited || isPro ? (t as any)('limits.unlimited') : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
+                {isUnlimited || isPro ? t('limits.unlimited') : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>{(t as any)('favorites.label')}</span>
+              <span>{t('favorites.label')}</span>
               <span className="text-primary font-medium">
-                {isPro ? (t as any)('limits.unlimited') : (t as any)('favorites.pro_only')}
+                {isPro ? t('limits.unlimited') : t('favorites.pro_only')}
               </span>
             </div>
           </div>
@@ -136,12 +136,12 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Badge variant={planType === 'pro' ? "default" : "secondary"}>
-              {(t as any)(planType === 'pro' ? 'plan.pro' : 'plan.freemium')}
+              {t(planType === 'pro' ? 'plan.pro' : 'plan.freemium')}
             </Badge>
             {isAtLimit && (
               <Badge variant="destructive">
                 <AlertTriangle className="w-3 h-3 mr-1" />
-                {(t as any)('limits.reached')}
+                {t('limits.reached')}
               </Badge>
             )}
           </div>
@@ -150,14 +150,14 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>{(t as any)('searches.label')}</span>
-            <span className="text-primary font-medium">{(t as any)('limits.unlimited')}</span>
+            <span>{t('searches.label')}</span>
+            <span className="text-primary font-medium">{t('limits.unlimited')}</span>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>{(t as any)('exports.label')}</span>
+            <span>{t('exports.label')}</span>
             <span className={!canExport ? "text-destructive font-medium" : ""}>
               {exportsUsed} / {(isUnlimited || exportsLimit === null) ? "∞" : exportsLimit || 0}
             </span>
@@ -169,13 +169,13 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
             />
           )}
           {exportsLimit === 0 && (
-            <div className="text-xs text-muted-foreground">{(t as any)('limits.messages.freemium_note')}</div>
+            <div className="text-xs text-muted-foreground">{t('limits.messages.freemium_note')}</div>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>{(t as any)('clipboard.label')}</span>
+            <span>{t('clipboard.label')}</span>
             <span className={clipboardCopiesLimit !== null && clipboardCopiesUsed >= clipboardCopiesLimit ? "text-destructive font-medium" : ""}>
               {clipboardCopiesLimit === null ? "Illimitées ∞" : `${clipboardCopiesUsed} / ${clipboardCopiesLimit}`}
             </span>
@@ -190,15 +190,15 @@ export const QuotaWidget = ({ quotaData, isLoading }: QuotaWidgetProps) => {
 
         <div className="space-y-2">
           <div className="flex justify_between text-sm">
-            <span>{(t as any)('favorites.label')}</span>
-            <span className="text-muted-foreground">{(t as any)('favorites.pro_only')}</span>
+            <span>{t('favorites.label')}</span>
+            <span className="text-muted-foreground">{t('favorites.pro_only')}</span>
           </div>
         </div>
 
         {isAtLimit && (
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              {(t as any)('limits.messages.reached')}
+              {t('limits.messages.reached')}
             </p>
           </div>
         )}

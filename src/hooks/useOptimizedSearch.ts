@@ -17,7 +17,7 @@ export interface OptimizedSearchOptions {
 
 export interface SearchState {
   loading: boolean;
-  results: any[];
+  results: Record<string, unknown>[];
   nbHits: number;
   error: string | null;
   lastQuery: string;
@@ -79,7 +79,7 @@ export const useOptimizedSearch = (
   const performSearch = useCallback(async (
     searchQuery: string,
     searchOrigin: Origin,
-    searchFilters: any = {},
+    searchFilters: Record<string, unknown> = {},
     isTyping = false
   ) => {
     // Annuler la recherche précédente
@@ -151,7 +151,7 @@ export const useOptimizedSearch = (
       }
 
       const searchTime = Date.now() - startTime;
-      const searchResult = (result as any)?.results?.[0] || { hits: [], nbHits: 0 };
+      const searchResult = result.results?.[0] || { hits: [], nbHits: 0 };
 
       setSearchState({
         loading: false,
@@ -162,7 +162,7 @@ export const useOptimizedSearch = (
         searchTime
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignorer les erreurs d'abort
       if (error.name === 'AbortError') return;
       
@@ -203,7 +203,7 @@ export const useOptimizedSearch = (
   }, []);
 
   // Fonction pour mettre à jour les filtres
-  const updateFilters = useCallback((newFilters: any) => {
+  const updateFilters = useCallback((newFilters: Record<string, unknown>) => {
     setFilters(newFilters);
   }, []);
 

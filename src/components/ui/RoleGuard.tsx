@@ -19,7 +19,7 @@ export const RoleGuard = ({
 
   // Check by role
   if (allowedRoles) {
-    if (!role || !allowedRoles.includes(role as any)) {
+    if (!role || !allowedRoles.includes(role as 'admin' | 'gestionnaire' | 'supra_admin')) {
       return <>{fallback}</>;
     }
   }

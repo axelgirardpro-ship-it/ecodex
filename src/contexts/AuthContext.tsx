@@ -7,9 +7,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<any>;
-  signInWithGoogle: () => Promise<any>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -149,7 +149,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { data, error };
   };
 
-  const signUp = async (email: string, password: string, metadata?: any) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, unknown>) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

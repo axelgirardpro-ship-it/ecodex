@@ -41,7 +41,7 @@ interface AlgoliaHit {
   'Périmètre_fr'?: string; 'Périmètre_en'?: string;
   Localisation_fr?: string; Localisation_en?: string;
   Unite_fr?: string; Unite_en?: string;
-  _highlightResult?: any;
+  _highlightResult?: Record<string, { value?: string }>;
 }
 
 // Suppression du sélecteur "Résultats par page"
@@ -201,7 +201,7 @@ export const SearchResults: React.FC = () => {
   const currentLang: 'fr' | 'en' = language;
 
   const getLocalizedValue = (hit: AlgoliaHit, frKey: string, enKey: string, fallbackKeys: string[] = []) => {
-    const resolve = (key?: string) => (key ? (hit as any)[key] : undefined);
+    const resolve = (key?: string) => (key ? hit[key] : undefined);
     const primaryKey = currentLang === 'fr' ? frKey : enKey;
     const primary = resolve(primaryKey);
     if (primary !== undefined && primary !== null && String(primary).trim() !== '') return String(primary);
@@ -330,7 +330,7 @@ export const SearchResults: React.FC = () => {
         };
 
     const candidates = langSpecific[base as keyof typeof langSpecific] || [base];
-    const hl = (hit as any)._highlightResult || {};
+    const hl = hit._highlightResult || {};
     
     // Essayer d'utiliser _highlightResult d'Algolia
     for (const a of candidates) {
@@ -347,7 +347,7 @@ export const SearchResults: React.FC = () => {
     const searchTerm = (query || '').trim().toLowerCase();
     
     for (const a of candidates) {
-      const v = (hit as any)[a];
+      const v = hit[a];
       if (v) {
         const text = String(v);
         // Highlight manuel si on a une query
@@ -365,7 +365,7 @@ export const SearchResults: React.FC = () => {
 
   // Helper: déterminer si un hit est flouté (supporte le flag proxy is_blurred et le fallback UI)
   const isHitBlurred = (hit: AlgoliaHit) => {
-    return ((hit as any).is_blurred === true) || shouldBlurPaidContent(hit.Source);
+    return (hit.is_blurred === true) || shouldBlurPaidContent(hit.Source);
   };
 
   const handleItemSelect = (id: string) => {
@@ -578,7 +578,7 @@ export const SearchResults: React.FC = () => {
               const isExpanded = expandedRows.has(hit.objectID);
               const isFav = isFavorite(hit.objectID);
               const shouldBlur = isHitBlurred(hit);
-              const isPrivateHit = Boolean((hit as any).workspace_id) || (hit as any).import_type === 'imported';
+              const isPrivateHit = Boolean(hit.workspace_id) || hit.import_type === 'imported';
 
               return (
                 <Card key={hit.objectID} className="relative overflow-hidden bg-white border border-border hover:shadow-lg transition-shadow">
@@ -684,10 +684,10 @@ export const SearchResults: React.FC = () => {
                                   />
                                 </div>
                               </div>
-                              {(hit as any).dataset_name && (
+                              {hit.dataset_name && (
                                 <div>
                                   <span className="text-sm font-semibold text-foreground">{t('imported_dataset')}</span>
-                                  <p className="text-sm font-light">{(hit as any).dataset_name}</p>
+                                  <p className="text-sm font-light">{hit.dataset_name}</p>
                                 </div>
                               )}
                           </div>

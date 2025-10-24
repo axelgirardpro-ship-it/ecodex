@@ -16,16 +16,16 @@ export const ImpersonationBanner = () => {
     const success = await stopImpersonation();
     if (success) {
       toast({
-        title: (t as any)('toast.success_title'),
-        description: (t as any)('toast.success_description'),
+        title: t('toast.success_title'),
+        description: t('toast.success_description'),
       });
       // Refresh the page to ensure clean state
       window.location.href = '/admin';
     } else {
       toast({
         variant: "destructive",
-        title: (t as any)('toast.error_title'),
-        description: (t as any)('toast.error_description'),
+        title: t('toast.error_title'),
+        description: t('toast.error_description'),
       });
     }
   };
@@ -35,7 +35,7 @@ export const ImpersonationBanner = () => {
       <Shield className="h-4 w-4 text-orange-600" />
       <AlertDescription className="flex items-center justify-between">
         <div className="text-orange-800 space-y-1">
-          <strong>{(t as any)('banner.title')}</strong>
+          <strong>{t('banner.title')}</strong>
           <p>
             <Trans
               ns="common"
@@ -55,7 +55,7 @@ export const ImpersonationBanner = () => {
           className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100"
         >
           <LogOut className="h-4 w-4 mr-2" />
-          {(t as any)('banner.button')}
+          {t('banner.button')}
         </Button>
       </AlertDescription>
     </Alert>
