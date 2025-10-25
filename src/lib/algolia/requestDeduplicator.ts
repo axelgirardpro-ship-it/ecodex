@@ -13,11 +13,11 @@ export class RequestDeduplicator {
   private generateRequestKey(request: Record<string, unknown>): string {
     // Même logique que le cache pour cohérence, avec fallback sur request.params
     const req = request || {};
-    const p = (req.params || {}) as any;
+    const p = (req.params || {}) as Record<string, unknown>;
 
     const query = (req.query ?? p.query ?? '') as string;
     const filters = (req.filters ?? p.filters ?? '') as string;
-    const facetFiltersRaw = (req.facetFilters ?? p.facetFilters ?? []) as any;
+    const facetFiltersRaw = (req.facetFilters ?? p.facetFilters ?? []) as unknown;
     const origin = (req.origin ?? 'all') as string;
     const hitsPerPage = (req.hitsPerPage ?? p.hitsPerPage ?? 20) as number;
     const page = (req.page ?? p.page ?? 0) as number;

@@ -104,7 +104,7 @@ export async function getAdminWorkspaces(planFilter: PlanFilter, opts?: { force?
   const inflight = (async () => {
     const { data, error } = await invokeWithAuth('get-admin-workspaces', { body: { planFilter } })
     if (error) throw error
-    const value = (data?.data ?? []) as any[]
+    const value = (data?.data ?? []) as unknown[]
     workspacesCache[key] = { data: value, expiresAt: now + WORKSPACES_CACHE_TTL_MS }
     return value
   })()

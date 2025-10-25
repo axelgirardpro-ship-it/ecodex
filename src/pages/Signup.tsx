@@ -27,6 +27,7 @@ const SignupForm = () => {
   const { ssoState, setProviderLoading, setLastError } = useSSO();
   const { language } = useLanguage();
   const { t } = useTranslation("pages", { keyPrefix: "signup" });
+  const { t: tCommon } = useTranslation("common");
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,14 +63,14 @@ const SignupForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: (t as any)("toasts.error.title"),
-          description: result.error.message,
+        title: tCommon("toasts.error.title"),
+        description: result.error.message,
         });
         setLastError(result.error.message);
       } else {
         toast({
-          title: (t as any)("toasts.success.title"),
-          description: (t as any)("toasts.success.description"),
+          title: tCommon("toasts.success.title"),
+          description: t("toasts.success.description"),
         });
         // Rediriger vers la page login après inscription réussie
         setTimeout(() => {

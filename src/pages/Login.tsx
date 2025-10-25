@@ -25,6 +25,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { t } = useTranslation("pages", { keyPrefix: "login" });
+  const { t: tCommon } = useTranslation("common");
 
   useEffect(() => {
     // Redirige vers /demo si trial expiré
@@ -53,7 +54,7 @@ const LoginForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: (t as any)("toasts.error.title"),
+          title: tCommon("toasts.error.title"),
           description: result.error.message,
         });
         setLastError(result.error.message);
@@ -61,8 +62,8 @@ const LoginForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: (t as any)("toasts.error.title"),
-        description: (t as any)("toasts.error.unexpected"),
+        title: tCommon("toasts.error.title"),
+        description: tCommon("toasts.error.unexpected"),
       });
       setLastError(t("errors.unexpected"));
     } finally {

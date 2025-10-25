@@ -17,6 +17,7 @@ export const AuthCallback = () => {
   const [error, setError] = useState<string | null>(null);
   const { language } = useLanguage();
   const { t } = useTranslation("pages", { keyPrefix: "authCallback" });
+  const { t: tCommon } = useTranslation("common");
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -102,8 +103,8 @@ export const AuthCallback = () => {
 
       if (existingUser) {
         toast({
-          title: (t as any)('toasts.alreadyMember.title'),
-          description: (t as any)('toasts.alreadyMember.description'),
+          title: t('toasts.alreadyMember.title'),
+          description: t('toasts.alreadyMember.description'),
         });
         navigate(buildLocalizedPath('/search', language));
         return;
