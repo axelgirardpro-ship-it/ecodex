@@ -1,7 +1,10 @@
+// @ts-ignore - Deno runtime imports
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-ignore - Deno runtime imports
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 // Cache mémoire côté Edge (TTL court) pour limiter les hits
+// @ts-ignore - Deno runtime
 const CACHE_TTL_MS = Number(Deno.env.get('ADMIN_WS_CACHE_TTL_MS') || '30000')
 type CacheEntry = { expiresAt: number; payload: unknown }
 const cache: Record<string, CacheEntry> = {}
@@ -30,6 +33,7 @@ serve(async (req) => {
     // Extraire le token du header "Bearer <token>"
     const token = authHeader.replace('Bearer ', '')
     
+    // @ts-ignore - Deno runtime
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     console.log('[get-admin-workspaces] Validating JWT')
     console.log('[get-admin-workspaces] Token starts with:', token.substring(0, 20))
@@ -66,6 +70,7 @@ serve(async (req) => {
     // Créer un client Supabase avec SERVICE_ROLE_KEY
     const supabase = createClient(
       supabaseUrl,
+      // @ts-ignore - Deno runtime
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 

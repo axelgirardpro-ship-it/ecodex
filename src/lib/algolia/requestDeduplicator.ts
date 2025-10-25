@@ -104,8 +104,8 @@ export class RequestDeduplicator {
   }
 
   // Grouper plusieurs requêtes similaires
-  batchSimilarRequests(requests: unknown[]): Map<string, any[]> {
-    const batches = new Map<string, any[]>();
+  batchSimilarRequests(requests: unknown[]): Map<string, unknown[]> {
+    const batches = new Map<string, unknown[]>();
     
     for (const request of requests) {
       // Générer une clé de batch basée sur les paramètres similaires
@@ -123,7 +123,7 @@ export class RequestDeduplicator {
   private generateBatchKey(request: Record<string, unknown>): string {
     // Clé simplifiée pour regrouper les requêtes similaires
     const req = request || {};
-    const p = (req.params || {}) as any;
+    const p = (req.params || {}) as Record<string, unknown>;
 
     const origin = (req.origin ?? 'all') as string;
     const indexName = (req.indexName ?? '') as string;

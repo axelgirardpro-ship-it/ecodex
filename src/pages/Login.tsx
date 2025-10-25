@@ -79,20 +79,20 @@ const LoginForm = () => {
       const result = await signInWithGoogle();
 
       if (result.error) {
-        toast({
-          variant: "destructive",
-          title: (t as any)("toasts.error.googleTitle"),
-          description: result.error.message,
-        });
-        setLastError(result.error.message);
-      }
-    } catch (error) {
       toast({
         variant: "destructive",
-        title: (t as any)("toasts.error.googleTitle"),
-        description: (t as any)("toasts.error.unexpected"),
+        title: tCommon("toasts.error.googleTitle"),
+        description: result.error.message,
       });
-      setLastError(t("errors.unexpected"));
+      setLastError(result.error.message);
+    }
+  } catch (error) {
+    toast({
+      variant: "destructive",
+      title: tCommon("toasts.error.googleTitle"),
+      description: tCommon("toasts.error.unexpected"),
+    });
+    setLastError(t("errors.unexpected"));
     } finally {
       setProviderLoading(provider, false);
     }
