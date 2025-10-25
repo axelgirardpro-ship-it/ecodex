@@ -211,7 +211,7 @@ export const useOptimizedSearch = (
   const searchImmediate = useCallback((
     searchQuery?: string,
     searchOrigin?: Origin,
-    searchFilters?: any
+    searchFilters?: Record<string, unknown>
   ) => {
     const finalQuery = searchQuery ?? query;
     const finalOrigin = searchOrigin ?? origin;
@@ -314,7 +314,7 @@ export const useOptimizedSuggestions = (
 
   // Transformer les résultats en suggestions
   const suggestions = useMemo(() => {
-    return results.map((hit: any) => ({
+    return results.map((hit: Record<string, unknown>) => ({
       label: hit.Nom_fr || hit.Nom_en || hit.name || '',
       isPrivate: hit.scope === 'private',
       source: hit.Source,
