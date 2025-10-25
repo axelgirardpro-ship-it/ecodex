@@ -109,7 +109,9 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   // (Rollback) Ne pas persister l'état UI pour éviter toute incompatibilité de widgets
 
   // Client de recherche optimisé avec monitoring
-  const searchClientRef = useRef<any>(null);
+  const searchClientRef = useRef<{
+    search: (requests: Array<{ params?: Record<string, unknown>; [key: string]: unknown }>) => Promise<unknown>;
+  } | null>(null);
   // Gestion du teaser différé: activé après un court délai d'inactivité sur la requête
   const teaserAllowedRef = useRef<boolean>(false);
   const lastQueryRef = useRef<string>('');

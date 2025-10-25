@@ -80,8 +80,8 @@ const SignupForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: (t as any)("toasts.error.title"),
-        description: (t as any)("toasts.error.unexpected"),
+        title: tCommon("toasts.error.title"),
+        description: tCommon("toasts.error.unexpected"),
       });
       setLastError(t("errors.unexpected"));
     } finally {
@@ -99,7 +99,7 @@ const SignupForm = () => {
       if (result.error) {
         toast({
           variant: "destructive",
-          title: (t as any)("toasts.error.googleTitle"),
+          title: tCommon("toasts.error.googleTitle"),
           description: result.error.message,
         });
         setLastError(result.error.message);
@@ -107,8 +107,8 @@ const SignupForm = () => {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: (t as any)("toasts.error.googleTitle"),
-        description: (t as any)("toasts.error.unexpected"),
+        title: tCommon("toasts.error.googleTitle"),
+        description: tCommon("toasts.error.unexpected"),
       });
       setLastError(t("errors.unexpected"));
     } finally {

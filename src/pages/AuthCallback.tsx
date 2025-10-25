@@ -131,7 +131,7 @@ export const AuthCallback = () => {
           plan_type: 'freemium',
           subscribed: false,
           assigned_by: user.id
-        } as any);
+        });
 
       if (userError) throw userError;
 
@@ -162,8 +162,8 @@ export const AuthCallback = () => {
       if (quotaError) console.warn('Erreur quotas (non critique):', quotaError);
 
       toast({
-        title: (t as any)('toasts.welcome.title'),
-        description: (t as any)('toasts.welcome.description', { workspace: workspaceName }),
+        title: t('toasts.welcome.title'),
+        description: t('toasts.welcome.description', { workspace: workspaceName }),
       });
 
       navigate(buildLocalizedPath('/search', language));
@@ -172,8 +172,8 @@ export const AuthCallback = () => {
       console.error('Erreur lors de l\'ajout au workspace:', err);
       toast({
         variant: "destructive",
-        title: (t as any)('toasts.joinError.title'),
-        description: (t as any)('toasts.joinError.description'),
+        title: t('toasts.joinError.title'),
+        description: t('toasts.joinError.description'),
       });
       navigate(buildLocalizedPath('/search', language));
     }
