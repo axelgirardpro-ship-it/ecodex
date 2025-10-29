@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Crown, Shield, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, Crown, Shield, AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PlanType } from '@/hooks/useQuotaSync';
 import { TrialWidget } from './TrialWidget';
@@ -15,6 +15,8 @@ interface QuotaData {
   benchmarks_used?: number;
   benchmarks_limit?: number;
   benchmarks_reset_date?: string | null;
+  chatbot_queries_used?: number;
+  chatbot_queries_limit?: number;
 }
 
 interface NavbarQuotaWidgetProps {
@@ -88,8 +90,18 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
     return t('limits.used_over_total', { used: benchmarksUsed, total: benchmarksLimit });
   };
 
+  const getChatbotQueriesDisplay = () => {
+    const chatbotUsed = quotaData.chatbot_queries_used || 0;
+    const chatbotLimit = planType === 'freemium' ? 3 : 50;
+    if (planType === 'pro') return t('limits.used_over_total', { used: chatbotUsed, total: chatbotLimit });
+    return t('limits.used_over_total', { used: chatbotUsed, total: chatbotLimit });
+  };
+
   // Pour pro, affichage simplifié
   const isPro = planType === 'pro';
+  const chatbotUsed = quotaData.chatbot_queries_used || 0;
+  const chatbotLimit = planType === 'freemium' ? 3 : 50;
+  const chatbotProgress = (chatbotUsed / chatbotLimit) * 100;
 
   return (
     <div className="relative">
@@ -123,7 +135,7 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
             }}
           />
 
-          <div className="absolute right-0 mt-2 w-72 bg-popover rounded-lg shadow-lg border border-border z-20">
+          <div className="absolute right-0 mt-2 w-80 bg-popover rounded-lg shadow-lg border border-border z-20">
             <div className="p-4">
               <div className="mb-4">
                 <TrialWidget />
@@ -217,6 +229,18 @@ export const NavbarQuotaWidget: React.FC<NavbarQuotaWidgetProps> = ({ quotaData,
                       />
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">Agent Documentaire</span>
+                    </div>
+                    <span className={`text-sm font-medium ${chatbotProgress >= 100 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {getChatbotQueriesDisplay()}
+                    </span>
+                  </div>
                 </div>
 
                 {isAtLimit && planType === 'freemium' && (

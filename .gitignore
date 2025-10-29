@@ -1,0 +1,17 @@
+# MCP Configuration (contains sensitive credentials)
+.mcp.json
+
+# Supabase local config
+supabase/.env
+supabase/.temp/
+
+# Test scripts temporaires
+test-*.sh
+get-jwt-token.html
+
+# Documentation temporaire
+BUGS_FIXED.md
+VERCEL_AI_SDK_VERIFICATION.md
+
+# LlamaCloud MCP submodule (outil externe)
+llamacloud-mcp/

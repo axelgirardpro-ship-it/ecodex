@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
  
 import { Checkbox } from '@/components/ui/checkbox';
-import { Heart, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Lock, Copy } from 'lucide-react';
+import { Heart, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Lock, Copy, MessageSquare, Sparkles } from 'lucide-react';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { PaidBlur } from '@/components/ui/PaidBlur';
 import { useEmissionFactorAccess } from '@/hooks/useEmissionFactorAccess';
@@ -17,6 +17,7 @@ import rehypeRaw from 'rehype-raw';
 import { useSourceLogos } from '@/hooks/useSourceLogos';
 import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 import { useTranslation } from 'react-i18next';
+import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
 
 interface AlgoliaHit {
   objectID: string;
@@ -191,6 +192,11 @@ export const SearchResults: React.FC = () => {
   const { t } = useTranslation('search', { keyPrefix: 'results' });
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
+  const [chatConfig, setChatConfig] = React.useState<{
+    isOpen: boolean;
+    source: string;
+    productName: string;
+  } | null>(null);
   
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { hasAccess, shouldBlurPaidContent, canUseFavorites } = useEmissionFactorAccess();
@@ -625,26 +631,26 @@ export const SearchResults: React.FC = () => {
                                   <ChevronDown className="h-4 w-4" />
                                 )}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (canUseFavorites() && !shouldBlur) handleFavoriteToggle(hit);
-                               }}
-                               disabled={!canUseFavorites() || shouldBlur}
-                               className={`${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                title={!canUseFavorites()
-                                  ? getTooltip('premiumOnly')
-                                  : (shouldBlur ? getTooltip('blurredNotAddable') : '')}
-                             >
-                               {!canUseFavorites() ? (
-                                 <Lock className="h-4 w-4" />
-                               ) : (
-                                 <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
-                               )}
-                             </Button>
-                           </div>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 if (canUseFavorites() && !shouldBlur) handleFavoriteToggle(hit);
+                              }}
+                              disabled={!canUseFavorites() || shouldBlur}
+                              className={`${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                               title={!canUseFavorites()
+                                 ? getTooltip('premiumOnly')
+                                 : (shouldBlur ? getTooltip('blurredNotAddable') : '')}
+                            >
+                              {!canUseFavorites() ? (
+                                <Lock className="h-4 w-4" />
+                              ) : (
+                                <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
+                              )}
+                            </Button>
+                          </div>
                         </div>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
                           <div>
@@ -714,6 +720,23 @@ export const SearchResults: React.FC = () => {
 
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t space-y-3">
+                              {/* Bouton Assistant documentaire */}
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setChatConfig({
+                                    isOpen: true,
+                                    source: hit.Source,
+                                    productName: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
+                                  });
+                                }}
+                                className="w-full sm:w-auto"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                {currentLang === 'fr' ? 'Assistant documentaire' : 'Documentation Assistant'}
+                              </Button>
                               {getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']) && (
                                 <div>
                                   <span className="text-sm font-semibold text-foreground">{t('description')}</span>
@@ -918,6 +941,17 @@ export const SearchResults: React.FC = () => {
           {/* Pagination */}
           <PaginationComponent />
         </>
+      )}
+
+      {/* Modal Assistant IA */}
+      {chatConfig && (
+        <LlamaCloudChatModal
+          isOpen={chatConfig.isOpen}
+          onClose={() => setChatConfig(null)}
+          sourceName={chatConfig.source}
+          productName={chatConfig.productName}
+          language={currentLang}
+        />
       )}
     </div>
   );

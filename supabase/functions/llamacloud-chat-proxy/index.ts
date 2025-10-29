@@ -1,0 +1,492 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+
+interface ChatRequest {
+  message: string;
+  source_name: string;
+  product_context: string;
+  language: 'fr' | 'en';
+  history?: Array<{ role: 'user' | 'assistant', content: string }>;
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
+  }
+
+  try {
+    console.log('🔵 Incoming request:', req.method, req.url);
+
+    // 1. Auth validation
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    // 🔧 DEBUG MODE: Accept test token for Dashboard testing
+    const DEBUG_MODE = Deno.env.get('DEBUG_MODE') === 'true';
+    let user: any = null;
+    
+    if (DEBUG_MODE && token === 'test-dashboard-token') {
+      console.log('🔧 DEBUG MODE: Using test user');
+      user = { id: '00000000-0000-0000-0000-000000000000' }; // Test user ID
+    } else {
+      const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      
+      if (authError || !authUser) {
+        console.error('❌ Auth failed:', authError?.message);
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      user = authUser;
+    }
+
+    console.log('✅ User authenticated:', user.id);
+
+    // 2. Parse request
+    const body: ChatRequest = await req.json();
+    const { message, source_name, product_context, language } = body;
+
+    console.log('📝 Chat request:', { message: message.substring(0, 50), source_name, language });
+
+    // 3. Check quotas (skip in DEBUG_MODE)
+    if (!DEBUG_MODE) {
+      // Get user's quotas from search_quotas (consolidated table)
+      const { data: quotas, error: fetchError } = await supabaseAdmin
+        .from('search_quotas')
+        .select('chatbot_queries_used, chatbot_queries_limit')
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !quotas) {
+        console.error('❌ No quotas found for user:', fetchError);
+        return new Response(JSON.stringify({ 
+          error: 'Quota data not found. Please contact support.'
+        }), { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const currentUsage = quotas.chatbot_queries_used ?? 0;
+      const limit = quotas.chatbot_queries_limit ?? 3;
+
+      console.log('📊 Quota check:', { 
+        user_id: user.id,
+        currentUsage, 
+        limit,
+        raw_data: quotas 
+      });
+
+      if (currentUsage >= limit) {
+        console.warn('⚠️ Quota exceeded');
+        return new Response(JSON.stringify({ 
+          error: limit === 3
+            ? 'Trial quota exceeded (3/3). Upgrade to Pro!'
+            : 'Monthly quota exceeded (50/50)',
+          upgrade_url: '/settings?tab=billing'
+        }), { 
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 4. Increment usage (use SQL to ensure atomicity)
+      const newUsage = currentUsage + 1;
+      console.log('🔄 Attempting to increment quota from', currentUsage, 'to', newUsage);
+      
+      const { data: updateData, error: updateError } = await supabaseAdmin
+        .from('search_quotas')
+        .update({
+          chatbot_queries_used: newUsage,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select('chatbot_queries_used');
+
+      if (updateError) {
+        console.error('❌ Failed to increment quota:', updateError);
+        // Continue anyway - don't block the user
+      } else {
+        console.log('✅ Quota incremented successfully:', updateData);
+      }
+    } else {
+      console.log('🔧 DEBUG MODE: Skipping quota check');
+    }
+
+    // 5. Call LlamaCloud Retrieve API (REST)
+    const llamaCloudBaseUrl = Deno.env.get('LLAMA_CLOUD_BASE_URL')!;
+    const llamaCloudApiKey = Deno.env.get('LLAMA_CLOUD_API_KEY')!;
+    const pipelineId = Deno.env.get('LLAMA_CLOUD_PIPELINE_ID')!;
+    
+    const llamaCloudFilters = { source: source_name };
+    
+    console.log('🔍 LlamaCloud retrieval config:', {
+      similarity_top_k: 6,
+      retrieval_mode: 'chunks',
+      retrieve_mode: 'text_and_images',
+      filters: llamaCloudFilters,
+      requested_source: source_name
+    });
+
+    // Appel à LlamaCloud avec filtre par source
+    const retrieveResponse = await fetch(
+      `${llamaCloudBaseUrl}/api/v1/pipelines/${pipelineId}/retrieve`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${llamaCloudApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: message,
+          similarity_top_k: 6,
+          retrieval_mode: 'chunks',
+          retrieve_mode: 'text_and_images',
+          filters: llamaCloudFilters // ✅ RÉACTIVÉ : Filtrer par metadata "source"
+        }),
+      }
+    );
+
+    if (!retrieveResponse.ok) {
+      throw new Error(`LlamaCloud retrieve failed: ${retrieveResponse.status} ${retrieveResponse.statusText}`);
+    }
+
+    const retrieveData = await retrieveResponse.json();
+    const nodesCount = retrieveData.retrieval_nodes?.length || 0;
+    console.log('✅ Retrieved', nodesCount, 'nodes from LlamaCloud for source:', source_name);
+
+    // Extract context, sources, and screenshots from nodes
+    const nodes = retrieveData.retrieval_nodes || [];
+
+    // DEBUG: Log ALL fields from first node to see what LlamaCloud returns
+    if (nodes.length > 0) {
+      console.log('🔍 FULL NODE STRUCTURE:', JSON.stringify({
+        extra_info: nodes[0].node.extra_info,
+        metadata: nodes[0].node.metadata,
+        relationships: nodes[0].node.relationships,
+      }, null, 2));
+      
+      // LOG CRITIQUE: Vérifier la source de chaque node retourné
+      console.log('🔍 SOURCES RETURNED BY LLAMACLOUD:');
+      nodes.forEach((node: any, idx: number) => {
+        const info = node.node.extra_info || {};
+        const meta = node.node.metadata || {};
+        console.log(`  Node ${idx + 1}:`, {
+          source_in_extra_info: info.source || info.Source || 'NOT FOUND',
+          source_in_metadata: meta.source || meta.Source || 'NOT FOUND',
+          file_name: info.file_name
+        });
+      });
+    }
+    
+    // FILTRAGE OPTIONNEL : Vérifier si les nodes correspondent à la source demandée
+    // Le filtrage API de LlamaCloud devrait déjà faire ce travail via le paramètre filters
+    const filteredNodes = nodes.filter((node: any) => {
+      const info = node.node.extra_info || {};
+      const nodeSource = info.source || info.Source || '';
+      const matches = nodeSource === source_name;
+      if (!matches && nodes.length < 10) {
+        console.log(`⚠️ Node source mismatch: expected "${source_name}", got "${nodeSource}"`);
+      }
+      return matches;
+    });
+    
+    console.log(`✅ Filtered nodes: ${filteredNodes.length}/${nodes.length} nodes match source "${source_name}"`);
+    
+    // Si le filtre a tout supprimé mais qu'on avait des résultats, c'est un problème de metadata
+    // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
+    const nodesToUse = filteredNodes.length > 0 ? filteredNodes : nodes;
+    
+    if (nodesToUse.length === 0) {
+      console.warn('⚠️ No nodes found at all');
+      const errorMessage = language === 'fr'
+        ? `Aucune documentation n'est disponible pour la source "${source_name}".`
+        : `No documentation is available for the source "${source_name}".`;
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        error_type: 'no_matching_source'
+      }), { 
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    const sources = nodesToUse.map((node: any, idx: number) => {
+      const info = node.node.extra_info || {};
+      
+      // PRIORITÉ 1: Utiliser le champ "url" de la metadata LlamaCloud (ajouté par l'utilisateur)
+      let pdfUrl = info.url || info.pdf_url || null;
+      
+      // PRIORITÉ 2: Si pas d'URL dans la metadata, construire depuis le nom de fichier
+      if (!pdfUrl) {
+        const fileName = info.file_name || info.external_file_id;
+        if (fileName) {
+          pdfUrl = `${supabaseUrl}/storage/v1/object/public/documents/${fileName}`;
+        }
+      }
+      
+      // Ajouter l'ancre #page=N si on a un numéro de page
+      const pageLabel = info.page_label || null;
+      if (pdfUrl && pageLabel) {
+        // Convertir page_label en nombre (peut être "116", "XVI", etc.)
+        const pageNumber = parseInt(pageLabel, 10);
+        if (!isNaN(pageNumber)) {
+          pdfUrl = `${pdfUrl}#page=${pageNumber}`;
+        }
+      }
+      
+      // Titre: utiliser file_name en priorité
+      const title = info.file_name || info.external_file_id || `Source ${idx + 1}`;
+      
+      return {
+        id: idx + 1,
+        title,
+        url: pdfUrl,
+        page: pageLabel,
+        score: node.score || 0,
+        external_file_id: info.external_file_id || info.file_id || null
+      };
+    }); // Uniquement les sources filtrées
+
+    // Build context for OpenAI (utiliser nodesToUse)
+    const context = nodesToUse.map((node: any, idx: number) => 
+      `[Source ${idx + 1}] ${node.node.text || ''}`
+    ).join('\n\n');
+
+    // Extract ALL visual assets from extra_info (screenshots, charts, images) - utiliser nodesToUse
+    const screenshots: string[] = [];
+    const charts: string[] = [];
+    const links: Array<{ text: string; url: string }> = [];
+    
+    for (const node of nodesToUse) {
+      const info = node.node.extra_info || {};
+      
+      // DEBUG: Log ALL available fields in extra_info for first 2 nodes
+      if (screenshots.length < 2) {
+        console.log(`🔍 Node ${screenshots.length + 1} extra_info keys:`, Object.keys(info));
+        console.log(`🔍 Node ${screenshots.length + 1} extra_info:`, JSON.stringify(info, null, 2).slice(0, 500));
+      }
+      
+      // 📸 Screenshots (page entières) - Vérifier plusieurs champs possibles
+      const pageScreenshot = 
+        info.image_url || 
+        info.screenshot_url || 
+        info.page_screenshot ||
+        info.screenshot ||
+        info.image ||
+        info.page_image ||
+        info.figure_url;
+        
+      if (pageScreenshot) {
+        console.log('✅ Found screenshot:', pageScreenshot);
+        if (!screenshots.includes(pageScreenshot)) {
+          screenshots.push(pageScreenshot);
+        }
+      } else {
+        console.log('❌ No screenshot found in:', Object.keys(info));
+      }
+      
+      // 📊 Charts (graphiques extraits)
+      if (info.chart_url || info.image_path) {
+        const chartUrl = info.chart_url || info.image_path;
+        if (chartUrl && !charts.includes(chartUrl)) {
+          charts.push(chartUrl);
+        }
+      }
+      
+      // 🔗 Links (liens annotés) - peuvent être dans plusieurs champs
+      if (info.links && Array.isArray(info.links)) {
+        info.links.forEach((link: any) => {
+          if (link.url && !links.find(l => l.url === link.url)) {
+            links.push({
+              text: link.text || link.title || 'Lien',
+              url: link.url
+            });
+          }
+        });
+      }
+      
+      // Limit to avoid overload
+      if (screenshots.length >= 5 && charts.length >= 3 && links.length >= 5) break;
+    }
+    
+    console.log('📸 Extracted screenshots:', screenshots.length);
+    console.log('📊 Extracted charts:', charts.length);
+    console.log('🔗 Extracted links:', links.length);
+
+    // Build IMPROVED system prompt
+    const languageInstruction = language === 'fr' 
+      ? 'Réponds OBLIGATOIREMENT et EXCLUSIVEMENT en FRANÇAIS. Ne mélange jamais français et anglais.' 
+      : 'You MUST answer ONLY in ENGLISH. Never mix French and English.';
+    
+    const systemPrompt = `You are an expert assistant in carbon methodologies for ${source_name}.
+
+${languageInstruction}
+
+CONTEXT:
+Analyzed product: "${product_context}"
+Source documentation: ${source_name}
+
+RETRIEVED SOURCES:
+${context}
+
+STRICT INSTRUCTIONS:
+1. Base your answer ONLY on the sources above - DO NOT invent information
+
+2. ALWAYS cite with [Source X] in your response after each statement
+
+3. For mathematical formulas - VERY IMPORTANT:
+   - If a formula is present in the sources, REPRODUCE IT EXACTLY in LaTeX
+   - Inline: $formula$ (example: $E = mc^2$ for E = mc²)
+   - Block: $$formula$$ on a separate line for complex formulas
+   - Example of block formula:
+   
+$$
+Q_{CO_2,i} = \\frac{\\sum_{p=1}^9 (P_{p,i} \\times FE_p)}{\\sum_{p=1}^9 P_{p,i}}
+$$
+
+4. For chemical indices (CO₂, CH₄, etc.), use inline LaTeX notation: $CO_2$ for CO₂
+
+5. Structure your response in CLEAN Markdown with BLANK LINES between each section:
+
+### Introduction
+
+Concise explanation of the main concept.
+
+### Details
+
+Detailed explanation with formulas if relevant. INCLUDE formulas from sources.
+
+For each important point, create a new paragraph.
+
+6. IMPORTANT: Use REAL blank lines (double line break) between each paragraph, NOT \\n
+
+7. DO NOT add a "Sources used" section at the end - sources will be displayed automatically in the interface
+
+8. If the information IS NOT in the provided sources: answer ONLY "${language === 'fr' ? `Je ne trouve pas cette information dans la documentation ${source_name} fournie.` : `I cannot find this information in the provided ${source_name} documentation.`}"
+
+9. NEVER add "This information is not available" AT THE END if you already answered
+
+10. 🔗 If relevant LINKS are available in the sources, INCLUDE THEM in your response in Markdown format: [Link text](url)
+
+11. Provide key methodological assumptions used to model the emission factor in question.
+
+12. ${languageInstruction}`;
+
+    // 6. Call OpenAI Chat Completions API (REST with streaming)
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.2,
+        max_tokens: 2000,
+        stream: true
+      }),
+    });
+
+    if (!openaiResponse.ok) {
+        throw new Error(`OpenAI API failed: ${openaiResponse.status} ${openaiResponse.statusText}`);
+      }
+
+    // Stream the response with metadata + Vercel AI SDK format
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // 1. Send metadata FIRST (sources, screenshots, charts, links)
+          const metadata = {
+            sources,
+            screenshots,
+            charts,
+            links
+          };
+          controller.enqueue(encoder.encode(`___METADATA___\n${JSON.stringify(metadata)}\n___END_METADATA___\n`));
+
+          // 2. Then stream OpenAI response
+          const reader = openaiResponse.body!.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim().startsWith('data:'));
+
+            for (const line of lines) {
+              const data = line.replace(/^data: /, '').trim();
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                
+                if (content) {
+                  // Format Vercel AI SDK: 0:"text"
+                  controller.enqueue(encoder.encode(`0:${JSON.stringify(content)}\n`));
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Stream error:', error);
+        } finally {
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Chat proxy error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message,
+      type: error.name,
+      stack: error.stack
+    }), { 
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
