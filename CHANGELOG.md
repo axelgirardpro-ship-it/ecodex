@@ -8,6 +8,27 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Non publié]
 
 ### 2026-01-XX
+- **🎨 AMÉLIORATION UI/UX - Chatbot Documentation** : Optimisation de l'interface et de l'expérience utilisateur du chatbot
+  - **Largeur de la modale réduite** : Passage de `max-w-[1600px] w-[96vw]` à `max-w-5xl w-[90vw]` pour une taille plus raisonnable et une meilleure lisibilité
+  - **Sources dans un accordéon** : Les sources sont maintenant dans un accordéon fermé par défaut, permettant à l'utilisateur de ne pas polluer la visibilité du chat
+  - **Design des cards de sources amélioré** : 
+    - Layout vertical optimisé (suppression de l'espace inutile entre le titre et le lien PDF)
+    - Structure claire : titre du chunk/section (gras) → nom du document + page (texte gris) → lien PDF (aligné à gauche)
+    - Meilleur espacement visuel avec `space-y-1`
+  - **Titres des sources intelligents** :
+    - **Titre principal** : Extraction automatique de la première ligne du chunk (titre de section)
+    - **Sous-titre** : Nom du document complet
+    - Nettoyage automatique des marqueurs markdown (`##`, `**`, numérotation)
+    - Fallback intelligent sur les premiers caractères si pas de titre clair
+    - Affichage du numéro de page si disponible
+  - **Backend** :
+    - Extraction intelligente du titre de section depuis `node.node.text`
+    - Séparation claire entre `title` (titre du chunk) et `documentTitle` (nom du fichier)
+    - Support de métadonnées enrichies pour améliorer l'affichage
+  - **Fichiers modifiés** :
+    - `src/components/search/LlamaCloudChatModal.tsx` : Refonte de l'affichage des sources, ajout de l'accordéon, amélioration du layout
+    - `supabase/functions/llamacloud-chat-proxy/index.ts` : Extraction intelligente des titres de chunks et des métadonnées
+
 - **✨ AMÉLIORATION - Agent Documentaire sur la page Favoris** : Extension de l'agent documentaire à la page des favoris
   - **Fonctionnalité** : Ajout du bouton "Assistant documentaire" (icône Sparkles) dans l'accordéon des détails des favoris
   - **Comportement identique** : Même implémentation que sur la page `/search` pour garantir une expérience utilisateur cohérente
