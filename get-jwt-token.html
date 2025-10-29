@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get JWT Token</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3ecf8e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background: #2db574;
+        }
+        .token-display {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .success {
+            color: #28a745;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Récupérer votre JWT Token</h1>
+        
+        <button onclick="getToken()">Obtenir mon JWT Token</button>
+        
+        <div id="result"></div>
+        
+        <div class="instructions">
+            <h3>📋 Instructions :</h3>
+            <ol>
+                <li>Cliquez sur le bouton ci-dessus</li>
+                <li>Le token sera copié automatiquement dans votre presse-papier</li>
+                <li>Retournez dans le Dashboard Supabase</li>
+                <li>Dans la section "Headers", ajoutez :
+                    <ul>
+                        <li><strong>Key:</strong> Authorization</li>
+                        <li><strong>Value:</strong> Bearer [COLLEZ_VOTRE_TOKEN_ICI]</li>
+                    </ul>
+                </li>
+                <li>Changez le "Role" en bas à droite de "service_role" à "custom" ou retirez complètement la sélection</li>
+                <li>Cliquez sur "Send Request"</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://wrodvaatdujbpfpvrzge.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2R2YWF0ZHVqYnBmcHZyemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3MzE3MzgsImV4cCI6MjA2OTMwNzczOH0.0ac4Hjbb09n7V8orvD16jtj0ZA6Qz8T0PBM3y33fQ0s'
+        );
+
+        async function getToken() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) throw error;
+                
+                if (!data.session) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Aucune session active. Veuillez vous connecter à l'application d'abord.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const token = data.session.access_token;
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(token);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Token copié dans le presse-papier !
+                    </div>
+                    <div class="token-display">
+                        ${token}
+                    </div>
+                    <p style="margin-top: 15px; color: #666;">
+                        <strong>Utilisateur:</strong> ${data.session.user.email || data.session.user.id}
+                    </p>
+                    <p style="color: #666;">
+                        <strong>Expire dans:</strong> ${Math.round((new Date(data.session.expires_at * 1000) - new Date()) / 1000 / 60)} minutes
+                    </p>
+                `;
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur: ${err.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+

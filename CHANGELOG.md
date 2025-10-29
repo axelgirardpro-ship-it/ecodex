@@ -7,6 +7,45 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-29
+- **✨ FEATURE - Agent Documentaire IA (LlamaCloud)** : Assistant conversationnel intelligent pour interroger la documentation des méthodologies carbone
+  - **Backend** :
+    - Edge Function `llamacloud-chat-proxy` : Proxy sécurisé pour LlamaCloud API avec gestion des quotas et streaming
+    - Edge Function `get-my-chatbot-quota` : Récupération des quotas utilisateur pour l'agent documentaire
+    - Intégration LlamaCloud pour parsing et indexation des PDFs de méthodologies (Base Carbone, BEIS)
+    - Retrieval API avec filtrage strict par source (metadata `source`)
+    - Génération de réponses avec OpenAI GPT-4o-mini
+    - Support multi-modal : texte, sources, screenshots, formulas LaTeX
+  - **Frontend** :
+    - Composant `LlamaCloudChatModal` : Interface de chat moderne avec streaming en temps réel
+    - Hook custom `useSimpleChat` : Gestion du chat sans dépendances externes
+    - Bouton "Assistant documentaire" (icône Sparkles) dans l'accordéon des détails des résultats de recherche
+    - Pré-remplissage intelligent de la question avec produit et source
+    - Affichage des sources citées avec liens cliquables vers les PDFs (avec ancrage de page)
+    - Support LaTeX via `remark-math` et `rehype-katex`
+    - Affichage des screenshots et graphiques extraits des PDFs
+  - **Quotas** :
+    - Consolidation dans la table `search_quotas` (suppression de `chatbot_usage`)
+    - Freemium : 3 requêtes lifetime
+    - Pro : 50 requêtes par mois
+    - Affichage en temps réel dans le modal et la navbar (format `X / Y`)
+    - Message d'erreur user-friendly en cas de dépassement de quota
+    - Triggers automatiques pour remplir `user_email` et `workspace_name` dans `search_quotas`
+  - **UX** :
+    - Modal élargie : `max-w-[1600px]` et `w-[96vw]`
+    - Widget quota navbar élargi : `w-80` avec icône Sparkles
+    - Couleurs harmonisées avec la page de recherche (blanc/gris)
+    - Invalidation automatique du cache React Query après chaque requête
+    - Filtrage strict par source : seuls les résultats de la source sélectionnée sont affichés
+    - Contrôle de la langue de réponse (FR/EN) basé sur la langue de l'application
+  - **Technique** :
+    - Migrations : `add_chatbot_columns_to_search_quotas`, `add_user_info_to_search_quotas`, `add_trigger_populate_user_info`
+    - Suppression des dépendances inutilisées : `@assistant-ui/react`, `@ai-sdk/react`, `@ai-sdk/openai`, `@llamaindex/vercel`
+    - Code 100% custom sans dépendances lourdes (réduction du bundle)
+    - Configuration LlamaCloud : Pipeline ID, Organization ID, API Key stockés dans Supabase Secrets
+    - Parsing options : `take_screenshot`, `extract_charts`, `extract_layout`, `annotate_links`
+  - **Impact** : Nouvelle feature premium pour interroger intelligemment les méthodologies carbone avec RAG avancé et support multi-modal
+
 ### 2025-10-24n- **FEATURE_2025-10-24_benchmark_title_edition_inline.md** : FEATURE: Édition inline du titre des benchmarks avec tooltip intelligentn  - Documentation complète dans `docs/history/2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md`n
 
 ### 2025-10-24n- **FIX_benchmark_date_range_period_2025-10-23.md** : FIX: Période du benchmark avec filtrage de date uniquen  - Documentation complète dans `docs/history/2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md`n

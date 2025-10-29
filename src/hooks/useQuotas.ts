@@ -16,10 +16,14 @@ interface QuotaData {
   exports_used: number;
   clipboard_copies_used: number;
   favorites_used: number;
-  // Benchmarks (nouveau)
+  // Benchmarks
   benchmarks_limit: number | null; // null = unlimited (Pro), 3 = Freemium
   benchmarks_used: number;
   benchmarks_reset_date: string | null;
+  // Chatbot
+  chatbot_queries_limit: number | null; // 3 = Freemium, 50 = Pro
+  chatbot_queries_used: number;
+  chatbot_reset_date: string | null;
 }
 
 // Fonction de fetch isolée pour React Query
@@ -52,6 +56,7 @@ const fetchQuotaData = async (userId: string): Promise<QuotaData | null> => {
     return newQuota as QuotaData;
   }
   
+  // Les quotas chatbot sont maintenant dans search_quotas directement
   return data as QuotaData;
 };
 
