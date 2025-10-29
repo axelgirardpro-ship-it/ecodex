@@ -7,6 +7,18 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2026-01-XX
+- **✨ AMÉLIORATION - Agent Documentaire sur la page Favoris** : Extension de l'agent documentaire à la page des favoris
+  - **Fonctionnalité** : Ajout du bouton "Assistant documentaire" (icône Sparkles) dans l'accordéon des détails des favoris
+  - **Comportement identique** : Même implémentation que sur la page `/search` pour garantir une expérience utilisateur cohérente
+  - **Vues supportées** : Bouton disponible dans les deux modes d'affichage (détaillé et table)
+  - **Localisation** : Bouton dans la section expanded (`isExpanded`) de chaque favori
+  - **Pré-remplissage** : Question automatiquement pré-remplie avec le nom du produit et la source
+  - **Modal** : Ouverture du modal `LlamaCloudChatModal` avec contexte (source + productName)
+  - **Impact** : Les utilisateurs peuvent maintenant interroger la documentation directement depuis leurs favoris, sans retourner à la page de recherche
+  - **Fichiers modifiés** :
+    - `src/components/search/favoris/FavorisSearchResults.tsx` : Ajout des imports (`Sparkles`, `LlamaCloudChatModal`), état `chatConfig`, boutons dans les deux vues, et modal
+
 ### 2025-10-29
 - **✨ FEATURE - Agent Documentaire IA (LlamaCloud)** : Assistant conversationnel intelligent pour interroger la documentation des méthodologies carbone
   - **Backend** :
