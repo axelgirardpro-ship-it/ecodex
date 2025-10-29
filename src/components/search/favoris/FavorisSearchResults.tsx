@@ -722,7 +722,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                       <td className="p-3">
                         <div className="flex flex-col gap-1">
                           <div
-                            className="text-sm font-semibold text-foreground"
+                            className="text-sm text-foreground"
                             dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Nom') }}
                           />
                           {isPrivateHit(hit) && (

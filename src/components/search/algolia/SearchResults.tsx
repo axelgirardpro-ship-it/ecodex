@@ -1026,7 +1026,7 @@ export const SearchResults: React.FC = () => {
                           </td>
                           <td className="p-3">
                             <div className="flex flex-col gap-1">
-                              <div className="text-sm font-semibold text-foreground">
+                              <div className="text-sm text-foreground">
                                 <AlgoliaHighlight attribute={currentLang === 'fr' ? 'Nom_fr' : 'Nom_en'} hit={hit} />
                               </div>
                               {isPrivateHit && (
