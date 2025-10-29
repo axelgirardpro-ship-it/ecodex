@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useHits, usePagination, Highlight } from 'react-instantsearch';
-import { Copy, Download, Heart, Trash2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
+import { Copy, Download, Heart, Trash2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LayoutList, Table2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -43,6 +43,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const { getSourceLogo } = useSourceLogos();
   const { shouldBlurPaidContent } = useEmissionFactorAccess();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'detailed' | 'table'>('detailed');
   const { t } = useTranslation('search');
   const { t: tResults } = useTranslation('search', { keyPrefix: 'results' });
   const { t: tFavoris } = useTranslation('search', { keyPrefix: 'favoris' });
@@ -244,10 +245,36 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div className="text-sm text-foreground">
-        {hits.length === 1 
-          ? tFavoris('stats.favoritesDisplayed', { formattedCount: hits.length })
-          : tFavoris('stats.favoritesDisplayed_plural', { formattedCount: hits.length })}
+        <div className="flex items-center gap-4">
+          {/* View Switcher */}
+          <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('detailed')}
+              className="h-8 px-3"
+              title={tResults('view_detailed')}
+            >
+              <LayoutList className="h-4 w-4" />
+              <span className="ml-2 hidden sm:inline">{tResults('view_detailed')}</span>
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="h-8 px-3"
+              title={tResults('view_table')}
+            >
+              <Table2 className="h-4 w-4" />
+              <span className="ml-2 hidden sm:inline">{tResults('view_table')}</span>
+            </Button>
+          </div>
+
+          <div className="text-sm text-foreground">
+            {hits.length === 1 
+              ? tFavoris('stats.favoritesDisplayed', { formattedCount: hits.length })
+              : tFavoris('stats.favoritesDisplayed_plural', { formattedCount: hits.length })}
+          </div>
         </div>
       </div>
 
@@ -301,8 +328,9 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         )}
       </div>
 
-      <div className="space-y-4">
-        {hits.map((hit) => {
+      {viewMode === 'detailed' ? (
+        <div className="space-y-4">
+          {hits.map((hit) => {
           const isExpanded = expandedRows.has(hit.objectID);
           const shouldBlur = shouldBlurPaidContent(hit.Source);
 
@@ -613,6 +641,341 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
           );
         })}
       </div>
+      ) : (
+        /* Table View */
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
+            <thead className="bg-muted/50 sticky top-0">
+              <tr className="border-b border-border">
+                <th className="p-3 text-left text-sm font-semibold text-foreground w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={handleSelectAllChange}
+                  />
+                </th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[200px]">{tResults('name')}</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[120px]">FE</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[150px]">{tResults('unit')}</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[120px]">{tResults('perimeter')}</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[150px]">{tResults('source')}</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[120px]">{tResults('location')}</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground w-24">{tResults('date')}</th>
+                <th className="p-3 text-right text-sm font-semibold text-foreground w-32">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hits.map((hit) => {
+                const isExpanded = expandedRows.has(hit.objectID);
+                const shouldBlur = shouldBlurPaidContent(hit.Source);
+
+                return (
+                  <React.Fragment key={hit.objectID}>
+                    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedItems.has(hit.objectID)}
+                          onCheckedChange={() => onItemSelect(hit.objectID)}
+                          title={shouldBlur ? getTooltip('blurredNotSelectable') : ''}
+                        />
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          <div
+                            className="text-sm font-semibold text-foreground"
+                            dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Nom') }}
+                          />
+                          {isPrivateHit(hit) && (
+                            <Badge variant="secondary" className="text-[10px] leading-none px-2 py-0.5 w-fit">
+                              {tResults('imported_ef')}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <PaidBlur isBlurred={shouldBlur}>
+                          <span className="text-sm font-bold text-primary">{formatFE(hit.FE)} kgCO₂eq</span>
+                        </PaidBlur>
+                      </td>
+                      <td className="p-3 text-sm">
+                        {getLocalizedValue(hit, 'Unite_fr', 'Unite_en', ["Unité donnée d'activité"])}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {getLocalizedValue(hit, 'Périmètre_fr', 'Périmètre_en', ['Périmètre'])}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {getSourceLogo(hit.Source) && (
+                            <img
+                              src={getSourceLogo(hit.Source)!}
+                              alt={`Logo ${hit.Source}`}
+                              className="w-8 h-8 object-contain flex-shrink-0"
+                            />
+                          )}
+                          <span className="text-sm">{hit.Source}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">
+                        {getLocalizedValue(hit, 'Localisation_fr', 'Localisation_en', ['Localisation'])}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {hit.Date || '-'}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFavorite(hit);
+                            }}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRowExpansion(hit.objectID);
+                            }}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={9} className="p-0">
+                          <div className="bg-muted/20 p-6 border-t border-border">
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(hit.Description_fr || hit.Description_en) && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-sm font-semibold text-foreground">Description</span>
+                                    <div className="text-xs mt-1 text-break-words">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          p: ({ children, ...props }) => (
+                                            <p className="text-xs font-light leading-relaxed" {...props}>
+                                              {children}
+                                            </p>
+                                          ),
+                                          strong: ({ children, ...props }) => (
+                                            <strong className="font-bold" {...props}>{children}</strong>
+                                          ),
+                                          em: ({ children, ...props }) => (
+                                            <em className="italic" {...props}>{children}</em>
+                                          ),
+                                          mark: ({ children, ...props }) => (
+                                            <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                          )
+                                        }}
+                                      >
+                                        {getHighlightedText(hit, 'Description') || (hit.Description_fr || hit.Description_en) as string}
+                                      </ReactMarkdown>
+                                    </div>
+                                  </div>
+                                )}
+                                {(hit.Commentaires_fr || hit.Commentaires_en) && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-sm font-semibold text-foreground">Commentaires</span>
+                                    <div className="text-xs mt-1 text-break-words">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          p: ({ children, ...props }) => (
+                                            <p className="text-xs font-light leading-relaxed" {...props}>
+                                              {children}
+                                            </p>
+                                          ),
+                                          strong: ({ children, ...props }) => (
+                                            <strong className="font-bold" {...props}>{children}</strong>
+                                          ),
+                                          em: ({ children, ...props }) => (
+                                            <em className="italic" {...props}>{children}</em>
+                                          ),
+                                          mark: ({ children, ...props }) => (
+                                            <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                          )
+                                        }}
+                                      >
+                                        {getHighlightedText(hit, 'Commentaires') || (hit.Commentaires_fr || hit.Commentaires_en) as string}
+                                      </ReactMarkdown>
+                                    </div>
+                                  </div>
+                                )}
+                                {getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur']) && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">{tResults('sector')}</span>
+                                    <p className="mt-1 text-sm font-light">
+                                      {getLocalizedValue(hit, 'Secteur_fr', 'Secteur_en', ['Secteur'])}
+                                    </p>
+                                  </div>
+                                )}
+                                {getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur']) && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">{tResults('sub_sector')}</span>
+                                    <p className="mt-1 text-sm font-light">
+                                      {getLocalizedValue(hit, 'Sous-secteur_fr', 'Sous-secteur_en', ['Sous-secteur'])}
+                                    </p>
+                                  </div>
+                                )}
+                                {hit.Incertitude && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">Incertitude</span>
+                                    <p
+                                      className="text-sm font-light mt-1"
+                                      dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Incertitude') }}
+                                    />
+                                  </div>
+                                )}
+                                {(hit.Contributeur || hit.Contributeur_en) && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {currentLang === 'fr' ? 'Contributeur' : 'Contributor'}
+                                    </span>
+                                    <div className="text-xs mt-1 text-break-words">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          p: ({ children, ...props }) => (
+                                            <p className="text-xs font-light leading-relaxed" {...props}>
+                                              {children}
+                                            </p>
+                                          ),
+                                          strong: ({ children, ...props }) => (
+                                            <strong className="font-bold" {...props}>{children}</strong>
+                                          ),
+                                          em: ({ children, ...props }) => (
+                                            <em className="italic" {...props}>{children}</em>
+                                          ),
+                                          mark: ({ children, ...props }) => (
+                                            <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                          )
+                                        }}
+                                      >
+                                        {getHighlightedText(hit, 'Contributeur') || (currentLang === 'fr' ? hit.Contributeur : hit.Contributeur_en) as string}
+                                      </ReactMarkdown>
+                                    </div>
+                                  </div>
+                                )}
+                                {(hit.Méthodologie || hit.Méthodologie_en) && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {currentLang === 'fr' ? 'Méthodologie' : 'Methodology'}
+                                    </span>
+                                    <div className="text-xs mt-1 text-break-words">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          p: ({ children, ...props }) => (
+                                            <p className="text-xs font-light leading-relaxed" {...props}>
+                                              {children}
+                                            </p>
+                                          ),
+                                          strong: ({ children, ...props }) => (
+                                            <strong className="font-bold" {...props}>{children}</strong>
+                                          ),
+                                          em: ({ children, ...props }) => (
+                                            <em className="italic" {...props}>{children}</em>
+                                          ),
+                                          mark: ({ children, ...props }) => (
+                                            <mark className="bg-purple-200 px-1 rounded" {...props}>{children}</mark>
+                                          )
+                                        }}
+                                      >
+                                        {getHighlightedText(hit, 'Méthodologie') || (currentLang === 'fr' ? hit.Méthodologie : hit.Méthodologie_en) as string}
+                                      </ReactMarkdown>
+                                    </div>
+                                  </div>
+                                )}
+                                {(hit['Type_de_données'] || hit['Type_de_données_en']) && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {currentLang === 'fr' ? 'Type de données' : 'Data Type'}
+                                    </span>
+                                    <p
+                                      className="text-xs font-light mt-1"
+                                      dangerouslySetInnerHTML={{ __html: getHighlightedText(hit, 'Type de données') }}
+                                    />
+                                  </div>
+                                )}
+                                {hit.dataset_name && (
+                                  <div>
+                                    <span className="text-sm font-semibold text-foreground">{tResults('imported_dataset')}</span>
+                                    <p className="mt-1 text-sm font-light">{hit.dataset_name}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {nbPages > 1 && (() => {
         const maxVisible = 5;
