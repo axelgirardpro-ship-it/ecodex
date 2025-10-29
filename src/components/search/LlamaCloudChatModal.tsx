@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 interface Source {
   id: number;
   title: string;
+  documentTitle: string; // Titre du document complet
   url: string | null;
   page: string | null;
   score: number;
@@ -241,7 +242,7 @@ const ChatInterface: React.FC<{
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1600px] w-[96vw] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl w-[90vw] h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-6 h-6" />
@@ -312,55 +313,55 @@ const ChatInterface: React.FC<{
                 const allSources = m.sources || [];
                 
                 return (
-                  <div className="mt-3 max-w-[80%] w-full">
-                    {/* Sources - Design compact inspiré de l'image */}
+                  <div className="mt-3 max-w-[80%] w-full space-y-3">
+                    {/* Sources dans un accordéon */}
                     {allSources.length > 0 && (
-                      <div className="bg-background border rounded-lg p-3 mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span className="font-semibold text-sm">{language === 'fr' ? 'Sources utilisées' : 'Sources used'} ({allSources.length})</span>
-                        </div>
-                        <div className="space-y-2">
-                          {allSources.map((source) => (
-                          <div key={source.id} className="bg-white hover:bg-accent/50 transition-colors rounded-lg p-3 flex items-center justify-between gap-3 border border-border">
-                            <div className="flex items-start gap-2 flex-1 min-w-0">
-                              <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-foreground truncate mb-0.5">
-                                  {source.id}. {source.title}
-                                </p>
-                                {source.page && (
-                                  <p className="text-xs text-muted-foreground">
-                                    📄 Page {source.page}
-                                  </p>
-                                )}
-                              </div>
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="sources" className="border rounded-lg">
+                          <AccordionTrigger className="px-4 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-primary" />
+                              <span className="font-semibold text-sm">{language === 'fr' ? 'Sources utilisées' : 'Sources used'} ({allSources.length})</span>
                             </div>
-                            {source.url && source.url.startsWith('http') && (
-                              <a 
-                                href={source.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  console.log('🔗 Click on source:', source.url);
-                                  if (e.metaKey || e.ctrlKey) return;
-                                  e.preventDefault();
-                                  window.open(source.url, '_blank', 'noopener,noreferrer');
-                                }}
-                                className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap cursor-pointer flex-shrink-0 font-medium"
-                              >
-                                📄 Voir PDF →
-                              </a>
-                            )}
-                            {(!source.url || !source.url.startsWith('http')) && (
-                              <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                                PDF indisponible
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                        </div>
-                      </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <div className="space-y-2">
+                              {allSources.map((source) => (
+                                <div key={source.id} className="bg-white hover:bg-accent/50 transition-colors rounded-lg p-3 border border-border">
+                                  <div className="flex items-start gap-3">
+                                    <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                      <p className="font-medium text-sm text-foreground leading-snug">
+                                        {source.title}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {source.documentTitle}
+                                        {source.page && ` • Page ${source.page}`}
+                                      </p>
+                                      {source.url && source.url.startsWith('http') && (
+                                        <a 
+                                          href={source.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => {
+                                            console.log('🔗 Click on source:', source.url);
+                                            if (e.metaKey || e.ctrlKey) return;
+                                            e.preventDefault();
+                                            window.open(source.url, '_blank', 'noopener,noreferrer');
+                                          }}
+                                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer font-medium mt-1"
+                                        >
+                                          📄 Voir le PDF →
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     )}
 
                   {/* Screenshots - Dans un accordéon */}

@@ -197,12 +197,26 @@ serve(async (req) => {
     
     // FILTRAGE OPTIONNEL : Vérifier si les nodes correspondent à la source demandée
     // Le filtrage API de LlamaCloud devrait déjà faire ce travail via le paramètre filters
+    // Fonction pour normaliser les noms de sources (ignorer casse et versions)
+    const normalizeSourceName = (name: string): string => {
+      return name
+        .toLowerCase()
+        .replace(/\s+v\d+(\.\d+)*/g, '') // Supprimer versions (v23.6, v23.7, etc.)
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+    
+    const normalizedRequestedSource = normalizeSourceName(source_name);
+    console.log(`🔍 Normalized requested source: "${source_name}" -> "${normalizedRequestedSource}"`);
+    
     const filteredNodes = nodes.filter((node: any) => {
       const info = node.node.extra_info || {};
       const nodeSource = info.source || info.Source || '';
-      const matches = nodeSource === source_name;
+      const normalizedNodeSource = normalizeSourceName(nodeSource);
+      const matches = normalizedNodeSource === normalizedRequestedSource;
+      
       if (!matches && nodes.length < 10) {
-        console.log(`⚠️ Node source mismatch: expected "${source_name}", got "${nodeSource}"`);
+        console.log(`⚠️ Node source mismatch: expected "${normalizedRequestedSource}", got "${normalizedNodeSource}" (original: "${nodeSource}")`);
       }
       return matches;
     });
@@ -230,6 +244,7 @@ serve(async (req) => {
     
     const sources = nodesToUse.map((node: any, idx: number) => {
       const info = node.node.extra_info || {};
+      const nodeText = node.node.text || '';
       
       // PRIORITÉ 1: Utiliser le champ "url" de la metadata LlamaCloud (ajouté par l'utilisateur)
       let pdfUrl = info.url || info.pdf_url || null;
@@ -252,12 +267,37 @@ serve(async (req) => {
         }
       }
       
-      // Titre: utiliser file_name en priorité
-      const title = info.file_name || info.external_file_id || `Source ${idx + 1}`;
+      // Titre du document: utiliser file_name
+      const documentTitle = info.file_name || info.external_file_id || 'Document';
+      
+      // Titre du chunk/section: extraire la première ligne du texte ou un titre de section
+      let chunkTitle = '';
+      
+      // Essayer d'extraire un titre de section (ligne commençant par # ou texte en gras)
+      const firstLine = nodeText.split('\n')[0].trim();
+      if (firstLine.length > 0 && firstLine.length < 150) {
+        // Nettoyer les marqueurs markdown (##, **, etc.)
+        chunkTitle = firstLine
+          .replace(/^#+\s*/, '') // Enlever les #
+          .replace(/\*\*/g, '')   // Enlever les **
+          .replace(/^[\d.]+\s*/, '') // Enlever la numérotation
+          .trim();
+      }
+      
+      // Fallback: utiliser les 80 premiers caractères du texte
+      if (!chunkTitle && nodeText.length > 0) {
+        chunkTitle = nodeText.substring(0, 80).trim() + '...';
+      }
+      
+      // Fallback final
+      if (!chunkTitle) {
+        chunkTitle = `Section ${idx + 1}`;
+      }
       
       return {
         id: idx + 1,
-        title,
+        title: chunkTitle,
+        documentTitle,
         url: pdfUrl,
         page: pageLabel,
         score: node.score || 0,
@@ -400,7 +440,7 @@ For each important point, create a new paragraph.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
