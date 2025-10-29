@@ -670,6 +670,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
           <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
             <thead className="bg-muted/50 sticky top-0">
               <tr className="border-b border-border">
+                <th className="p-3 text-left text-sm font-semibold text-foreground w-12"></th>
                 <th className="p-3 text-left text-sm font-semibold text-foreground w-12">
                   <Checkbox
                     checked={allSelected}
@@ -683,7 +684,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                 <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[150px]">{tResults('source')}</th>
                 <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[120px]">{tResults('location')}</th>
                 <th className="p-3 text-left text-sm font-semibold text-foreground w-24">{tResults('date')}</th>
-                <th className="p-3 text-right text-sm font-semibold text-foreground w-32">Actions</th>
+                <th className="p-3 text-left text-sm font-semibold text-foreground w-12"></th>
               </tr>
             </thead>
             <tbody>
@@ -694,6 +695,23 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                 return (
                   <React.Fragment key={hit.objectID}>
                     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+                      <td className="p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRowExpansion(hit.objectID);
+                          }}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </td>
                       <td className="p-3">
                         <Checkbox
                           checked={selectedItems.has(hit.objectID)}
@@ -744,39 +762,22 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                         {hit.Date || '-'}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveFavorite(hit);
-                            }}
-                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleRowExpansion(hit.objectID);
-                            }}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFavorite(hit);
+                          }}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </td>
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={10} className="p-0">
                           <div className="bg-muted/20 p-6 border-t border-border">
                             <div className="space-y-4">
                               {/* Bouton Assistant documentaire */}

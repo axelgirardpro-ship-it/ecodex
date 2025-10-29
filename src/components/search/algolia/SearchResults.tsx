@@ -970,6 +970,7 @@ export const SearchResults: React.FC = () => {
               <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
                 <thead className="bg-muted/50 sticky top-0">
                   <tr className="border-b border-border">
+                    <th className="p-3 text-left text-sm font-semibold text-foreground w-12"></th>
                     <th className="p-3 text-left text-sm font-semibold text-foreground w-12">
                       <Checkbox
                         checked={selectedItems.size === hits.length && hits.length > 0}
@@ -984,7 +985,7 @@ export const SearchResults: React.FC = () => {
                     <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[150px]">{t('source')}</th>
                     <th className="p-3 text-left text-sm font-semibold text-foreground min-w-[120px]">{t('location')}</th>
                     <th className="p-3 text-left text-sm font-semibold text-foreground w-24">{t('date')}</th>
-                    <th className="p-3 text-right text-sm font-semibold text-foreground w-32">Actions</th>
+                    <th className="p-3 text-left text-sm font-semibold text-foreground w-12"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -997,6 +998,23 @@ export const SearchResults: React.FC = () => {
                     return (
                       <React.Fragment key={hit.objectID}>
                         <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+                          <td className="p-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRowExpansion(hit.objectID);
+                              }}
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </td>
                           <td className="p-3">
                             <Checkbox
                               checked={selectedItems.has(hit.objectID)}
@@ -1048,47 +1066,30 @@ export const SearchResults: React.FC = () => {
                             {hit.Date || '-'}
                           </td>
                           <td className="p-3">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (canUseFavorites() && !shouldBlur) handleFavoriteToggle(hit);
-                                }}
-                                disabled={!canUseFavorites() || shouldBlur}
-                                className={`h-8 w-8 p-0 ${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                title={!canUseFavorites()
-                                  ? getTooltip('premiumOnly')
-                                  : (shouldBlur ? getTooltip('blurredNotAddable') : '')}
-                              >
-                                {!canUseFavorites() ? (
-                                  <Lock className="h-4 w-4" />
-                                ) : (
-                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleRowExpansion(hit.objectID);
-                                }}
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (canUseFavorites() && !shouldBlur) handleFavoriteToggle(hit);
+                              }}
+                              disabled={!canUseFavorites() || shouldBlur}
+                              className={`h-8 w-8 p-0 ${isFav ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'} ${(!canUseFavorites() || shouldBlur) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={!canUseFavorites()
+                                ? getTooltip('premiumOnly')
+                                : (shouldBlur ? getTooltip('blurredNotAddable') : '')}
+                            >
+                              {!canUseFavorites() ? (
+                                <Lock className="h-4 w-4" />
+                              ) : (
+                                <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
+                              )}
+                            </Button>
                           </td>
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={9} className="p-0">
+                            <td colSpan={10} className="p-0">
                               <div className="bg-muted/20 p-6 border-t border-border">
                                 <div className="space-y-4">
                                   {/* Bouton Assistant documentaire */}
