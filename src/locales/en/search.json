@@ -82,7 +82,12 @@
     "data_type": "Data Type",
     "commentary": "Commentary",
     "show_details": "Show details",
-    "hide_details": "Hide details"
+    "hide_details": "Hide details",
+    "remove": "Remove",
+    "error_removing_favorite": "Error removing favorite",
+    "view_detailed": "Detailed view",
+    "view_table": "Table view",
+    "name": "Name"
   },
   "stats": {
     "relevantResults": "{{sorted}} relevant results out of {{total}}",
