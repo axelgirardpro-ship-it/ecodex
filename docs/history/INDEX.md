@@ -22,13 +22,25 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ## 2025-10
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 
 ### 2025-10-23 🐛 Hotfix
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **2025-10-23_FIX_benchmark_date_range_period_2025-10-23.md** - Fix période du benchmark (champ Publication fantôme)
@@ -41,7 +53,13 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-22 🎯 Feature Benchmark (Phase 7)
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **2025-10-22_PR_BENCHMARK_IMPROVEMENTS.md** - PR améliorations Benchmark : validation pré-navigation, correction header UI et boot Edge Function
@@ -54,7 +72,13 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-20 🐛 Hotfix Filtre Private + ⚡ Optimisations
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **HOTFIX_FILTRE_PRIVATE_ALGOLIA_20251020.md** - Correction du filtre "Base personnelle" (0 résultats)
@@ -71,7 +95,13 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-16 ⚡ Optimisation React Query
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **OPTIMISATION_REACT_QUERY_COMPLETE.md** - Documentation technique complète de l'optimisation
@@ -83,14 +113,26 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-16 📊 Audit Réseau
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **AUDIT_RESEAU_MANGUE_20241016.md** - Audit complet de la recherche "mangue" (150 requêtes détectées)
 
 ### 2025-10-15 📦 Migrations & 🧹 Maintenance
 
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+
 ### 2025-10-24 📊 Rapport
+
+### 2025-10-29 🎯 Feature
+- **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 - **MIGRATION_SCORES_ALGOLIA_20251015.md** - Migration des champs de score Algolia

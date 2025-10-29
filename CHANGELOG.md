@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-29n- **FEATURE_UX_AGENT_DOCUMENTAIRE.md** : Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue améliorén  - Documentation complète dans `docs/history/2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md`n
+
 ### 2026-01-XX
 - **🎨 AMÉLIORATION UI/UX - Chatbot Documentation** : Optimisation de l'interface et de l'expérience utilisateur du chatbot
   - **Largeur de la modale réduite** : Passage de `max-w-[1600px] w-[96vw]` à `max-w-5xl w-[90vw]` pour une taille plus raisonnable et une meilleure lisibilité
