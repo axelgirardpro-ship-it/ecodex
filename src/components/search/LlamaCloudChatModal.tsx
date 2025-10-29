@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Bot, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -88,7 +88,7 @@ const useSimpleChat = (session: any, sourceName: string, productName: string, la
           if (response.status === 429) {
             errorDetails = language === 'fr'
               ? 'Vous avez atteint votre quota mensuel de recherche sur l\'agent documentaire. Contactez-nous si vous souhaitez ajouter des crédits supplémentaires pour les users de votre workspace.'
-              : 'You have reached your monthly quota for the documentation assistant. Contact us if you would like to add additional credits for your workspace users.';
+              : 'You have reached your monthly quota for the documentation agent. Contact us if you would like to add additional credits for your workspace users.';
           } else {
             errorDetails = errorJson.details || errorJson.error || errorText;
           }
@@ -245,14 +245,14 @@ const ChatInterface: React.FC<{
       <DialogContent className="max-w-5xl w-[90vw] h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <Bot className="w-6 h-6" />
-            {language === 'fr' ? 'Assistant Documentation' : 'Documentation Assistant'} • {sourceName}
+            <Sparkles className="w-6 h-6 text-primary" />
+            {language === 'fr' ? 'Agent documentaire' : 'Documentation agent'} • {sourceName}
           </DialogTitle>
           <div className="mt-2">
             <QuotaIndicator compact />
           </div>
           <DialogDescription className="sr-only">
-            {language === 'fr' ? 'Assistant IA pour' : 'AI Assistant for'} {sourceName}
+            {language === 'fr' ? 'Agent documentaire pour' : 'Documentation agent for'} {sourceName}
           </DialogDescription>
         </DialogHeader>
 
@@ -260,8 +260,20 @@ const ChatInterface: React.FC<{
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
-              <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>{language === 'fr' ? 'Bonjour ! Posez votre question sur' : 'Hello! Ask your question about'} {sourceName}</p>
+              <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50 text-primary" />
+              <p className="font-semibold text-foreground mb-2">
+                {language === 'fr' ? 'Bienvenue sur l\'Agent documentaire Ecodex.' : 'Welcome to the Ecodex Documentation Agent.'}
+              </p>
+              <p className="mb-3">
+                {language === 'fr' 
+                  ? `Faisons une recherche sur la documentation ${sourceName} !` 
+                  : `Let's search the ${sourceName} documentation!`}
+              </p>
+              <p className="text-xs italic text-muted-foreground">
+                {language === 'fr'
+                  ? 'Nous vous invitons à vérifier chaque réponse proposée par notre agent via les liens des sources identifiées !'
+                  : 'We invite you to verify each response provided by our agent through the links of the identified sources!'}
+              </p>
             </div>
           )}
           

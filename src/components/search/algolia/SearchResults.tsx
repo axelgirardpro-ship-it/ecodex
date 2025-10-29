@@ -747,7 +747,7 @@ export const SearchResults: React.FC = () => {
 
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t space-y-3">
-                              {/* Bouton Assistant documentaire */}
+                              {/* Bouton Agent documentaire */}
                               <Button
                                 variant="default"
                                 size="sm"
@@ -762,7 +762,7 @@ export const SearchResults: React.FC = () => {
                                 className="w-full sm:w-auto"
                               >
                                 <Sparkles className="h-4 w-4 mr-2" />
-                                {currentLang === 'fr' ? 'Assistant documentaire' : 'Documentation Assistant'}
+                                {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
                               </Button>
                               {getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']) && (
                                 <div>
@@ -1092,7 +1092,7 @@ export const SearchResults: React.FC = () => {
                             <td colSpan={10} className="p-0">
                               <div className="bg-muted/20 p-6 border-t border-border">
                                 <div className="space-y-4">
-                                  {/* Bouton Assistant documentaire */}
+                                  {/* Bouton Agent documentaire */}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -1107,7 +1107,7 @@ export const SearchResults: React.FC = () => {
                                     className="w-full sm:w-auto"
                                   >
                                     <Sparkles className="h-4 w-4 mr-2" />
-                                    {currentLang === 'fr' ? 'Assistant documentaire' : 'Documentation Assistant'}
+                                    {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
                                   </Button>
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
