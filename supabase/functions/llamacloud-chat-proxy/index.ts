@@ -252,12 +252,38 @@ serve(async (req) => {
         }
       }
       
-      // Titre: utiliser file_name en priorité
-      const title = info.file_name || info.external_file_id || `Source ${idx + 1}`;
+      // Titre du document: utiliser file_name
+      const documentTitle = info.file_name || info.external_file_id || 'Document';
+      
+      // Titre du chunk/section: extraire la première ligne du texte ou un titre de section
+      let chunkTitle = '';
+      const nodeText = node.node.text || '';
+      
+      // Essayer d'extraire un titre de section (ligne commençant par # ou texte en gras)
+      const firstLine = nodeText.split('\n')[0].trim();
+      if (firstLine.length > 0 && firstLine.length < 150) {
+        // Nettoyer les marqueurs markdown (##, **, etc.)
+        chunkTitle = firstLine
+          .replace(/^#+\s*/, '') // Enlever les #
+          .replace(/\*\*/g, '')   // Enlever les **
+          .replace(/^[\d.]+\s*/, '') // Enlever la numérotation
+          .trim();
+      }
+      
+      // Fallback: utiliser les 80 premiers caractères du texte
+      if (!chunkTitle && nodeText.length > 0) {
+        chunkTitle = nodeText.substring(0, 80).trim() + '...';
+      }
+      
+      // Fallback final
+      if (!chunkTitle) {
+        chunkTitle = `Section ${idx + 1}`;
+      }
       
       return {
         id: idx + 1,
-        title,
+        title: chunkTitle,
+        documentTitle,
         url: pdfUrl,
         page: pageLabel,
         score: node.score || 0,
