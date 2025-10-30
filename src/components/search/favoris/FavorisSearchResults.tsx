@@ -52,7 +52,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   } | null>(null);
   const { t } = useTranslation('search');
   const { t: tResults } = useTranslation('search', { keyPrefix: 'results' });
-  const { t: tFavoris } = useTranslation('search', { keyPrefix: 'favoris' });
   const tooltipMap = React.useMemo(() => ({
     blurredNotAddable: tResults('blurred_content_not_addable_to_favorites'),
     blurredNotSelectable: tResults('locked_content_not_selectable')
@@ -274,12 +273,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
               <Table2 className="h-4 w-4" />
               <span className="ml-2 hidden sm:inline">{tResults('view_table')}</span>
             </Button>
-          </div>
-
-          <div className="text-sm text-foreground">
-            {hits.length === 1 
-              ? tFavoris('stats.favoritesDisplayed', { formattedCount: hits.length })
-              : tFavoris('stats.favoritesDisplayed_plural', { formattedCount: hits.length })}
           </div>
         </div>
       </div>

@@ -519,6 +519,35 @@ export const SearchResults: React.FC = () => {
       
       {hits.length > 0 && (
         <>
+          {/* Header avec pagination */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-4">
+              {/* View Switcher */}
+              <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('detailed')}
+                  className="h-8 px-3"
+                  title={t('view_detailed')}
+                >
+                  <LayoutList className="h-4 w-4" />
+                  <span className="ml-2 hidden sm:inline">{t('view_detailed')}</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className="h-8 px-3"
+                  title={t('view_table')}
+                >
+                  <Table2 className="h-4 w-4" />
+                  <span className="ml-2 hidden sm:inline">{t('view_table')}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Header avec sélection et export */}
           <div className="flex w-full flex-col items-start gap-4 md:flex-row md:items-center md:justify-between mb-6 p-4 bg-white rounded-lg border border-border">
             <div className="flex flex-wrap items-center gap-3">
@@ -569,39 +598,6 @@ export const SearchResults: React.FC = () => {
                 </Button>
               </div>
             )}
-          </div>
-
-          {/* Header avec pagination */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex items-center gap-4">
-              {/* View Switcher */}
-              <div className="flex items-center gap-1 border border-border rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'detailed' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('detailed')}
-                  className="h-8 px-3"
-                  title={t('view_detailed')}
-                >
-                  <LayoutList className="h-4 w-4" />
-                  <span className="ml-2 hidden sm:inline">{t('view_detailed')}</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className="h-8 px-3"
-                  title={t('view_table')}
-                >
-                  <Table2 className="h-4 w-4" />
-                  <span className="ml-2 hidden sm:inline">{t('view_table')}</span>
-                </Button>
-              </div>
-
-              <div className="text-sm text-indigo-950 font-montserrat">
-                {t('displayed_results', { count: hits.length })}
-              </div>
-            </div>
           </div>
 
           {/* Results */}
