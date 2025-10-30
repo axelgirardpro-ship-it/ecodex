@@ -60,9 +60,9 @@ serve(async (req) => {
 
     // 2. Parse request
     const body: ChatRequest = await req.json();
-    const { message, source_name, product_context, language } = body;
+    const { message, source_name, product_context, language, history = [] } = body;
 
-    console.log('📝 Chat request:', { message: message.substring(0, 50), source_name, language });
+    console.log('📝 Chat request:', { message: message.substring(0, 50), source_name, language, historyLength: history.length });
 
     // 3. Check quotas (skip in DEBUG_MODE)
     if (!DEBUG_MODE) {
@@ -137,7 +137,7 @@ serve(async (req) => {
     const llamaCloudFilters = { source: source_name };
     
     console.log('🔍 LlamaCloud retrieval config:', {
-      similarity_top_k: 6,
+      similarity_top_k: 3,
       retrieval_mode: 'chunks',
       retrieve_mode: 'text_and_images',
       filters: llamaCloudFilters,
@@ -211,7 +211,10 @@ serve(async (req) => {
     
     // Si le filtre a tout supprimé mais qu'on avait des résultats, c'est un problème de metadata
     // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
-    const nodesToUse = filteredNodes.length > 0 ? filteredNodes : nodes;
+    const allMatchingNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
+    
+    // ⚡ Limiter à 3 sources maximum (même si LlamaCloud en retourne plus)
+    const nodesToUse = allMatchingNodes.slice(0, 3);
     
     if (nodesToUse.length === 0) {
       console.warn('⚠️ No nodes found at all');
@@ -377,8 +380,12 @@ serve(async (req) => {
 
     // Build IMPROVED system prompt
     const languageInstruction = language === 'fr' 
-      ? 'Réponds OBLIGATOIREMENT et EXCLUSIVEMENT en FRANÇAIS. Ne mélange jamais français et anglais.' 
-      : 'You MUST answer ONLY in ENGLISH. Never mix French and English.';
+      ? 'Réponds OBLIGATOIREMENT et EXCLUSIVEMENT en FRANÇAIS.' 
+      : 'You MUST answer ONLY in ENGLISH.';
+    
+    const notFoundMessage = language === 'fr'
+      ? `Je n'ai pas trouvé d'information spécifique sur "${product_context}" dans ${source_name}. Je vous suggère de rechercher :`
+      : `I cannot find specific information about "${product_context}" in ${source_name}. I suggest searching for:`;
     
     const systemPrompt = `You are an expert assistant in carbon methodologies for ${source_name}.
 
@@ -388,62 +395,60 @@ CONTEXT:
 Analyzed product: "${product_context}"
 Source documentation: ${source_name}
 
-RETRIEVED SOURCES:
+RETRIEVED SOURCES FROM ${source_name}:
 ${context}
 
-STRICT INSTRUCTIONS:
-1. Base your answer ONLY on the sources above - DO NOT invent information
+═══════════════════════════════════════════════════════════════
+CRITICAL RULE - SOURCE RESTRICTION:
+═══════════════════════════════════════════════════════════════
+Answer ONLY using information from the sources above.
+DO NOT invent, extrapolate, or use external knowledge.
+If information is not in the sources, say so clearly and suggest alternative search terms.
 
-2. IMPORTANT: Ne consulte JAMAIS d'autres sources que ${source_name}. Si l'information n'existe pas dans cette source, indique clairement que tu ne l'as pas trouvée plutôt que de chercher ailleurs.
+═══════════════════════════════════════════════════════════════
+RESPONSE FORMAT:
+═══════════════════════════════════════════════════════════════
 
-3. ALWAYS cite sources in your response using clickable markdown links. Each source has a URL in the format: [Source X] (URL: url). Use this format in your citations: [Source X](url) - this will create clickable links for users to verify information
-
-4. For mathematical formulas - VERY IMPORTANT:
-   - If a formula is present in the sources, REPRODUCE IT EXACTLY in LaTeX
-   - Inline: $formula$ (example: $E = mc^2$ for E = mc²)
-   - Block: $$formula$$ on a separate line for complex formulas
-   - Example of block formula:
+1. CITATIONS: Always cite sources using clickable markdown links
+   Format: [Source X](url) where url is provided in "Source X (URL: ...)"
+   
+2. FORMATTING:
+   - Use **bold** for: numbers, values, dates, emission factors, key assumptions
+   - Use blank lines between paragraphs (not \\n)
+   - Structure with clear markdown headers (###)
+   
+3. FORMULAS (if present in sources):
+   - Inline LaTeX: $CO_2$ for CO₂, $E = mc^2$ for formulas
+   - Block LaTeX for complex formulas:
    
 $$
 Q_{CO_2,i} = \\frac{\\sum_{p=1}^9 (P_{p,i} \\times FE_p)}{\\sum_{p=1}^9 P_{p,i}}
 $$
 
-5. For chemical indices (CO₂, CH₄, etc.), use inline LaTeX notation: $CO_2$ for CO₂
+4. CONTENT:
+   - Include methodological assumptions from the sources
+   - Include relevant links if available: [Link text](url)
+   - DO NOT add a "Sources" section at the end (displayed automatically)
 
-6. Structure your response in CLEAN Markdown with BLANK LINES between each section:
+5. IF INFORMATION NOT FOUND:
+   ONLY if you've thoroughly checked and "${product_context}" is NOT in the sources:
+   - State: "${notFoundMessage}"
+   - Suggest 2-3 generic terms (e.g., "transport routier" instead of "Articulé 60-72 tonnes")
+   - DO NOT invent general information not in the sources
 
-### Introduction
-
-Concise explanation of the main concept.
-
-### Details
-
-Detailed explanation with formulas if relevant. INCLUDE formulas from sources.
-
-For each important point, create a new paragraph.
-
-7. IMPORTANT: Use REAL blank lines (double line break) between each paragraph, NOT \\n
-
-8. Utilise la syntaxe **texte** (gras) pour TOUS les chiffres, valeurs, dates et éléments clés méthodologiques. Mets en gras les informations critiques : facteurs d'émission, formules, hypothèses clés.
-
-9. DO NOT add a "Sources used" section at the end - sources will be displayed automatically in the interface
-
-10. If the information IS NOT in the provided sources: 
-   - First, state clearly: "${language === 'fr' ? `Je n'ai pas trouvé d'information sur "${product_context}" dans la documentation ${source_name}.` : `I cannot find information about "${product_context}" in the ${source_name} documentation.`}"
-   - Then, analyze the product name "${product_context}" and suggest more generic search terms
-   - Format: "${language === 'fr' ? 'Je vous suggère de rechercher des termes plus génériques comme :' : 'I suggest searching for more generic terms such as:'}" followed by 2-3 simplified keywords (sector, activity type, or simplified terms)
-   - Example: "Articulé 60 à 72 tonnes Diesel routier" → suggest "transport routier" or "transport de marchandises"
-
-11. NEVER add "This information is not available" AT THE END if you already answered
-
-12. 🔗 If relevant LINKS are available in the sources, INCLUDE THEM in your response in Markdown format: [Link text](url)
-
-13. Provide key methodological assumptions used to model the emission factor in question.
-
-14. ${languageInstruction}`;
+${languageInstruction}`;
 
     // 6. Call OpenAI Chat Completions API (REST with streaming)
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+
+    // Build conversation history with system prompt + history + current message
+    const conversationMessages = [
+      { role: 'system', content: systemPrompt },
+      ...history.map(msg => ({ role: msg.role, content: msg.content })),
+      { role: 'user', content: message }
+    ];
+
+    console.log('💬 Sending', conversationMessages.length, 'messages to OpenAI (including system prompt and', history.length, 'history messages)');
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -453,10 +458,7 @@ For each important point, create a new paragraph.
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
+        messages: conversationMessages,
         temperature: 0.2,
         max_tokens: 2000,
         stream: true
