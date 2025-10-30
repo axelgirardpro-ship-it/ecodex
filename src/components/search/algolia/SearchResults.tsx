@@ -18,6 +18,7 @@ import { useSourceLogos } from '@/hooks/useSourceLogos';
 import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 import { useTranslation } from 'react-i18next';
 import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
+import { useChatbotTabs } from '@/contexts/ChatbotTabsContext';
 
 interface AlgoliaHit {
   objectID: string;
@@ -193,11 +194,7 @@ export const SearchResults: React.FC = () => {
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = React.useState<'detailed' | 'table'>('detailed');
-  const [chatConfig, setChatConfig] = React.useState<{
-    isOpen: boolean;
-    source: string;
-    productName: string;
-  } | null>(null);
+  const { addTab } = useChatbotTabs();
   
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { hasAccess, shouldBlurPaidContent, canUseFavorites } = useEmissionFactorAccess();
@@ -743,23 +740,6 @@ export const SearchResults: React.FC = () => {
 
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t space-y-3">
-                              {/* Bouton Agent documentaire */}
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setChatConfig({
-                                    isOpen: true,
-                                    source: hit.Source,
-                                    productName: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
-                                  });
-                                }}
-                                className="w-full sm:w-auto"
-                              >
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
-                              </Button>
                               {getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']) && (
                                 <div>
                                   <span className="text-sm font-semibold text-foreground">{t('description')}</span>
@@ -950,6 +930,22 @@ export const SearchResults: React.FC = () => {
                                   />
                               </div>
                               )}
+                              {/* Bouton Agent documentaire - à la fin */}
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addTab(
+                                    hit.Source,
+                                    getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
+                                  );
+                                }}
+                                className="w-full sm:w-auto"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
+                              </Button>
                           </div>
                         )}
                         </div>
@@ -1088,24 +1084,6 @@ export const SearchResults: React.FC = () => {
                             <td colSpan={10} className="p-0">
                               <div className="bg-muted/20 p-6 border-t border-border">
                                 <div className="space-y-4">
-                                  {/* Bouton Agent documentaire */}
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setChatConfig({
-                                        isOpen: true,
-                                        source: hit.Source,
-                                        productName: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
-                                      });
-                                    }}
-                                    className="w-full sm:w-auto"
-                                  >
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
-                                  </Button>
-
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {getLocalizedValue(hit, 'Description_fr', 'Description_en', ['Description']) && (
                                       <div className="md:col-span-2">
@@ -1320,6 +1298,22 @@ export const SearchResults: React.FC = () => {
                                       </div>
                                     )}
                                   </div>
+                                  {/* Bouton Agent documentaire - à la fin */}
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addTab(
+                                        hit.Source,
+                                        getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
+                                      );
+                                    }}
+                                    className="w-full sm:w-auto mt-4"
+                                  >
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
+                                  </Button>
                                 </div>
                               </div>
                             </td>
@@ -1338,16 +1332,7 @@ export const SearchResults: React.FC = () => {
         </>
       )}
 
-      {/* Modal Assistant IA */}
-      {chatConfig && (
-        <LlamaCloudChatModal
-          isOpen={chatConfig.isOpen}
-          onClose={() => setChatConfig(null)}
-          sourceName={chatConfig.source}
-          productName={chatConfig.productName}
-          language={currentLang}
-        />
-      )}
+      {/* Les modales de chatbot sont gérées par ChatbotTabs */}
     </div>
   );
 };

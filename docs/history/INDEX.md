@@ -22,24 +22,64 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ## 2025-10
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
 
 ### 2025-10-23 🐛 Hotfix
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -53,12 +93,32 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-22 🎯 Feature Benchmark (Phase 7)
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -72,12 +132,32 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-20 🐛 Hotfix Filtre Private + ⚡ Optimisations
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -95,12 +175,32 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-16 ⚡ Optimisation React Query
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -113,12 +213,32 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-16 📊 Audit Réseau
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -126,12 +246,32 @@ Ce fichier liste tous les documents historiques de développement classés par o
 
 ### 2025-10-15 📦 Migrations & 🧹 Maintenance
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 
 ### 2025-10-24 📊 Rapport
 
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
+
 ### 2025-10-29 🎯 Feature
+
+### 2025-10-30 🐛 Hotfix
+- **2025-10-30_FEATURE_chatbot_improvements.md** - Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisé
+- **2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md** - Résumé exécutif: Correction sources AIB et Roundarc (3784 records) avec script de prévention
+- **2025-10-30_HOTFIX_AIB_source_floutee.md** - Correction source AIB floutée à tort - 2689 enregistrements corrigés de paid à free
 - **2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md** - Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
 - **2025-10-24_FEATURE_2025-10-24_benchmark_title_edition_inline.md** - FEATURE: Édition inline du titre des benchmarks avec tooltip intelligent
 - **2025-10-24_FIX_benchmark_date_range_period_2025-10-23.md** - FIX: Période du benchmark avec filtrage de date unique
@@ -161,7 +301,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 44
+**Total de documents indexés** : 47
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11

@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { ChatbotTabsProvider } from '@/contexts/ChatbotTabsContext';
+import { ChatbotTabs } from '@/components/chatbot/ChatbotTabs';
 
 interface FavorisAlgoliaContentProps {
   favoriteIds: string[];
@@ -158,6 +160,8 @@ const FavorisAlgoliaContent: React.FC<FavorisAlgoliaContentProps> = ({ favoriteI
           </div>
         )}
       </main>
+      {/* Barre d'onglets des chatbots */}
+      <ChatbotTabs />
     </div>
   );
 };
@@ -168,10 +172,12 @@ export const FavorisAlgoliaDashboard: React.FC = () => {
   const favoriteIds = useMemo(() => favorites.map(f => f.id), [favorites]);
 
   return (
-    <OriginProvider>
-      <SearchProvider key={`favorites-${language}`}>
-        <FavorisAlgoliaContent favoriteIds={favoriteIds} />
-      </SearchProvider>
-    </OriginProvider>
+    <ChatbotTabsProvider>
+      <OriginProvider>
+        <SearchProvider key={`favorites-${language}`}>
+          <FavorisAlgoliaContent favoriteIds={favoriteIds} />
+        </SearchProvider>
+      </OriginProvider>
+    </ChatbotTabsProvider>
   );
 };
