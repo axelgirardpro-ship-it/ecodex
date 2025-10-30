@@ -1,7 +1,11 @@
 import React from 'react'
 import { supabase } from '@/integrations/supabase/client'
 
-export interface FeSource { source_name: string; access_level: 'free'|'paid' }
+export interface FeSource { 
+  source_name: string; 
+  access_level: 'free'|'paid';
+  record_count?: number;
+}
 
 interface FeSourcesContextValue {
   sources: FeSource[]

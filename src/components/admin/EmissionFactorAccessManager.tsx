@@ -64,7 +64,8 @@ export const EmissionFactorAccessManager = () => {
 
       console.log(`✅ Successfully updated source ${source} to ${newTier}`);
 
-      // Laisser la Edge Function/cron gérer la synchro (suppression de l'appel direct)
+      // Note: Algolia sync triggered automatically by database trigger
+      // trg_algolia_on_access_level_change (migration 20251030)
 
       // Mark as successful
       setUpdateStates(prev => ({
