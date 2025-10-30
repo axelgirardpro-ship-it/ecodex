@@ -205,7 +205,10 @@ serve(async (req) => {
 
     // 3. Préparer les données Algolia via fonction SQL optimisée
     console.log("[STEP 3] Preparing Algolia sync data...");
-    const { error: prepError } = await supabase.rpc("trigger_algolia_sync_for_source", {
+    
+    // 3a. Vider et remplir la table tampon avec uniquement cette source
+    console.log("[STEP 3a] Clearing and filling algolia_source_assignments_projection...");
+    const { error: prepError } = await supabase.rpc("fill_algolia_assignments_projection", {
       p_source: exactSourceName
     });
 
@@ -213,7 +216,7 @@ serve(async (req) => {
       console.error("⚠ Warning: Failed to prepare Algolia data:", prepError);
       // Ne pas bloquer - continuer quand même
     } else {
-      console.log("✓ Algolia data prepared in projection table");
+      console.log("✓ Algolia data prepared in projection table (table cleared before fill)");
     }
 
     // 4. Déclencher la Task Algolia (f3cd3fd0-2db4-49fa-be67-6bd88cbc5950)
