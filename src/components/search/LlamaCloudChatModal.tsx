@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,17 @@ interface Message {
   links?: Link[];
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: Array<{
+    title: string;
+    documentTitle: string;
+    page?: number;
+    url?: string;
+  }>;
+}
+
 interface LlamaCloudChatModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,11 +59,28 @@ interface LlamaCloudChatModalProps {
   sourceName: string;
   productName: string;
   language: 'fr' | 'en';
+  initialMessages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
 // Custom hook simple pour le chat (sans dépendance à @ai-sdk/react)
-const useSimpleChat = (session: any, sourceName: string, productName: string, language: 'fr' | 'en') => {
-  const [messages, setMessages] = useState<Message[]>([]);
+const useSimpleChat = (
+  session: any, 
+  sourceName: string, 
+  productName: string, 
+  language: 'fr' | 'en',
+  initialMessages?: ChatMessage[],
+  onMessagesChange?: (messages: ChatMessage[]) => void
+) => {
+  const [messages, setMessages] = useState<Message[]>(() => {
+    // Initialiser avec les messages fournis ou un tableau vide
+    return initialMessages?.map((msg, idx) => ({
+      id: `${msg.role}-${idx}`,
+      role: msg.role,
+      content: msg.content,
+      sources: msg.sources,
+    })) || [];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const queryClient = useQueryClient();
@@ -200,6 +228,24 @@ const useSimpleChat = (session: any, sourceName: string, productName: string, la
     }
   };
 
+  // Utiliser useRef pour éviter la boucle infinie
+  const onMessagesChangeRef = useRef(onMessagesChange);
+  useEffect(() => {
+    onMessagesChangeRef.current = onMessagesChange;
+  }, [onMessagesChange]);
+
+  // Propager les changements de messages au parent
+  useEffect(() => {
+    if (onMessagesChangeRef.current) {
+      const chatMessages: ChatMessage[] = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        sources: msg.sources,
+      }));
+      onMessagesChangeRef.current(chatMessages);
+    }
+  }, [messages]);
+
   return { messages, isLoading, error, sendMessage };
 };
 
@@ -211,7 +257,9 @@ const ChatInterface: React.FC<{
   sourceName: string;
   productName: string;
   language: 'fr' | 'en';
-}> = ({ session, onClose, onMinimize, sourceName, productName, language }) => {
+  initialMessages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
+}> = ({ session, onClose, onMinimize, sourceName, productName, language, initialMessages, onMessagesChange }) => {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -227,7 +275,9 @@ const ChatInterface: React.FC<{
     session,
     sourceName,
     productName,
-    language
+    language,
+    initialMessages,
+    onMessagesChange
   );
 
   // Auto-scroll vers le bas lors de nouveaux messages

@@ -6,7 +6,7 @@ import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
 import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 
 export const ChatbotTabs: React.FC = () => {
-  const { tabs, activeTabId, removeTab, minimizeTab, maximizeTab } = useChatbotTabs();
+  const { tabs, activeTabId, removeTab, minimizeTab, maximizeTab, updateTabMessages } = useChatbotTabs();
   const language = useSafeLanguage();
 
   if (tabs.length === 0) return null;
@@ -89,17 +89,23 @@ export const ChatbotTabs: React.FC = () => {
         })}
       </div>
 
-      {/* Modale du chatbot actif */}
-      {activeTab && !activeTab.isMinimized && (
-        <LlamaCloudChatModal
-          isOpen={true}
-          onClose={() => removeTab(activeTab.id)}
-          onMinimize={() => minimizeTab(activeTab.id)}
-          sourceName={activeTab.source}
-          productName={activeTab.productName}
-          language={language}
-        />
-      )}
+      {/* Modales de tous les onglets - gardées montées pour éviter les sauts visuels */}
+      {tabs.map((tab) => {
+        const isActive = tab.id === activeTabId && !tab.isMinimized;
+        return (
+          <LlamaCloudChatModal
+            key={tab.id}
+            isOpen={isActive}
+            onClose={() => removeTab(tab.id)}
+            onMinimize={() => minimizeTab(tab.id)}
+            sourceName={tab.source}
+            productName={tab.productName}
+            language={language}
+            initialMessages={tab.messages}
+            onMessagesChange={(messages) => updateTabMessages(tab.id, messages)}
+          />
+        );
+      })}
     </>
   );
 };
