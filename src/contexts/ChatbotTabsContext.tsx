@@ -1,10 +1,22 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: Array<{
+    title: string;
+    documentTitle: string;
+    page?: number;
+    url?: string;
+  }>;
+}
+
 export interface ChatTab {
   id: string;
   source: string;
   productName: string;
   isMinimized: boolean;
+  messages: ChatMessage[];
 }
 
 interface ChatbotTabsContextValue {
@@ -15,6 +27,7 @@ interface ChatbotTabsContextValue {
   minimizeTab: (id: string) => void;
   maximizeTab: (id: string) => void;
   setActiveTab: (id: string | null) => void;
+  updateTabMessages: (id: string, messages: ChatMessage[]) => void;
 }
 
 const ChatbotTabsContext = createContext<ChatbotTabsContextValue | null>(null);
@@ -51,6 +64,7 @@ export const ChatbotTabsProvider: React.FC<{ children: ReactNode }> = ({ childre
       source,
       productName,
       isMinimized: false,
+      messages: [],
     };
 
     setTabs(prev => [...prev, newTab]);
@@ -84,6 +98,14 @@ export const ChatbotTabsProvider: React.FC<{ children: ReactNode }> = ({ childre
     setActiveTabId(id);
   };
 
+  const updateTabMessages = (id: string, messages: ChatMessage[]) => {
+    setTabs(prev => 
+      prev.map(tab => 
+        tab.id === id ? { ...tab, messages } : tab
+      )
+    );
+  };
+
   return (
     <ChatbotTabsContext.Provider
       value={{
@@ -94,6 +116,7 @@ export const ChatbotTabsProvider: React.FC<{ children: ReactNode }> = ({ childre
         minimizeTab,
         maximizeTab,
         setActiveTab: setActiveTabId,
+        updateTabMessages,
       }}
     >
       {children}

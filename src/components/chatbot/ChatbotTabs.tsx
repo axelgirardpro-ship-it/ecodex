@@ -6,7 +6,7 @@ import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
 import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 
 export const ChatbotTabs: React.FC = () => {
-  const { tabs, activeTabId, removeTab, minimizeTab, maximizeTab } = useChatbotTabs();
+  const { tabs, activeTabId, removeTab, minimizeTab, maximizeTab, updateTabMessages } = useChatbotTabs();
   const language = useSafeLanguage();
 
   if (tabs.length === 0) return null;
@@ -98,6 +98,8 @@ export const ChatbotTabs: React.FC = () => {
           sourceName={activeTab.source}
           productName={activeTab.productName}
           language={language}
+          initialMessages={activeTab.messages}
+          onMessagesChange={(messages) => updateTabMessages(activeTab.id, messages)}
         />
       )}
     </>
