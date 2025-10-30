@@ -93,23 +93,17 @@ export const ChatbotTabs: React.FC = () => {
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId && !tab.isMinimized;
         return (
-          <div 
+          <LlamaCloudChatModal
             key={tab.id}
-            style={{ 
-              display: isActive ? 'block' : 'none',
-            }}
-          >
-            <LlamaCloudChatModal
-              isOpen={true}
-              onClose={() => removeTab(tab.id)}
-              onMinimize={() => minimizeTab(tab.id)}
-              sourceName={tab.source}
-              productName={tab.productName}
-              language={language}
-              initialMessages={tab.messages}
-              onMessagesChange={(messages) => updateTabMessages(tab.id, messages)}
-            />
-          </div>
+            isOpen={isActive}
+            onClose={() => removeTab(tab.id)}
+            onMinimize={() => minimizeTab(tab.id)}
+            sourceName={tab.source}
+            productName={tab.productName}
+            language={language}
+            initialMessages={tab.messages}
+            onMessagesChange={(messages) => updateTabMessages(tab.id, messages)}
+          />
         );
       })}
     </>
