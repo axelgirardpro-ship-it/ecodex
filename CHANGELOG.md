@@ -10,6 +10,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ### 2025-10-29n- **FEATURE_UX_AGENT_DOCUMENTAIRE.md** : Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue améliorén  - Documentation complète dans `docs/history/2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md`n
 
 ### 2026-01-XX
+- **🐛 FIX - Correction erreurs TypeScript LlamaCloudChatModal** : Résolution de 3 erreurs de linting TypeScript
+  - **Erreurs d'imports** : Ajout de directives `@ts-ignore` pour `remark-math` et `rehype-katex` (packages sans types TypeScript)
+  - **Erreur prop `inline`** : Remplacement de la prop `inline` (non disponible dans les types) par une détection basée sur `className` pour différencier code inline/bloc
+  - **Impact** : Fichier maintenant sans erreur de linting, code plus robuste avec typage correct
+  - **Fichiers modifiés** :
+    - `src/components/search/LlamaCloudChatModal.tsx` : Corrections TypeScript pour compatibilité avec react-markdown
+
 - **🎨 AMÉLIORATION UI/UX - Chatbot Documentation** : Optimisation de l'interface et de l'expérience utilisateur du chatbot
   - **Largeur de la modale réduite** : Passage de `max-w-[1600px] w-[96vw]` à `max-w-5xl w-[90vw]` pour une taille plus raisonnable et une meilleure lisibilité
   - **Sources dans un accordéon** : Les sources sont maintenant dans un accordéon fermé par défaut, permettant à l'utilisateur de ne pas polluer la visibilité du chat
