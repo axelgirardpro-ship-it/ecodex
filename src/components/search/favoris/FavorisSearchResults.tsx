@@ -20,6 +20,7 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
+import { useChatbotTabs } from '@/contexts/ChatbotTabsContext';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -45,11 +46,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
   const { shouldBlurPaidContent } = useEmissionFactorAccess();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'detailed' | 'table'>('detailed');
-  const [chatConfig, setChatConfig] = React.useState<{
-    isOpen: boolean;
-    source: string;
-    productName: string;
-  } | null>(null);
+  const { addTab } = useChatbotTabs();
   const { t } = useTranslation('search');
   const { t: tResults } = useTranslation('search', { keyPrefix: 'results' });
   const tooltipMap = React.useMemo(() => ({
@@ -446,23 +443,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t space-y-3">
-                          {/* Bouton Agent documentaire */}
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setChatConfig({
-                                isOpen: true,
-                                source: hit.Source,
-                                productName: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
-                              });
-                            }}
-                            className="w-full sm:w-auto"
-                          >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
-                          </Button>
                           {hit.Description_fr || hit.Description_en ? (
                             <div>
                               <span className="text-sm font-semibold text-foreground">Description</span>
@@ -647,6 +627,22 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                               </div>
                             </div>
                           ) : null}
+                          {/* Bouton Agent documentaire - à la fin */}
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addTab(
+                                hit.Source,
+                                getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
+                              );
+                            }}
+                            className="w-full sm:w-auto"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -773,23 +769,6 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                         <td colSpan={10} className="p-0">
                           <div className="bg-muted/20 p-6 border-t border-border">
                             <div className="space-y-4">
-                              {/* Bouton Agent documentaire */}
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setChatConfig({
-                                    isOpen: true,
-                                    source: hit.Source,
-                                    productName: getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
-                                  });
-                                }}
-                                className="w-full sm:w-auto"
-                              >
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
-                              </Button>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {(hit.Description_fr || hit.Description_en) && (
                                   <div className="md:col-span-2">
@@ -998,6 +977,22 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
                                   </div>
                                 )}
                               </div>
+                              {/* Bouton Agent documentaire - à la fin */}
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addTab(
+                                    hit.Source,
+                                    getLocalizedValue(hit, 'Nom_fr', 'Nom_en', ['Nom']) || ''
+                                  );
+                                }}
+                                className="w-full sm:w-auto mt-4"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                {currentLang === 'fr' ? 'Agent documentaire' : 'Documentation agent'}
+                              </Button>
                             </div>
                           </div>
                         </td>
@@ -1086,16 +1081,7 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
         );
       })()}
 
-      {/* Modal Assistant IA */}
-      {chatConfig && (
-        <LlamaCloudChatModal
-          isOpen={chatConfig.isOpen}
-          onClose={() => setChatConfig(null)}
-          sourceName={chatConfig.source}
-          productName={chatConfig.productName}
-          language={currentLang}
-        />
-      )}
+      {/* Les modales de chatbot sont gérées par ChatbotTabs */}
     </div>
   );
 };

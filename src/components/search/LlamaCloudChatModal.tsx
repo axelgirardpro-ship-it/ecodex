@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Sparkles, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, FileText, Image as ImageIcon, Copy, Minus } from 'lucide-react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -11,6 +11,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { QuotaIndicator } from '@/components/chatbot/QuotaIndicator';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 // Types pour les messages
 interface Source {
@@ -41,6 +42,7 @@ interface Message {
 interface LlamaCloudChatModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onMinimize?: () => void;
   sourceName: string;
   productName: string;
   language: 'fr' | 'en';
@@ -203,11 +205,12 @@ const useSimpleChat = (session: any, sourceName: string, productName: string, la
 const ChatInterface: React.FC<{
   session: any;
   onClose: () => void;
+  onMinimize?: () => void;
   sourceName: string;
   productName: string;
   language: 'fr' | 'en';
-}> = ({ session, onClose, sourceName, productName, language }) => {
-  
+}> = ({ session, onClose, onMinimize, sourceName, productName, language }) => {
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Pré-remplir la question avec un template modifiable
@@ -240,16 +243,86 @@ const ChatInterface: React.FC<{
     }
   };
 
+  const handleCopyConversation = async () => {
+    if (messages.length === 0) return;
+
+    const formattedConversation = messages.map((msg) => {
+      const emoji = msg.role === 'user' ? '🧑' : '🤖';
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      let text = `${emoji} ${role}: ${msg.content}\n`;
+      
+      if (msg.role === 'assistant' && msg.sources && msg.sources.length > 0) {
+        text += '\n**Sources:**\n';
+        msg.sources.forEach((source) => {
+          text += `- [${source.title}](${source.url || '#'}) (${source.documentTitle}${source.page ? `, Page ${source.page}` : ''})\n`;
+        });
+      }
+      
+      return text;
+    }).join('\n---\n\n');
+
+    try {
+      await navigator.clipboard.writeText(formattedConversation);
+      toast({
+        title: language === 'fr' ? 'Conversation copiée !' : 'Conversation copied!',
+        description: language === 'fr' 
+          ? 'La conversation complète a été copiée dans le presse-papier.' 
+          : 'The complete conversation has been copied to clipboard.',
+      });
+    } catch (err) {
+      toast({
+        title: language === 'fr' ? 'Erreur' : 'Error',
+        description: language === 'fr' 
+          ? 'Impossible de copier la conversation.' 
+          : 'Failed to copy conversation.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl w-[90vw] h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            {language === 'fr' ? 'Agent documentaire' : 'Documentation agent'} • {sourceName}
-          </DialogTitle>
-          <div className="mt-2">
-            <QuotaIndicator compact />
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-primary" />
+                {language === 'fr' ? 'Agent documentaire' : 'Documentation agent'} • {sourceName}
+              </DialogTitle>
+              <div className="mt-2">
+                <QuotaIndicator compact />
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyConversation}
+                disabled={messages.length === 0}
+                title={language === 'fr' ? 'Copier la conversation' : 'Copy conversation'}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+              {onMinimize && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onMinimize}
+                  title={language === 'fr' ? 'Réduire' : 'Minimize'}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                title={language === 'fr' ? 'Fermer' : 'Close'}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           <DialogDescription className="sr-only">
             {language === 'fr' ? 'Agent documentaire pour' : 'Documentation agent for'} {sourceName}
@@ -273,6 +346,10 @@ const ChatInterface: React.FC<{
                 {language === 'fr'
                   ? 'Nous vous invitons à vérifier chaque réponse proposée par notre agent via les liens des sources identifiées !'
                   : 'We invite you to verify each response provided by our agent through the links of the identified sources!'}
+                <br />
+                {language === 'fr'
+                  ? 'Assurez-vous d\'avoir consulté toutes les informations déjà disponibles sur la fiche du FE.'
+                  : 'Make sure you have reviewed all information already available on the EF sheet.'}
               </p>
             </div>
           )}

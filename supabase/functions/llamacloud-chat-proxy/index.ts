@@ -155,7 +155,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           query: message,
-          similarity_top_k: 6,
+          similarity_top_k: 3,
           retrieval_mode: 'chunks',
           retrieve_mode: 'text_and_images',
           filters: llamaCloudFilters // ✅ RÉACTIVÉ : Filtrer par metadata "source"
@@ -291,10 +291,28 @@ serve(async (req) => {
       };
     }); // Uniquement les sources filtrées
 
-    // Build context for OpenAI (utiliser nodesToUse)
-    const context = nodesToUse.map((node: any, idx: number) => 
-      `[Source ${idx + 1}] ${node.node.text || ''}`
-    ).join('\n\n');
+    // Build context for OpenAI with URLs for clickable links (utiliser nodesToUse)
+    const context = nodesToUse.map((node: any, idx: number) => {
+      const info = node.node.extra_info || {};
+      let pdfUrl = info.url || info.pdf_url || null;
+      
+      if (!pdfUrl) {
+        const fileName = info.file_name || info.external_file_id;
+        if (fileName) {
+          pdfUrl = `${supabaseUrl}/storage/v1/object/public/documents/${fileName}`;
+        }
+      }
+      
+      const pageLabel = info.page_label || null;
+      if (pdfUrl && pageLabel) {
+        const pageNumber = parseInt(pageLabel, 10);
+        if (!isNaN(pageNumber)) {
+          pdfUrl = `${pdfUrl}#page=${pageNumber}`;
+        }
+      }
+      
+      return `[Source ${idx + 1}]${pdfUrl ? ` (URL: ${pdfUrl})` : ''}\n${node.node.text || ''}`;
+    }).join('\n\n');
 
     // Extract ALL visual assets from extra_info (screenshots, charts, images) - utiliser nodesToUse
     const screenshots: string[] = [];
@@ -376,9 +394,11 @@ ${context}
 STRICT INSTRUCTIONS:
 1. Base your answer ONLY on the sources above - DO NOT invent information
 
-2. ALWAYS cite with [Source X] in your response after each statement
+2. IMPORTANT: Ne consulte JAMAIS d'autres sources que ${source_name}. Si l'information n'existe pas dans cette source, indique clairement que tu ne l'as pas trouvée plutôt que de chercher ailleurs.
 
-3. For mathematical formulas - VERY IMPORTANT:
+3. ALWAYS cite sources in your response using clickable markdown links. Each source has a URL in the format: [Source X] (URL: url). Use this format in your citations: [Source X](url) - this will create clickable links for users to verify information
+
+4. For mathematical formulas - VERY IMPORTANT:
    - If a formula is present in the sources, REPRODUCE IT EXACTLY in LaTeX
    - Inline: $formula$ (example: $E = mc^2$ for E = mc²)
    - Block: $$formula$$ on a separate line for complex formulas
@@ -388,9 +408,9 @@ $$
 Q_{CO_2,i} = \\frac{\\sum_{p=1}^9 (P_{p,i} \\times FE_p)}{\\sum_{p=1}^9 P_{p,i}}
 $$
 
-4. For chemical indices (CO₂, CH₄, etc.), use inline LaTeX notation: $CO_2$ for CO₂
+5. For chemical indices (CO₂, CH₄, etc.), use inline LaTeX notation: $CO_2$ for CO₂
 
-5. Structure your response in CLEAN Markdown with BLANK LINES between each section:
+6. Structure your response in CLEAN Markdown with BLANK LINES between each section:
 
 ### Introduction
 
@@ -402,19 +422,25 @@ Detailed explanation with formulas if relevant. INCLUDE formulas from sources.
 
 For each important point, create a new paragraph.
 
-6. IMPORTANT: Use REAL blank lines (double line break) between each paragraph, NOT \\n
+7. IMPORTANT: Use REAL blank lines (double line break) between each paragraph, NOT \\n
 
-7. DO NOT add a "Sources used" section at the end - sources will be displayed automatically in the interface
+8. Utilise la syntaxe **texte** (gras) pour TOUS les chiffres, valeurs, dates et éléments clés méthodologiques. Mets en gras les informations critiques : facteurs d'émission, formules, hypothèses clés.
 
-8. If the information IS NOT in the provided sources: answer ONLY "${language === 'fr' ? `Je ne trouve pas cette information dans la documentation ${source_name} fournie.` : `I cannot find this information in the provided ${source_name} documentation.`}"
+9. DO NOT add a "Sources used" section at the end - sources will be displayed automatically in the interface
 
-9. NEVER add "This information is not available" AT THE END if you already answered
+10. If the information IS NOT in the provided sources: 
+   - First, state clearly: "${language === 'fr' ? `Je n'ai pas trouvé d'information sur "${product_context}" dans la documentation ${source_name}.` : `I cannot find information about "${product_context}" in the ${source_name} documentation.`}"
+   - Then, analyze the product name "${product_context}" and suggest more generic search terms
+   - Format: "${language === 'fr' ? 'Je vous suggère de rechercher des termes plus génériques comme :' : 'I suggest searching for more generic terms such as:'}" followed by 2-3 simplified keywords (sector, activity type, or simplified terms)
+   - Example: "Articulé 60 à 72 tonnes Diesel routier" → suggest "transport routier" or "transport de marchandises"
 
-10. 🔗 If relevant LINKS are available in the sources, INCLUDE THEM in your response in Markdown format: [Link text](url)
+11. NEVER add "This information is not available" AT THE END if you already answered
 
-11. Provide key methodological assumptions used to model the emission factor in question.
+12. 🔗 If relevant LINKS are available in the sources, INCLUDE THEM in your response in Markdown format: [Link text](url)
 
-12. ${languageInstruction}`;
+13. Provide key methodological assumptions used to model the emission factor in question.
+
+14. ${languageInstruction}`;
 
     // 6. Call OpenAI Chat Completions API (REST with streaming)
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;

@@ -11,6 +11,8 @@ import { useOrigin } from './SearchProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
+import { ChatbotTabsProvider } from '@/contexts/ChatbotTabsContext';
+import { ChatbotTabs } from '@/components/chatbot/ChatbotTabs';
 
 const HitsPerPageSelector: React.FC = () => {
   const { t } = useTranslation('search');
@@ -169,6 +171,8 @@ const AlgoliaSearchContent: React.FC = () => {
           </section>
         </div>
       </main>
+      {/* Barre d'onglets des chatbots */}
+      <ChatbotTabs />
     </div>
   );
 };
@@ -177,8 +181,10 @@ export const SearchDashboard: React.FC = () => {
   const { language } = useLanguage();
 
   return (
-    <SearchProvider key={`search-${language}`}>
-      <AlgoliaSearchContent />
-    </SearchProvider>
+    <ChatbotTabsProvider>
+      <SearchProvider key={`search-${language}`}>
+        <AlgoliaSearchContent />
+      </SearchProvider>
+    </ChatbotTabsProvider>
   );
 };
