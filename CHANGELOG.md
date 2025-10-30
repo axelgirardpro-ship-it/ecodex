@@ -8,6 +8,17 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Non publié]
 
 ### 2026-01-XX
+- **🎨 UI - Restructuration du bandeau de sélection et suppression des compteurs** : Amélioration de la cohérence visuelle entre les pages de recherche et de favoris
+  - **Page Recherche** (`/search`) :
+    - Bandeau "Tout sélectionner" déplacé sous les boutons de vue (détaillée/tableau) pour une meilleure hiérarchie visuelle
+    - Suppression du texte "x résultat(s) affiché(s)" pour un affichage plus épuré
+  - **Page Favoris** (`/favoris`) :
+    - Suppression du texte "x favoris affichés" pour harmoniser avec la page de recherche
+  - **Cohérence** : Les deux pages suivent maintenant la même structure : boutons de vue en premier, puis bandeau de sélection
+  - **Fichiers modifiés** :
+    - `src/components/search/algolia/SearchResults.tsx` : Réorganisation de l'ordre des composants et suppression du compteur
+    - `src/components/search/favoris/FavorisSearchResults.tsx` : Suppression du compteur et nettoyage des imports inutilisés
+
 - **✨ AMÉLIORATION - Agent Documentaire sur la page Favoris** : Extension de l'agent documentaire à la page des favoris
   - **Fonctionnalité** : Ajout du bouton "Assistant documentaire" (icône Sparkles) dans l'accordéon des détails des favoris
   - **Comportement identique** : Même implémentation que sur la page `/search` pour garantir une expérience utilisateur cohérente
