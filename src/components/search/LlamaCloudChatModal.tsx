@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -226,17 +226,23 @@ const useSimpleChat = (
     }
   };
 
+  // Utiliser useRef pour éviter la boucle infinie
+  const onMessagesChangeRef = useRef(onMessagesChange);
+  useEffect(() => {
+    onMessagesChangeRef.current = onMessagesChange;
+  }, [onMessagesChange]);
+
   // Propager les changements de messages au parent
   useEffect(() => {
-    if (onMessagesChange) {
+    if (onMessagesChangeRef.current) {
       const chatMessages: ChatMessage[] = messages.map(msg => ({
         role: msg.role,
         content: msg.content,
         sources: msg.sources,
       }));
-      onMessagesChange(chatMessages);
+      onMessagesChangeRef.current(chatMessages);
     }
-  }, [messages, onMessagesChange]);
+  }, [messages]);
 
   return { messages, isLoading, error, sendMessage };
 };

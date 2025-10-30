@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -38,73 +38,70 @@ export const ChatbotTabsProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const MAX_TABS = 5;
 
-  const addTab = (source: string, productName: string) => {
-    // Vérifier si la limite est atteinte
-    if (tabs.length >= MAX_TABS) {
-      // Toast d'avertissement sera géré dans le composant qui appelle addTab
-      console.warn(`Maximum de ${MAX_TABS} conversations atteint`);
-      return;
-    }
-
-    // Vérifier si une conversation existe déjà pour cette combinaison
-    const existingTab = tabs.find(tab => tab.source === source && tab.productName === productName);
-    
-    if (existingTab) {
-      // Rouvrir l'onglet existant
-      setActiveTabId(existingTab.id);
-      if (existingTab.isMinimized) {
-        maximizeTab(existingTab.id);
-      }
-      return;
-    }
-
-    // Créer un nouvel onglet
-    const newTab: ChatTab = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      source,
-      productName,
-      isMinimized: false,
-      messages: [],
-    };
-
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-  };
-
-  const removeTab = (id: string) => {
-    setTabs(prev => prev.filter(tab => tab.id !== id));
-    if (activeTabId === id) {
-      setActiveTabId(null);
-    }
-  };
-
-  const minimizeTab = (id: string) => {
-    setTabs(prev => 
-      prev.map(tab => 
-        tab.id === id ? { ...tab, isMinimized: true } : tab
-      )
-    );
-    if (activeTabId === id) {
-      setActiveTabId(null);
-    }
-  };
-
-  const maximizeTab = (id: string) => {
+  const maximizeTab = useCallback((id: string) => {
     setTabs(prev => 
       prev.map(tab => 
         tab.id === id ? { ...tab, isMinimized: false } : tab
       )
     );
     setActiveTabId(id);
-  };
+  }, []);
 
-  const updateTabMessages = (id: string, messages: ChatMessage[]) => {
+  const addTab = useCallback((source: string, productName: string) => {
+    // Vérifier si la limite est atteinte
+    setTabs(prev => {
+      if (prev.length >= MAX_TABS) {
+        console.warn(`Maximum de ${MAX_TABS} conversations atteint`);
+        return prev;
+      }
+
+      // Vérifier si une conversation existe déjà pour cette combinaison
+      const existingTab = prev.find(tab => tab.source === source && tab.productName === productName);
+      
+      if (existingTab) {
+        // Rouvrir l'onglet existant
+        setActiveTabId(existingTab.id);
+        if (existingTab.isMinimized) {
+          maximizeTab(existingTab.id);
+        }
+        return prev;
+      }
+
+      // Créer un nouvel onglet
+      const newTab: ChatTab = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        source,
+        productName,
+        isMinimized: false,
+        messages: [],
+      };
+
+      setActiveTabId(newTab.id);
+      return [...prev, newTab];
+    });
+  }, [maximizeTab]);
+
+  const removeTab = useCallback((id: string) => {
+    setTabs(prev => prev.filter(tab => tab.id !== id));
+    setActiveTabId(prev => prev === id ? null : prev);
+  }, []);
+
+  const minimizeTab = useCallback((id: string) => {
+    setTabs(prev => 
+      prev.map(tab => 
+        tab.id === id ? { ...tab, isMinimized: true } : tab
+      )
+    );
+    setActiveTabId(prev => prev === id ? null : prev);
+  }, []);
+
+  const updateTabMessages = useCallback((id: string, messages: ChatMessage[]) => {
     setTabs(prev => 
       prev.map(tab => 
         tab.id === id ? { ...tab, messages } : tab
       )
     );
-  };
+  }, []);
 
   return (
     <ChatbotTabsContext.Provider
