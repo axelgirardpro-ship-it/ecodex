@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Bot, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 interface Source {
   id: number;
   title: string;
+  documentTitle: string; // Titre du document complet
   url: string | null;
   page: string | null;
   score: number;
@@ -87,7 +88,7 @@ const useSimpleChat = (session: any, sourceName: string, productName: string, la
           if (response.status === 429) {
             errorDetails = language === 'fr'
               ? 'Vous avez atteint votre quota mensuel de recherche sur l\'agent documentaire. Contactez-nous si vous souhaitez ajouter des crédits supplémentaires pour les users de votre workspace.'
-              : 'You have reached your monthly quota for the documentation assistant. Contact us if you would like to add additional credits for your workspace users.';
+              : 'You have reached your monthly quota for the documentation agent. Contact us if you would like to add additional credits for your workspace users.';
           } else {
             errorDetails = errorJson.details || errorJson.error || errorText;
           }
@@ -241,17 +242,17 @@ const ChatInterface: React.FC<{
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1600px] w-[96vw] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl w-[90vw] h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <Bot className="w-6 h-6" />
-            {language === 'fr' ? 'Assistant Documentation' : 'Documentation Assistant'} • {sourceName}
+            <Sparkles className="w-6 h-6 text-primary" />
+            {language === 'fr' ? 'Agent documentaire' : 'Documentation agent'} • {sourceName}
           </DialogTitle>
           <div className="mt-2">
             <QuotaIndicator compact />
           </div>
           <DialogDescription className="sr-only">
-            {language === 'fr' ? 'Assistant IA pour' : 'AI Assistant for'} {sourceName}
+            {language === 'fr' ? 'Agent documentaire pour' : 'Documentation agent for'} {sourceName}
           </DialogDescription>
         </DialogHeader>
 
@@ -259,8 +260,20 @@ const ChatInterface: React.FC<{
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
-              <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>{language === 'fr' ? 'Bonjour ! Posez votre question sur' : 'Hello! Ask your question about'} {sourceName}</p>
+              <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50 text-primary" />
+              <p className="font-semibold text-foreground mb-2">
+                {language === 'fr' ? 'Bienvenue sur l\'Agent documentaire Ecodex.' : 'Welcome to the Ecodex Documentation Agent.'}
+              </p>
+              <p className="mb-3">
+                {language === 'fr' 
+                  ? `Faisons une recherche sur la documentation ${sourceName} !` 
+                  : `Let's search the ${sourceName} documentation!`}
+              </p>
+              <p className="text-xs italic text-muted-foreground">
+                {language === 'fr'
+                  ? 'Nous vous invitons à vérifier chaque réponse proposée par notre agent via les liens des sources identifiées !'
+                  : 'We invite you to verify each response provided by our agent through the links of the identified sources!'}
+              </p>
             </div>
           )}
           
@@ -312,55 +325,55 @@ const ChatInterface: React.FC<{
                 const allSources = m.sources || [];
                 
                 return (
-                  <div className="mt-3 max-w-[80%] w-full">
-                    {/* Sources - Design compact inspiré de l'image */}
+                  <div className="mt-3 max-w-[80%] w-full space-y-3">
+                    {/* Sources dans un accordéon */}
                     {allSources.length > 0 && (
-                      <div className="bg-background border rounded-lg p-3 mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span className="font-semibold text-sm">{language === 'fr' ? 'Sources utilisées' : 'Sources used'} ({allSources.length})</span>
-                        </div>
-                        <div className="space-y-2">
-                          {allSources.map((source) => (
-                          <div key={source.id} className="bg-white hover:bg-accent/50 transition-colors rounded-lg p-3 flex items-center justify-between gap-3 border border-border">
-                            <div className="flex items-start gap-2 flex-1 min-w-0">
-                              <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-foreground truncate mb-0.5">
-                                  {source.id}. {source.title}
-                                </p>
-                                {source.page && (
-                                  <p className="text-xs text-muted-foreground">
-                                    📄 Page {source.page}
-                                  </p>
-                                )}
-                              </div>
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="sources" className="border rounded-lg">
+                          <AccordionTrigger className="px-4 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-primary" />
+                              <span className="font-semibold text-sm">{language === 'fr' ? 'Sources utilisées' : 'Sources used'} ({allSources.length})</span>
                             </div>
-                            {source.url && source.url.startsWith('http') && (
-                              <a 
-                                href={source.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  console.log('🔗 Click on source:', source.url);
-                                  if (e.metaKey || e.ctrlKey) return;
-                                  e.preventDefault();
-                                  window.open(source.url, '_blank', 'noopener,noreferrer');
-                                }}
-                                className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap cursor-pointer flex-shrink-0 font-medium"
-                              >
-                                📄 Voir PDF →
-                              </a>
-                            )}
-                            {(!source.url || !source.url.startsWith('http')) && (
-                              <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                                PDF indisponible
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                        </div>
-                      </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <div className="space-y-2">
+                              {allSources.map((source) => (
+                                <div key={source.id} className="bg-white hover:bg-accent/50 transition-colors rounded-lg p-3 border border-border">
+                                  <div className="flex items-start gap-3">
+                                    <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                      <p className="font-medium text-sm text-foreground leading-snug">
+                                        {source.title}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {source.documentTitle}
+                                        {source.page && ` • Page ${source.page}`}
+                                      </p>
+                                      {source.url && source.url.startsWith('http') && (
+                                        <a 
+                                          href={source.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => {
+                                            console.log('🔗 Click on source:', source.url);
+                                            if (e.metaKey || e.ctrlKey) return;
+                                            e.preventDefault();
+                                            window.open(source.url, '_blank', 'noopener,noreferrer');
+                                          }}
+                                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer font-medium mt-1"
+                                        >
+                                          📄 Voir le PDF →
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     )}
 
                   {/* Screenshots - Dans un accordéon */}

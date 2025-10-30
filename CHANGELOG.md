@@ -7,7 +7,31 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-29n- **FEATURE_UX_AGENT_DOCUMENTAIRE.md** : Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue améliorén  - Documentation complète dans `docs/history/2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md`n
+
 ### 2026-01-XX
+- **🎨 AMÉLIORATION UI/UX - Chatbot Documentation** : Optimisation de l'interface et de l'expérience utilisateur du chatbot
+  - **Largeur de la modale réduite** : Passage de `max-w-[1600px] w-[96vw]` à `max-w-5xl w-[90vw]` pour une taille plus raisonnable et une meilleure lisibilité
+  - **Sources dans un accordéon** : Les sources sont maintenant dans un accordéon fermé par défaut, permettant à l'utilisateur de ne pas polluer la visibilité du chat
+  - **Design des cards de sources amélioré** : 
+    - Layout vertical optimisé (suppression de l'espace inutile entre le titre et le lien PDF)
+    - Structure claire : titre du chunk/section (gras) → nom du document + page (texte gris) → lien PDF (aligné à gauche)
+    - Meilleur espacement visuel avec `space-y-1`
+  - **Titres des sources intelligents** :
+    - **Titre principal** : Extraction automatique de la première ligne du chunk (titre de section)
+    - **Sous-titre** : Nom du document complet
+    - Nettoyage automatique des marqueurs markdown (`##`, `**`, numérotation)
+    - Fallback intelligent sur les premiers caractères si pas de titre clair
+    - Affichage du numéro de page si disponible
+  - **Backend** :
+    - Extraction intelligente du titre de section depuis `node.node.text`
+    - Séparation claire entre `title` (titre du chunk) et `documentTitle` (nom du fichier)
+    - Support de métadonnées enrichies pour améliorer l'affichage
+  - **Fichiers modifiés** :
+    - `src/components/search/LlamaCloudChatModal.tsx` : Refonte de l'affichage des sources, ajout de l'accordéon, amélioration du layout
+    - `supabase/functions/llamacloud-chat-proxy/index.ts` : Extraction intelligente des titres de chunks et des métadonnées
+
+
 - **🎨 UI - Restructuration du bandeau de sélection et suppression des compteurs** : Amélioration de la cohérence visuelle entre les pages de recherche et de favoris
   - **Page Recherche** (`/search`) :
     - Bandeau "Tout sélectionner" déplacé sous les boutons de vue (détaillée/tableau) pour une meilleure hiérarchie visuelle
@@ -18,6 +42,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - **Fichiers modifiés** :
     - `src/components/search/algolia/SearchResults.tsx` : Réorganisation de l'ordre des composants et suppression du compteur
     - `src/components/search/favoris/FavorisSearchResults.tsx` : Suppression du compteur et nettoyage des imports inutilisés
+
 
 - **✨ AMÉLIORATION - Agent Documentaire sur la page Favoris** : Extension de l'agent documentaire à la page des favoris
   - **Fonctionnalité** : Ajout du bouton "Assistant documentaire" (icône Sparkles) dans l'accordéon des détails des favoris
