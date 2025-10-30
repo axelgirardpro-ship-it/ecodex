@@ -13,5 +13,6 @@ export interface FeSource {
   auto_detected: boolean;
   created_at: string;
   updated_at: string;
+  record_count?: number; // Nombre d'enregistrements dans emission_factors_all_search (optionnel pour compatibilité)
 }
 

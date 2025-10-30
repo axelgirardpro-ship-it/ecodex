@@ -7,9 +7,24 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### 2025-10-30n- **FEATURE_chatbot_improvements.md** : Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisén  - Documentation complète dans `docs/history/2025-10-30_FEATURE_chatbot_improvements.md`n
-
 ### 2025-10-30
+- **🎯 FEATURE - Synchronisation Automatique Algolia et Filtrage Sources Admin**
+  - **Problème 1** : Changement d'`access_level` (free ↔ paid) depuis `/admin` ne synchronisait pas Algolia
+  - **Solution 1** : Trigger database automatique `trg_algolia_on_access_level_change` 
+    - Déclenche Task Algolia `22394099-b71a-48ef-9453-e790b3159ade` après changement d'`access_level`
+    - S'exécute après `refresh_projection` pour garantir la cohérence
+  - **Problème 2** : Page `/admin` affichait des sources "fantômes" sans données
+  - **Solution 2** : Vue `fe_sources_with_counts` avec filtre `record_count > 0`
+    - N'affiche que les sources ayant des enregistrements dans `emission_factors_all_search`
+  - **Nettoyage** : Suppression commentaire obsolète sur "Edge Function/cron" inexistante
+  - **Migrations** : `20251030_trigger_algolia_on_access_level_change.sql`, `20251030_add_source_record_counts.sql`
+  - **Frontend** : `EmissionFactorAccessManager.tsx`, `FeSourcesContext.tsx`, `source.ts`
+  - Documentation complète dans `docs/history/2025-10-30_FEATURE_SYNC_ALGOLIA_ACCESS_LEVEL.md`
+
+- **🎯 FEATURE - Chatbot Améliorations** : Système multi-onglets, limitation 3 sources, historique conversation
+  - Documentation complète dans `docs/history/2025-10-30_FEATURE_chatbot_improvements.md`
+
+
 - **🐛 HOTFIX - Sources AIB et Roundarc Floutées** : Correction de 3784 enregistrements affichés à tort comme premium
   - **AIB** : 2689 enregistrements corrigés de `paid` → `free`
   - **Roundarc** : 1095 enregistrements corrigés de `paid` → `free`
