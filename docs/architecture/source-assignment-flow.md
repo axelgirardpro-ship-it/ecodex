@@ -6,6 +6,8 @@ Ce document décrit le flux d'assignation de sources premium aux workspaces, uti
 
 ## Architecture globale
 
+### Flux 1 : Assignation workspace (schedule-source-reindex)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Frontend (Admin UI)                       │
@@ -19,8 +21,8 @@ Ce document décrit le flux d'assignation de sources premium aux workspaces, uti
 │                                                                   │
 │  1. UPDATE fe_source_workspace_assignments                       │
 │  2. REFRESH emission_factors_all_search (via SQL function)       │
-│  3. POPULATE algolia_source_assignments_projection (paginé)      │
-│  4. TRIGGER Algolia Task ID                                      │
+│  3. POPULATE algolia_source_assignments_projection (nettoyée)    │
+│  4. TRIGGER Algolia Task ID: f3cd3fd0-2db4-49fa-be67-...         │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
                                ▼
@@ -31,6 +33,40 @@ Ce document décrit le flux d'assignation de sources premium aux workspaces, uti
 │  • Lecture: algolia_source_assignments_projection                │
 │  • Update partiel des attributs (assigned_workspace_ids)         │
 │  • Opération idempotente                                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Flux 2 : Changement access_level (trigger automatique)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Frontend (Admin UI)                       │
+│            EmissionFactorAccessManager.tsx                       │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              UPDATE fe_sources.access_level                      │
+│                   (free ↔ paid)                                  │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼ (trigger automatique)
+┌─────────────────────────────────────────────────────────────────┐
+│       trigger_algolia_on_access_level_change()                   │
+│                                                                   │
+│  1. TRUNCATE algolia_access_level_projection                     │
+│  2. INSERT records de cette source uniquement                    │
+│  3. TRIGGER Algolia Task ID: 22394099-b71a-48ef-9453-...         │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Algolia Task Indexing                       │
+│              Task ID: 22394099-b71a-48ef-9453-...                │
+│                                                                   │
+│  • Lecture: algolia_access_level_projection                      │
+│  • Update partiel de access_level (source uniquement)            │
+│  • AVANT: 625k records • APRÈS: ~17k records (gain 97%)          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,35 +131,20 @@ Cette fonction SQL :
 - Réinsère les overlays users depuis `user_factor_overlays`
 - Reconstruit `assigned_workspace_ids` depuis `fe_source_workspace_assignments`
 
-##### Étape 4 : Nettoyage de la table de projection Algolia
+##### Étape 4 : Nettoyage et population de la projection Algolia
 ```typescript
-await supabase
-  .from("algolia_source_assignments_projection")
-  .delete()
-  .neq("id_fe", "impossible-uuid-to-match-all");
+// Appel de la fonction SQL qui vide et remplit la table en une seule opération
+await supabase.rpc("fill_algolia_assignments_projection", {
+  p_source: source_name
+});
 ```
 
-##### Étape 5 : Population de la projection avec pagination
-```typescript
-let allRecords: any[] = [];
-let page = 0;
-const pageSize = 1000;
+**Optimisation (migration 20251030) :** 
+- La fonction `fill_algolia_assignments_projection` vide d'abord `algolia_source_assignments_projection`
+- Puis remplit la table avec UNIQUEMENT les records de la source en cours
+- Gain : Table toujours propre, pas d'accumulation de données obsolètes (avant: 20k+ lignes, après: ~6-17k par source)
 
-while (hasMore) {
-  const { data } = await supabase
-    .from("emission_factors_all_search")
-    .select("ID_FE, Source, assigned_workspace_ids")
-    .eq("Source", source_name)
-    .range(page * pageSize, (page + 1) * pageSize - 1);
-  
-  allRecords = allRecords.concat(data);
-  page++;
-}
-```
-
-**Important :** La pagination est cruciale pour gérer les sources volumineuses (6k+, 17k+ records).
-
-##### Étape 6 : Déclenchement de la Task Algolia
+##### Étape 5 : Déclenchement de la Task Algolia
 ```typescript
 const taskUrl = `https://data.eu.algolia.com/2/tasks/${taskId}/run`;
 await fetch(taskUrl, {
@@ -149,7 +170,7 @@ await fetch(taskUrl, {
 **Contrainte :** `UNIQUE(source_name, workspace_id)`
 
 #### `algolia_source_assignments_projection`
-**Rôle :** Table temporaire pour alimenter la Task Algolia.
+**Rôle :** Table temporaire pour alimenter la Task Algolia (assignations workspace).
 
 | Colonne | Type | Description |
 |---------|------|-------------|
@@ -158,11 +179,35 @@ await fetch(taskUrl, {
 | `assigned_workspace_ids` | uuid[] | Liste des workspaces assignés |
 | `updated_at` | timestamptz | Date de dernière mise à jour |
 
-**Cycle de vie :**
-1. Vidée avant chaque assignation
-2. Remplie avec tous les records de la source
-3. Lue par la Task Algolia
-4. Reste en place pour traçabilité
+**Cycle de vie (optimisé migration 20251030) :**
+1. **Vidée automatiquement** par `fill_algolia_assignments_projection` avant chaque assignation
+2. Remplie avec tous les records de la source en cours uniquement
+3. Lue par la Task Algolia `f3cd3fd0-2db4-49fa-be67-6bd88cbc5950`
+4. Reste en place jusqu'à la prochaine assignation (table tampon réutilisable)
+
+**Avant optimisation :** Table jamais vidée, accumulation de 20 741 lignes obsolètes  
+**Après optimisation :** Table contient uniquement la source en cours (~6-17k lignes max)
+
+#### `algolia_access_level_projection`
+**Rôle :** Table temporaire pour synchroniser `access_level` lors de changements free ↔ paid.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id_fe` | text PRIMARY KEY | Identifiant unique du facteur d'émission |
+| `source_name` | text | Nom de la source |
+| `access_level` | text | Niveau d'accès ('free' ou 'paid') |
+| `updated_at` | timestamptz | Date de dernière mise à jour |
+
+**Cycle de vie (migration 20251030) :**
+1. Vidée automatiquement par trigger `trigger_algolia_on_access_level_change`
+2. Remplie avec UNIQUEMENT les records de la source modifiée
+3. Lue par Task Algolia `22394099-b71a-48ef-9453-e790b3159ade`
+4. Reste en place jusqu'au prochain changement access_level
+
+**Gain performance :**
+- **AVANT** : Partial update de 625 000 records Algolia
+- **APRÈS** : Partial update de ~17 000 records (INIES) ou ~6 000 (CBAM)
+- **Réduction** : ~97% de records mis à jour
 
 #### `emission_factors_all_search`
 **Rôle :** Projection complète pour Algolia (globale + user imports).
@@ -186,6 +231,28 @@ await fetch(taskUrl, {
 
 **Garantie :** Cette fonction préserve TOUJOURS les imports users et reconstruit les assignations depuis `fe_source_workspace_assignments`.
 
+#### `fill_algolia_assignments_projection(p_source text)`
+**Path :** `supabase/migrations/20251030_optimize_algolia_projections.sql`
+
+**Responsabilités :**
+1. Vider complètement `algolia_source_assignments_projection`
+2. Remplir avec UNIQUEMENT les records de la source donnée
+3. Utilisée par Edge Function `schedule-source-reindex`
+
+**Avantage :** Évite l'accumulation de données obsolètes dans la table tampon (gain mémoire + performance Algolia).
+
+#### `trigger_algolia_on_access_level_change()`
+**Path :** `supabase/migrations/20251030_optimize_algolia_projections.sql`
+
+**Déclenchement :** Trigger automatique sur `UPDATE fe_sources.access_level`
+
+**Responsabilités :**
+1. Vider complètement `algolia_access_level_projection`
+2. Remplir avec UNIQUEMENT les records de la source modifiée
+3. Déclencher Task Algolia `22394099-b71a-48ef-9453-e790b3159ade`
+
+**Avantage :** Au lieu de mettre à jour 625k records, ne met à jour que la source concernée (~17k max).
+
 ## Garanties du système
 
 ### ✅ Préservation des assignations lors d'un import admin
@@ -194,8 +261,8 @@ Quand un admin réimporte une source (ex: CBAM), `refresh_ef_all_for_source` rec
 ### ✅ Préservation des imports users
 `refresh_ef_all_for_source` réinsère systématiquement les records de `user_factor_overlays` après les records globaux. Les imports personnels ne sont jamais perdus.
 
-### ✅ Pagination pour grandes sources
-La Edge Function pagine les résultats par tranches de 1000 records, permettant de gérer des sources de 6k, 17k records ou plus sans timeout.
+### ✅ Gestion optimisée des grandes sources
+La fonction SQL `fill_algolia_assignments_projection` utilise un `INSERT SELECT` qui gère efficacement les sources de 6k, 17k records ou plus. La table tampon est vidée avant chaque utilisation, évitant l'accumulation de données obsolètes.
 
 ### ✅ Idempotence Algolia
 La Task Algolia effectue des "Partial record updates" : elle met à jour uniquement `assigned_workspace_ids` sur les records existants, sans les recréer. Les opérations peuvent être rejouées sans effet de bord.
@@ -218,9 +285,10 @@ schedule-source-reindex (action: 'assign')
 2. refresh_ef_all_for_source('CBAM')
    → DELETE WHERE Source = 'CBAM'
    → INSERT 6963 records (avec assigned_workspace_ids = ['global-admin-uuid'])
-3. TRUNCATE algolia_source_assignments_projection
-4. INSERT 6963 records dans projection (paginé: 7 batches de 1000)
-5. TRIGGER Task Algolia (f3cd3fd0-2db4-...)
+3. fill_algolia_assignments_projection('CBAM')
+   → DELETE FROM algolia_source_assignments_projection (vide la table)
+   → INSERT 6963 records dans projection (INSERT SELECT optimisé)
+4. TRIGGER Task Algolia (f3cd3fd0-2db4-...)
     ↓
 Algolia indexe 6963 records avec assigned_workspace_ids mis à jour
 ```
@@ -247,7 +315,28 @@ Assignations préservées
 Imports users préservés
 ```
 
-### Scénario 3 : Bulk assignation
+### Scénario 3 : Changement access_level d'une source
+
+```
+Admin UI: Changer INIES de 'paid' à 'free'
+    ↓
+UPDATE fe_sources SET access_level = 'free' WHERE source_name = 'INIES'
+    ↓
+Trigger: trigger_algolia_on_access_level_change
+    ↓
+1. DELETE FROM algolia_access_level_projection
+2. INSERT INTO algolia_access_level_projection
+   SELECT "ID_FE", "Source", 'free'
+   FROM emission_factors_all_search
+   WHERE "Source" = 'INIES'
+   → 17 189 records insérés (au lieu de 625k)
+3. TRIGGER Task Algolia 22394099-b71a-48ef-9453-e790b3159ade
+    ↓
+Algolia met à jour UNIQUEMENT les 17k records INIES
+Gain: 97% de réduction (625k → 17k)
+```
+
+### Scénario 4 : Bulk assignation
 
 ```
 Admin UI: Assigner CBAM, Eco-Platform, Ember au workspace X

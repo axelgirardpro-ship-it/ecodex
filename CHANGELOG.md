@@ -8,6 +8,20 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Non publié]
 
 ### 2025-10-30
+- **⚡ OPTIMISATION - Tables Tampons Algolia** : Réduction de 97% des updates Algolia pour changements `access_level`
+  - **Problème 1** : Changement `access_level` mettait à jour 625k records Algolia au lieu de la source uniquement (~17k)
+  - **Solution 1** : Nouvelle table tampon `algolia_access_level_projection` remplie uniquement avec records de la source modifiée
+  - **Problème 2** : Table `algolia_source_assignments_projection` avec 20k+ lignes obsolètes jamais vidée
+  - **Solution 2** : Fonction `fill_algolia_assignments_projection` qui vide/remplit automatiquement la table
+  - **Gains** : 625k → 17k records (97%), temps 5-10min → 30-60sec (90%)
+  - **Migrations** : `20251030_optimize_algolia_projections.sql`
+  - **Edge Function** : `schedule-source-reindex/index.ts` (appel nouvelle fonction SQL)
+  - Documentation complète dans `docs/history/2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md`
+
+- **🎯 FEATURE - Chatbot Améliorations** : Système multi-onglets, limitation 3 sources, historique conversation
+  - Documentation complète dans `docs/history/2025-10-30_FEATURE_chatbot_improvements.md`
+
+### 2025-10-30
 - **🎯 FEATURE - Synchronisation Automatique Algolia et Filtrage Sources Admin**
   - **Problème 1** : Changement d'`access_level` (free ↔ paid) depuis `/admin` ne synchronisait pas Algolia
   - **Solution 1** : Trigger database automatique `trg_algolia_on_access_level_change` 
