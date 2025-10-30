@@ -6,7 +6,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Sparkles, X, Send, Loader2, FileText, Image as ImageIcon } from 'lucide-react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
+// @ts-ignore - remark-math types not available
 import remarkMath from 'remark-math';
+// @ts-ignore - rehype-katex types not available
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { QuotaIndicator } from '@/components/chatbot/QuotaIndicator';
@@ -306,10 +308,12 @@ const ChatInterface: React.FC<{
                         ol: ({node, ...props}) => <ol className="list-decimal ml-5 mb-3 space-y-1" {...props} />,
                         li: ({node, ...props}) => <li className="mb-1" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
-                        code: ({node, inline, ...props}) => 
-                          inline 
+                        code: ({node, ...props}: any) => {
+                          const isInline = !props.className?.includes('language-');
+                          return isInline 
                             ? <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
-                            : <code className="block bg-muted p-3 rounded my-3 overflow-x-auto" {...props} />,
+                            : <code className="block bg-muted p-3 rounded my-3 overflow-x-auto" {...props} />;
+                        },
                         blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-4 italic my-3" {...props} />
                       }}
                     >
