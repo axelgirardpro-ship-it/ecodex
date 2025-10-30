@@ -7,7 +7,21 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
-### 2025-10-29n- **FEATURE_UX_AGENT_DOCUMENTAIRE.md** : Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue améliorén  - Documentation complète dans `docs/history/2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md`n
+### 2025-10-30n- **FEATURE_chatbot_improvements.md** : Améliorations majeures de l'agent documentaire: système multi-onglets, limitation 3 sources, historique conversation, prompt LLM refactorisén  - Documentation complète dans `docs/history/2025-10-30_FEATURE_chatbot_improvements.md`n
+
+### 2025-10-30
+- **🐛 HOTFIX - Sources AIB et Roundarc Floutées** : Correction de 3784 enregistrements affichés à tort comme premium
+  - **AIB** : 2689 enregistrements corrigés de `paid` → `free`
+  - **Roundarc** : 1095 enregistrements corrigés de `paid` → `free`
+  - Cause : Incohérence entre `fe_sources.access_level` et `emission_factors_all_search.access_level`
+  - Solution : Rafraîchissement des projections via `refresh_ef_all_for_source()` et synchronisation Algolia
+  - **Script de prévention créé** : `scripts/check-source-consistency.sql` pour détecter automatiquement les futures incohérences
+  - Documentation complète dans `docs/history/2025-10-30_HOTFIX_AIB_source_floutee.md`
+  - Résumé exécutif dans `docs/history/2025-10-30_RESUME_CORRECTION_AIB_ROUNDARC.md`
+
+### 2025-10-29
+- **FEATURE_UX_AGENT_DOCUMENTAIRE.md** : Amélioration UX : Renommage 'Assistant documentaire' en 'Agent documentaire' avec nouvelle icône IA et message de bienvenue amélioré
+  - Documentation complète dans `docs/history/2025-10-29_FEATURE_UX_AGENT_DOCUMENTAIRE.md`
 
 ### 2026-01-XX
 - **🎨 AMÉLIORATION UI/UX - Chatbot Documentation** : Optimisation de l'interface et de l'expérience utilisateur du chatbot
