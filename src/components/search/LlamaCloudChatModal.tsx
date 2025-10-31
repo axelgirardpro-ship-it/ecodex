@@ -427,6 +427,17 @@ const ChatInterface: React.FC<{
                       rehypePlugins={[rehypeKatex]}
                       components={{
                         // Custom rendering for better styling and spacing
+                        a: ({ href, children, ...props }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                            {...props}
+                          >
+                            {children}
+                          </a>
+                        ),
                         h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-6 mb-3 text-foreground" {...props} />,
                         h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-5 mb-3 text-foreground" {...props} />,
                         h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-4 mb-2 text-foreground" {...props} />,
