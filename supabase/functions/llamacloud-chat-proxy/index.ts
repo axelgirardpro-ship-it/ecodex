@@ -235,23 +235,22 @@ serve(async (req) => {
     }
     
     // 🔍 DEBUG: Log scores of ALL nodes (before and after filtering)
-    console.log('📊 SCORES DEBUG - All nodes returned by LlamaCloud:');
-    nodes.forEach((node: any, idx: number) => {
+    const allNodesScores = nodes.map((node: any, idx: number) => {
       const info = node.node.extra_info || {};
       const score = node.score || 0;
       const nodeSource = info.source || info.Source || 'UNKNOWN';
-      console.log(`  Node ${idx + 1}: score=${score.toFixed(4)}, source=${nodeSource}`);
-    });
+      return `Node ${idx + 1}: score=${score.toFixed(4)}, source=${nodeSource}`;
+    }).join('\n  ');
+    console.log(`📊 SCORES DEBUG - All nodes returned by LlamaCloud:\n  ${allNodesScores}`);
     
     if (filteredNodes.length > 0) {
-      console.log('📊 SCORES DEBUG - Filtered nodes (matching source):');
-      filteredNodes.forEach((node: any, idx: number) => {
+      const filteredScores = filteredNodes.map((node: any, idx: number) => {
         const score = node.score || 0;
-        console.log(`  Filtered node ${idx + 1}: score=${score.toFixed(4)}`);
-      });
+        return `Filtered node ${idx + 1}: score=${score.toFixed(4)}`;
+      }).join('\n  ');
       
       const bestScore = Math.max(...filteredNodes.map((n: any) => n.score || 0));
-      console.log(`📊 BEST SCORE in filtered nodes: ${bestScore.toFixed(4)}`);
+      console.log(`📊 SCORES DEBUG - Filtered nodes (${filteredNodes.length} matching source):\n  ${filteredScores}\n📊 BEST SCORE: ${bestScore.toFixed(4)}`);
     } else {
       console.log('⚠️ NO FILTERED NODES - all nodes were rejected by source matching');
     }
