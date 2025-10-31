@@ -140,39 +140,6 @@ export const ContactsTable = () => {
     }
   };
 
-  const handleImpersonation = async (contact: Contact) => {
-    setImpersonating(contact.user_id);
-    try {
-      const success = await startImpersonation(
-        contact.user_id,
-        contact.email || '',
-        contact.workspace_id,
-        contact.company_name || ''
-      );
-
-      if (success) {
-        toast({
-          title: "Impersonation démarrée",
-          description: `Vous êtes maintenant connecté en tant que ${contact.email}`,
-        });
-        
-        // Redirect to main app
-        window.location.href = '/';
-      } else {
-        throw new Error('Failed to start impersonation');
-      }
-    } catch (error) {
-      console.error('Error starting impersonation:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de démarrer l'impersonation",
-      });
-    } finally {
-      setImpersonating(null);
-    }
-  };
-
   const deleteContact = async (userId: string, contactEmail: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${contactEmail}" ? Cette action est irréversible et supprimera toutes les données associées.`)) {
       return;
@@ -317,20 +284,6 @@ export const ContactsTable = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleImpersonation(contact)}
-                      disabled={impersonating === contact.user_id || updating?.includes(contact.user_id)}
-                      className="bg-blue-100 hover:bg-blue-200 text-blue-700"
-                    >
-                      {impersonating === contact.user_id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                      ) : (
-                        <UserCheck className="h-4 w-4" />
-                      )}
-                    </Button>
-                    
                     <Select 
                       value={contact.company_plan || 'freemium'}
                       onValueChange={(newPlan) => handlePlanChange(contact, newPlan)}

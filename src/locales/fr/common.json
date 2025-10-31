@@ -13,19 +13,6 @@
     "log_in": "Se connecter",
     "sign_up": "S'inscrire"
   },
-  "impersonation": {
-    "banner": {
-      "title": "Mode Impersonation :",
-      "description": "Vous êtes connecté en tant que <0>{{email}}</0> dans le workspace <1>{{workspace}}</1>",
-      "button": "Retour admin"
-    },
-    "toast": {
-      "success_title": "Impersonation terminée",
-      "success_description": "Vous êtes de nouveau connecté avec votre compte admin",
-      "error_title": "Erreur",
-      "error_description": "Impossible de terminer l'impersonation"
-    }
-  },
   "toasts": {
     "success": {
       "title": "Succès",

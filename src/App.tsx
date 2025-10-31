@@ -11,7 +11,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
-import { ImpersonationBanner } from "@/components/ui/ImpersonationBanner";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -102,7 +101,6 @@ const App = () => (
                   >
                     <LanguageProvider>
                       <div className="min-h-screen">
-                        <ImpersonationBanner />
                       <Routes>
                         <Route element={<LanguageLayout lang="fr" />}>
                           <Route path="/" element={<Index />} />
