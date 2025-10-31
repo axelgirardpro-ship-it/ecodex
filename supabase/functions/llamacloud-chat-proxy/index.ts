@@ -245,9 +245,9 @@ serve(async (req) => {
       console.log(`ℹ️ Using actual source version: "${actualSourceVersionUsed}" (requested: "${source_name}")`);
     }
     
-    // Si le filtre a tout supprimé mais qu'on avait des résultats, c'est un problème de metadata
-    // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
-    const allMatchingNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
+    // Utiliser uniquement les nodes filtrés (pas de fallback)
+    // Si filteredNodes est vide, nodesToUse sera vide et le message d'erreur sera affiché
+    const allMatchingNodes = filteredNodes;
     
     // ⚡ Limiter à 5 sources maximum (augmenté de 3 pour améliorer la précision)
     const nodesToUse = allMatchingNodes.slice(0, 5);
