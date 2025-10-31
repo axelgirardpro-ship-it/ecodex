@@ -135,14 +135,11 @@ serve(async (req) => {
     // Normaliser la source demandée pour le filtre
     const normalizedSource = normalizeSourceName(source_name);
     
-    // ✅ Filtre LlamaCloud avec syntaxe correcte (key, value, operator)
-    const llamaCloudFilters = [
-      {
-        key: "source_normalized",
-        value: normalizedSource,
-        operator: "=="
-      }
-    ];
+    // ✅ Essayer la syntaxe objet simple (comme l'ancienne version)
+    // LlamaCloud pourrait interpréter les filtres différemment
+    const llamaCloudFilters = {
+      source_normalized: normalizedSource
+    };
     
     // 🔍 DEBUG: Afficher la requête complète envoyée à LlamaCloud
     const llamaCloudRequestBody = {
