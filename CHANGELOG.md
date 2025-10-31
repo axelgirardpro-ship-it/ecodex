@@ -7,6 +7,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-31
+- **🧹 NETTOYAGE - Suppression Impersonation** : Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
+  - Documentation complète dans `docs/history/2025-10-31_SUPPRESSION_IMPERSONATION.md`
+
 ### 2025-10-30
 - **⚡ OPTIMISATION - Tables Tampons Algolia** : Réduction de 97% des updates Algolia pour changements `access_level`
   - **Problème 1** : Changement `access_level` mettait à jour 625k records Algolia au lieu de la source uniquement (~17k)

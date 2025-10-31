@@ -13,19 +13,6 @@
     "log_in": "Log in",
     "sign_up": "Sign up"
   },
-  "impersonation": {
-    "banner": {
-      "title": "Impersonation mode:",
-      "description": "You are signed in as <0>{{email}}</0> in workspace <1>{{workspace}}</1>",
-      "button": "Back to admin"
-    },
-    "toast": {
-      "success_title": "Impersonation ended",
-      "success_description": "You are now signed back in with your admin account",
-      "error_title": "Error",
-      "error_description": "Unable to end impersonation"
-    }
-  },
   "toasts": {
     "success": {
       "title": "Success",
