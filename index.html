@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <!-- CSP stricte (frame-ancestors doit être envoyée en header HTTP, pas en meta) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* https://wrodvaatdujbpfpvrzge.supabase.co wss://wrodvaatdujbpfpvrzge.supabase.co https://*.algolia.net https://*.algolianet.com; frame-src 'self' https://demo.arcade.software https://app.formbricks.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn-cookieyes.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* https://wrodvaatdujbpfpvrzge.supabase.co wss://wrodvaatdujbpfpvrzge.supabase.co https://*.algolia.net https://*.algolianet.com https://cdn-cookieyes.com; frame-src 'self' https://demo.arcade.software https://app.formbricks.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests">
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -27,5 +27,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Start cookieyes banner -->
+    <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/0c6c246250113b2d6786afee/script.js"></script>
+    <!-- End cookieyes banner -->
   </body>
 </html>
