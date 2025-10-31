@@ -195,19 +195,55 @@ serve(async (req) => {
       });
     }
     
+    // Fonction de normalisation pour matching flexible
+    const normalizeSourceName = (name: string): string => {
+      if (!name) return '';
+      
+      // 1. Lowercase
+      let normalized = name.toLowerCase().trim();
+      
+      // 2. Retirer la version (v23.6, v23.7, etc.)
+      // Pattern : "v" + chiffres + point + chiffres + optionnel (.chiffres ou autre)
+      normalized = normalized.replace(/\s*v\d+(\.\d+)*\s*$/i, '');
+      
+      // 3. Nettoyer espaces multiples
+      normalized = normalized.replace(/\s+/g, ' ');
+      
+      return normalized;
+    };
+
+    // Normaliser la source demandée
+    const normalizedSourceRequested = normalizeSourceName(source_name);
+    console.log('🔍 Normalized source requested:', normalizedSourceRequested, 'from:', source_name);
+
+    // Variable pour détecter la version réelle utilisée
+    let actualSourceVersionUsed: string | null = null;
+
     // FILTRAGE OPTIONNEL : Vérifier si les nodes correspondent à la source demandée
     // Le filtrage API de LlamaCloud devrait déjà faire ce travail via le paramètre filters
     const filteredNodes = nodes.filter((node: any) => {
       const info = node.node.extra_info || {};
       const nodeSource = info.source || info.Source || '';
-      const matches = nodeSource === source_name;
-      if (!matches && nodes.length < 10) {
-        console.log(`⚠️ Node source mismatch: expected "${source_name}", got "${nodeSource}"`);
+      const normalizedNodeSource = normalizeSourceName(nodeSource);
+      
+      const matches = normalizedNodeSource === normalizedSourceRequested;
+      
+      if (matches && !actualSourceVersionUsed) {
+        // Capturer la première version réelle trouvée
+        actualSourceVersionUsed = nodeSource;
       }
+      
+      if (!matches && nodes.length < 10) {
+        console.log(`⚠️ Node source mismatch: expected "${source_name}" (normalized: "${normalizedSourceRequested}"), got "${nodeSource}" (normalized: "${normalizedNodeSource}")`);
+      }
+      
       return matches;
     });
     
-    console.log(`✅ Filtered nodes: ${filteredNodes.length}/${nodes.length} nodes match source "${source_name}"`);
+    console.log(`✅ Filtered nodes: ${filteredNodes.length}/${nodes.length} nodes match source`);
+    if (actualSourceVersionUsed && actualSourceVersionUsed !== source_name) {
+      console.log(`ℹ️ Using actual source version: "${actualSourceVersionUsed}" (requested: "${source_name}")`);
+    }
     
     // Si le filtre a tout supprimé mais qu'on avait des résultats, c'est un problème de metadata
     // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
@@ -217,14 +253,14 @@ serve(async (req) => {
     const nodesToUse = allMatchingNodes.slice(0, 5);
     
     if (nodesToUse.length === 0) {
-      console.warn('⚠️ No nodes found at all');
+      console.warn('⚠️ No nodes found at all for source:', source_name);
       const errorMessage = language === 'fr'
-        ? `Aucune documentation n'est disponible pour la source "${source_name}".`
-        : `No documentation is available for the source "${source_name}".`;
+        ? `❌ Aucune documentation n'est disponible pour la source "${source_name}".\n\n💡 Cette source n'a pas encore été documentée dans notre système. Pour obtenir des informations, vous pouvez consulter directement le site officiel de la source.`
+        : `❌ No documentation is available for the source "${source_name}".\n\n💡 This source has not been documented in our system yet. For information, please consult the source's official website directly.`;
       
       return new Response(JSON.stringify({ 
         error: errorMessage,
-        error_type: 'no_matching_source'
+        error_type: 'no_documentation_available'
       }), { 
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -394,6 +430,9 @@ ${languageInstruction}
 CONTEXT:
 Analyzed product: "${product_context}"
 Source documentation: ${source_name}
+${actualSourceVersionUsed && actualSourceVersionUsed !== source_name 
+  ? `\n⚠️ ACTUAL DOCUMENTATION VERSION USED: "${actualSourceVersionUsed}"\n` 
+  : ''}
 
 ${history.length > 0 ? `
 CONVERSATION HISTORY:
@@ -402,8 +441,22 @@ ${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n')}
 Use this context to better understand what the user is looking for.
 ` : ''}
 
-RETRIEVED SOURCES FROM ${source_name}:
+RETRIEVED SOURCES FROM ${actualSourceVersionUsed || source_name}:
 ${context}
+
+═══════════════════════════════════════════════════════════════
+VERSION DIFFERENCE HANDLING:
+═══════════════════════════════════════════════════════════════
+${actualSourceVersionUsed && actualSourceVersionUsed !== source_name ? `
+⚠️ The user requested "${source_name}" but the available documentation is from "${actualSourceVersionUsed}".
+
+YOU MUST start your response with:
+${language === 'fr'
+  ? `"ℹ️ J'utilise la documentation de **${actualSourceVersionUsed}** (la version ${source_name} n'est pas disponible dans notre système)."`
+  : `"ℹ️ I'm using documentation from **${actualSourceVersionUsed}** (version ${source_name} is not available in our system)."`}
+
+Then proceed with answering the question using the ${actualSourceVersionUsed} documentation.
+` : ''}
 
 ═══════════════════════════════════════════════════════════════
 SEARCH STRATEGY:
