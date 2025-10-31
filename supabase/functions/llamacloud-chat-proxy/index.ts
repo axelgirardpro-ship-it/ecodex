@@ -234,12 +234,36 @@ serve(async (req) => {
       console.log(`ℹ️ Using actual source version: "${actualSourceVersionUsed}" (requested: "${source_name}")`);
     }
     
+    // 🔍 DEBUG: Log scores of ALL nodes (before and after filtering)
+    console.log('📊 SCORES DEBUG - All nodes returned by LlamaCloud:');
+    nodes.forEach((node: any, idx: number) => {
+      const info = node.node.extra_info || {};
+      const score = node.score || 0;
+      const nodeSource = info.source || info.Source || 'UNKNOWN';
+      console.log(`  Node ${idx + 1}: score=${score.toFixed(4)}, source=${nodeSource}`);
+    });
+    
+    if (filteredNodes.length > 0) {
+      console.log('📊 SCORES DEBUG - Filtered nodes (matching source):');
+      filteredNodes.forEach((node: any, idx: number) => {
+        const score = node.score || 0;
+        console.log(`  Filtered node ${idx + 1}: score=${score.toFixed(4)}`);
+      });
+      
+      const bestScore = Math.max(...filteredNodes.map((n: any) => n.score || 0));
+      console.log(`📊 BEST SCORE in filtered nodes: ${bestScore.toFixed(4)}`);
+    } else {
+      console.log('⚠️ NO FILTERED NODES - all nodes were rejected by source matching');
+    }
+    
     // Utiliser uniquement les nodes filtrés (pas de fallback)
     // Si filteredNodes est vide, nodesToUse sera vide et le message d'erreur sera affiché
     const allMatchingNodes = filteredNodes;
     
     // ⚡ Limiter à 5 sources maximum (augmenté de 3 pour améliorer la précision)
     const nodesToUse = allMatchingNodes.slice(0, 5);
+    
+    console.log(`📊 FINAL nodesToUse.length: ${nodesToUse.length}`);
     
     if (nodesToUse.length === 0) {
       console.warn('⚠️ No nodes found at all for source:', source_name);
