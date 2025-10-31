@@ -6,10 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Shield, Building2, Edit, Trash2, UserCheck, RefreshCw } from "lucide-react";
+import { User, Mail, Shield, Building2, Edit, Trash2, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useImpersonation } from "@/hooks/useImpersonation";
 
 interface Contact {
   id: string;
@@ -39,9 +38,7 @@ export const ContactsTable = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [impersonating, setImpersonating] = useState<string | null>(null);
   const { toast } = useToast();
-  const { startImpersonation } = useImpersonation();
 
   const fetchCompanies = async () => {
     try {
