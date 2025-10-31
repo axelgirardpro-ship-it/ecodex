@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### 2025-10-31n- **OPTIMISATION_chatbot_reduction_faux_negatifs.md** : Optimisation agent documentaire - Réduction des faux négatifsn  - Documentation complète dans `docs/history/2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md`n
+
 ### 2025-10-31n- **HOTFIX_chatbot-liens-nouvel-onglet.md** : Correction UX : liens du chatbot ouvrent dans un nouvel ongletn  - Documentation complète dans `docs/history/2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md`n
 
 ### 2025-10-31

@@ -23,12 +23,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ## 2025-10
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -39,12 +41,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -56,12 +60,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -72,12 +78,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -91,12 +99,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-23 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -107,12 +117,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -124,12 +136,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -140,12 +154,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -166,12 +182,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-22 🎯 Feature Benchmark (Phase 7)
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -182,12 +200,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -199,12 +219,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -215,12 +237,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -241,12 +265,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-20 🐛 Hotfix Filtre Private + ⚡ Optimisations
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -257,12 +283,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -274,12 +302,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -290,12 +320,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -320,12 +352,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-16 ⚡ Optimisation React Query
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -336,12 +370,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -353,12 +389,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -369,12 +407,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -394,12 +434,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-16 📊 Audit Réseau
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -410,12 +452,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -427,12 +471,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -443,12 +489,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -463,12 +511,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-15 📦 Migrations & 🧹 Maintenance
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -479,12 +529,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -496,12 +548,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-24 📊 Rapport
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -512,12 +566,14 @@ Ce fichier liste tous les documents historiques de développement classés par o
 ### 2025-10-29 🎯 Feature
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 
 ### 2025-10-30 🐛 Hotfix
 
 ### 2025-10-31 📊 Rapport
+- **2025-10-31_OPTIMISATION_chatbot_reduction_faux_negatifs.md** - Optimisation agent documentaire - Réduction des faux négatifs
 - **2025-10-31_HOTFIX_chatbot-liens-nouvel-onglet.md** - Correction UX : liens du chatbot ouvrent dans un nouvel onglet
 - **2025-10-31_SUPPRESSION_IMPERSONATION.md** - Suppression complète de la fonctionnalité impersonation (Edge Functions, hooks, composants React, traductions)
 - **2025-10-30_2025-10-30_OPTIMISATION_TABLES_TAMPONS_ALGOLIA.md** - Optimisation tables tampons Algolia : réduction 97% updates access_level + nettoyage auto assignments
@@ -553,7 +609,7 @@ Les documentations antérieures à août 2025 sont considérées comme archivée
 
 ## 📊 Statistiques
 
-**Total de documents indexés** : 51
+**Total de documents indexés** : 52
 - 🎯 Features : 6
 - 🐛 Hotfixes : 3
 - ⚡ Optimisations : 11

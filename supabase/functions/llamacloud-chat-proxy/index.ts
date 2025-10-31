@@ -137,7 +137,7 @@ serve(async (req) => {
     const llamaCloudFilters = { source: source_name };
     
     console.log('🔍 LlamaCloud retrieval config:', {
-      similarity_top_k: 3,
+      similarity_top_k: 8,
       retrieval_mode: 'chunks',
       retrieve_mode: 'text_and_images',
       filters: llamaCloudFilters,
@@ -155,7 +155,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           query: message,
-          similarity_top_k: 3,
+          similarity_top_k: 8,
           retrieval_mode: 'chunks',
           retrieve_mode: 'text_and_images',
           filters: llamaCloudFilters // ✅ RÉACTIVÉ : Filtrer par metadata "source"
@@ -213,8 +213,8 @@ serve(async (req) => {
     // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
     const allMatchingNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
     
-    // ⚡ Limiter à 3 sources maximum (même si LlamaCloud en retourne plus)
-    const nodesToUse = allMatchingNodes.slice(0, 3);
+    // ⚡ Limiter à 5 sources maximum (augmenté de 3 pour améliorer la précision)
+    const nodesToUse = allMatchingNodes.slice(0, 5);
     
     if (nodesToUse.length === 0) {
       console.warn('⚠️ No nodes found at all');
@@ -384,8 +384,8 @@ serve(async (req) => {
       : 'You MUST answer ONLY in ENGLISH.';
     
     const notFoundMessage = language === 'fr'
-      ? `Je n'ai pas trouvé d'information spécifique sur "${product_context}" dans ${source_name}. Je vous suggère de rechercher :`
-      : `I cannot find specific information about "${product_context}" in ${source_name}. I suggest searching for:`;
+      ? `Je n'ai pas trouvé d'information exacte sur "${product_context}" dans ${source_name}. Voici ce que j'ai trouvé de plus proche :`
+      : `I haven't found exact information about "${product_context}" in ${source_name}. Here's what I found that's closest:`;
     
     const systemPrompt = `You are an expert assistant in carbon methodologies for ${source_name}.
 
@@ -395,15 +395,25 @@ CONTEXT:
 Analyzed product: "${product_context}"
 Source documentation: ${source_name}
 
+${history.length > 0 ? `
+CONVERSATION HISTORY:
+${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n')}
+
+Use this context to better understand what the user is looking for.
+` : ''}
+
 RETRIEVED SOURCES FROM ${source_name}:
 ${context}
 
 ═══════════════════════════════════════════════════════════════
-CRITICAL RULE - SOURCE RESTRICTION:
+SEARCH STRATEGY:
 ═══════════════════════════════════════════════════════════════
-Answer ONLY using information from the sources above.
-DO NOT invent, extrapolate, or use external knowledge.
-If information is not in the sources, say so clearly and suggest alternative search terms.
+1. FIRST: Search thoroughly in the provided sources for relevant information
+2. If exact terms are not found, look for related concepts, synonyms, or categories
+3. Use the conversation history to understand context and reformulate the query
+4. ONLY if truly no relevant information exists after thorough search, suggest alternatives
+
+DO NOT invent data or values not in the sources.
 
 ═══════════════════════════════════════════════════════════════
 RESPONSE FORMAT:
