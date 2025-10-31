@@ -65,6 +65,11 @@ serve(async (req) => {
     console.log('📝 Chat request:', { message: message.substring(0, 50), source_name, language, historyLength: history.length });
 
     // 3. Check quotas (skip in DEBUG_MODE)
+    // ⚠️ On vérifie le quota mais on n'incrémente PAS encore
+    // L'incrémentation se fera plus tard, APRÈS avoir vérifié que la source a de la doc
+    let shouldIncrementQuota = false;
+    let currentUsage = 0;
+    
     if (!DEBUG_MODE) {
       // Get user's quotas from search_quotas (consolidated table)
       const { data: quotas, error: fetchError } = await supabaseAdmin
@@ -83,7 +88,7 @@ serve(async (req) => {
         });
       }
 
-      const currentUsage = quotas.chatbot_queries_used ?? 0;
+      currentUsage = quotas.chatbot_queries_used ?? 0;
       const limit = quotas.chatbot_queries_limit ?? 3;
 
       console.log('📊 Quota check:', { 
@@ -106,25 +111,9 @@ serve(async (req) => {
         });
       }
 
-      // 4. Increment usage (use SQL to ensure atomicity)
-      const newUsage = currentUsage + 1;
-      console.log('🔄 Attempting to increment quota from', currentUsage, 'to', newUsage);
-      
-      const { data: updateData, error: updateError } = await supabaseAdmin
-        .from('search_quotas')
-        .update({
-          chatbot_queries_used: newUsage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .select('chatbot_queries_used');
-
-      if (updateError) {
-        console.error('❌ Failed to increment quota:', updateError);
-        // Continue anyway - don't block the user
-      } else {
-        console.log('✅ Quota incremented successfully:', updateData);
-      }
+      // ✅ Quota OK, on pourra incrémenter plus tard (si doc disponible)
+      shouldIncrementQuota = true;
+      console.log('✅ Quota check passed, will increment later if documentation is available');
     } else {
       console.log('🔧 DEBUG MODE: Skipping quota check');
     }
@@ -195,38 +184,77 @@ serve(async (req) => {
       });
     }
     
+    // Fonction de normalisation pour matching flexible
+    const normalizeSourceName = (name: string): string => {
+      if (!name) return '';
+      
+      // 1. Lowercase
+      let normalized = name.toLowerCase().trim();
+      
+      // 2. Retirer la version (v23.6, v23.7, etc.)
+      // Pattern : "v" + chiffres + point + chiffres + optionnel (.chiffres ou autre)
+      normalized = normalized.replace(/\s*v\d+(\.\d+)*\s*$/i, '');
+      
+      // 3. Nettoyer espaces multiples
+      normalized = normalized.replace(/\s+/g, ' ');
+      
+      return normalized;
+    };
+
+    // Normaliser la source demandée
+    const normalizedSourceRequested = normalizeSourceName(source_name);
+    console.log('🔍 Normalized source requested:', normalizedSourceRequested, 'from:', source_name);
+
+    // Variable pour détecter la version réelle utilisée
+    let actualSourceVersionUsed: string | null = null;
+
     // FILTRAGE OPTIONNEL : Vérifier si les nodes correspondent à la source demandée
     // Le filtrage API de LlamaCloud devrait déjà faire ce travail via le paramètre filters
     const filteredNodes = nodes.filter((node: any) => {
       const info = node.node.extra_info || {};
       const nodeSource = info.source || info.Source || '';
-      const matches = nodeSource === source_name;
-      if (!matches && nodes.length < 10) {
-        console.log(`⚠️ Node source mismatch: expected "${source_name}", got "${nodeSource}"`);
+      const normalizedNodeSource = normalizeSourceName(nodeSource);
+      
+      const matches = normalizedNodeSource === normalizedSourceRequested;
+      
+      if (matches && !actualSourceVersionUsed) {
+        // Capturer la première version réelle trouvée
+        actualSourceVersionUsed = nodeSource;
       }
+      
+      if (!matches && nodes.length < 10) {
+        console.log(`⚠️ Node source mismatch: expected "${source_name}" (normalized: "${normalizedSourceRequested}"), got "${nodeSource}" (normalized: "${normalizedNodeSource}")`);
+      }
+      
       return matches;
     });
     
-    console.log(`✅ Filtered nodes: ${filteredNodes.length}/${nodes.length} nodes match source "${source_name}"`);
+    console.log(`✅ Filtered nodes: ${filteredNodes.length}/${nodes.length} nodes match source`);
+    if (actualSourceVersionUsed && actualSourceVersionUsed !== source_name) {
+      console.log(`ℹ️ Using actual source version: "${actualSourceVersionUsed}" (requested: "${source_name}")`);
+    }
     
-    // Si le filtre a tout supprimé mais qu'on avait des résultats, c'est un problème de metadata
-    // On utilise tous les nodes dans ce cas (le filtre API LlamaCloud a déjà fait le job)
-    const allMatchingNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
+    // Utiliser uniquement les nodes filtrés (pas de fallback)
+    // Si filteredNodes est vide, nodesToUse sera vide et le message d'erreur sera affiché
+    const allMatchingNodes = filteredNodes;
     
     // ⚡ Limiter à 5 sources maximum (augmenté de 3 pour améliorer la précision)
     const nodesToUse = allMatchingNodes.slice(0, 5);
     
     if (nodesToUse.length === 0) {
-      console.warn('⚠️ No nodes found at all');
-      const errorMessage = language === 'fr'
-        ? `Aucune documentation n'est disponible pour la source "${source_name}".`
-        : `No documentation is available for the source "${source_name}".`;
+      console.warn('⚠️ No nodes found at all for source:', source_name);
+      console.log('💡 No documentation available → NOT incrementing quota (user keeps credit)');
+      
+      const infoMessage = language === 'fr'
+        ? `📚 **Documentation non disponible**\n\nLa source "${source_name}" n'est pas encore disponible dans l'agent documentaire.\n\n💡 **Pour obtenir des informations :**\n- Consultez la description sur la fiche du facteur d'émission\n- Visitez le site officiel de la source`
+        : `📚 **Documentation not available**\n\nThe source "${source_name}" is not yet available in the documentation agent.\n\n💡 **To get information:**\n- Check the description on the emission factor page\n- Visit the source's official website`;
       
       return new Response(JSON.stringify({ 
-        error: errorMessage,
-        error_type: 'no_matching_source'
+        message: infoMessage,
+        response_type: 'no_documentation',
+        source_name: source_name
       }), { 
-        status: 404,
+        status: 200,  // ✅ Success (comportement normal, pas une erreur)
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -394,6 +422,9 @@ ${languageInstruction}
 CONTEXT:
 Analyzed product: "${product_context}"
 Source documentation: ${source_name}
+${actualSourceVersionUsed && actualSourceVersionUsed !== source_name 
+  ? `\n⚠️ ACTUAL DOCUMENTATION VERSION USED: "${actualSourceVersionUsed}"\n` 
+  : ''}
 
 ${history.length > 0 ? `
 CONVERSATION HISTORY:
@@ -402,8 +433,22 @@ ${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n')}
 Use this context to better understand what the user is looking for.
 ` : ''}
 
-RETRIEVED SOURCES FROM ${source_name}:
+RETRIEVED SOURCES FROM ${actualSourceVersionUsed || source_name}:
 ${context}
+
+═══════════════════════════════════════════════════════════════
+VERSION DIFFERENCE HANDLING:
+═══════════════════════════════════════════════════════════════
+${actualSourceVersionUsed && actualSourceVersionUsed !== source_name ? `
+⚠️ The user requested "${source_name}" but the available documentation is from "${actualSourceVersionUsed}".
+
+YOU MUST start your response with:
+${language === 'fr'
+  ? `"ℹ️ J'utilise la documentation de **${actualSourceVersionUsed}** (la version ${source_name} n'est pas disponible dans notre système)."`
+  : `"ℹ️ I'm using documentation from **${actualSourceVersionUsed}** (version ${source_name} is not available in our system)."`}
+
+Then proceed with answering the question using the ${actualSourceVersionUsed} documentation.
+` : ''}
 
 ═══════════════════════════════════════════════════════════════
 SEARCH STRATEGY:
@@ -459,6 +504,28 @@ ${languageInstruction}`;
     ];
 
     console.log('💬 Sending', conversationMessages.length, 'messages to OpenAI (including system prompt and', history.length, 'history messages)');
+
+    // ✅ Documentation disponible → Incrémenter le quota MAINTENANT (juste avant streaming)
+    if (shouldIncrementQuota) {
+      const newUsage = currentUsage + 1;
+      console.log('🔄 Documentation available → Incrementing quota from', currentUsage, 'to', newUsage);
+      
+      const { data: updateData, error: updateError } = await supabaseAdmin
+        .from('search_quotas')
+        .update({
+          chatbot_queries_used: newUsage,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select('chatbot_queries_used');
+
+      if (updateError) {
+        console.error('❌ Failed to increment quota:', updateError);
+        // Continue anyway - don't block the user
+      } else {
+        console.log('✅ Quota incremented successfully:', updateData);
+      }
+    }
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
