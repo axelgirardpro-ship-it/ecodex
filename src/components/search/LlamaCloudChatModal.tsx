@@ -118,6 +118,35 @@ const useSimpleChat = (
         }),
       });
 
+      // Vérifier d'abord si c'est une réponse "no documentation"
+      // (code 200 mais pas de streaming, juste un message informatif)
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType?.includes('application/json')) {
+        try {
+          const responseData = await response.json();
+          
+          // Cas 1 : Source sans documentation (response_type: 'no_documentation')
+          if (responseData.response_type === 'no_documentation') {
+            const assistantMessageId = `assistant-${Date.now()}`;
+            setMessages(prev => [...prev, {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: responseData.message,
+              sources: [],
+              screenshots: [],
+              charts: [],
+              links: []
+            }]);
+            
+            setIsLoading(false);
+            return;
+          }
+        } catch (e) {
+          // Si le parsing JSON échoue, continuer avec le traitement d'erreur normal
+          console.warn('Failed to parse JSON response:', e);
+        }
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         let errorDetails = response.statusText;

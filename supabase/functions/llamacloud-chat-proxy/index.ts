@@ -65,6 +65,11 @@ serve(async (req) => {
     console.log('📝 Chat request:', { message: message.substring(0, 50), source_name, language, historyLength: history.length });
 
     // 3. Check quotas (skip in DEBUG_MODE)
+    // ⚠️ On vérifie le quota mais on n'incrémente PAS encore
+    // L'incrémentation se fera plus tard, APRÈS avoir vérifié que la source a de la doc
+    let shouldIncrementQuota = false;
+    let currentUsage = 0;
+    
     if (!DEBUG_MODE) {
       // Get user's quotas from search_quotas (consolidated table)
       const { data: quotas, error: fetchError } = await supabaseAdmin
@@ -83,7 +88,7 @@ serve(async (req) => {
         });
       }
 
-      const currentUsage = quotas.chatbot_queries_used ?? 0;
+      currentUsage = quotas.chatbot_queries_used ?? 0;
       const limit = quotas.chatbot_queries_limit ?? 3;
 
       console.log('📊 Quota check:', { 
@@ -106,25 +111,9 @@ serve(async (req) => {
         });
       }
 
-      // 4. Increment usage (use SQL to ensure atomicity)
-      const newUsage = currentUsage + 1;
-      console.log('🔄 Attempting to increment quota from', currentUsage, 'to', newUsage);
-      
-      const { data: updateData, error: updateError } = await supabaseAdmin
-        .from('search_quotas')
-        .update({
-          chatbot_queries_used: newUsage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .select('chatbot_queries_used');
-
-      if (updateError) {
-        console.error('❌ Failed to increment quota:', updateError);
-        // Continue anyway - don't block the user
-      } else {
-        console.log('✅ Quota incremented successfully:', updateData);
-      }
+      // ✅ Quota OK, on pourra incrémenter plus tard (si doc disponible)
+      shouldIncrementQuota = true;
+      console.log('✅ Quota check passed, will increment later if documentation is available');
     } else {
       console.log('🔧 DEBUG MODE: Skipping quota check');
     }
@@ -254,15 +243,18 @@ serve(async (req) => {
     
     if (nodesToUse.length === 0) {
       console.warn('⚠️ No nodes found at all for source:', source_name);
-      const errorMessage = language === 'fr'
-        ? `❌ Aucune documentation n'est disponible pour la source "${source_name}".\n\n💡 Cette source n'a pas encore été documentée dans notre système. Pour obtenir des informations, vous pouvez consulter directement le site officiel de la source.`
-        : `❌ No documentation is available for the source "${source_name}".\n\n💡 This source has not been documented in our system yet. For information, please consult the source's official website directly.`;
+      console.log('💡 No documentation available → NOT incrementing quota (user keeps credit)');
+      
+      const infoMessage = language === 'fr'
+        ? `📚 **Documentation non disponible**\n\nLa source "${source_name}" n'est pas encore disponible dans l'agent documentaire.\n\n💡 **Pour obtenir des informations :**\n- Consultez la description sur la fiche du facteur d'émission\n- Visitez le site officiel de la source`
+        : `📚 **Documentation not available**\n\nThe source "${source_name}" is not yet available in the documentation agent.\n\n💡 **To get information:**\n- Check the description on the emission factor page\n- Visit the source's official website`;
       
       return new Response(JSON.stringify({ 
-        error: errorMessage,
-        error_type: 'no_documentation_available'
+        message: infoMessage,
+        response_type: 'no_documentation',
+        source_name: source_name
       }), { 
-        status: 404,
+        status: 200,  // ✅ Success (comportement normal, pas une erreur)
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -512,6 +504,28 @@ ${languageInstruction}`;
     ];
 
     console.log('💬 Sending', conversationMessages.length, 'messages to OpenAI (including system prompt and', history.length, 'history messages)');
+
+    // ✅ Documentation disponible → Incrémenter le quota MAINTENANT (juste avant streaming)
+    if (shouldIncrementQuota) {
+      const newUsage = currentUsage + 1;
+      console.log('🔄 Documentation available → Incrementing quota from', currentUsage, 'to', newUsage);
+      
+      const { data: updateData, error: updateError } = await supabaseAdmin
+        .from('search_quotas')
+        .update({
+          chatbot_queries_used: newUsage,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select('chatbot_queries_used');
+
+      if (updateError) {
+        console.error('❌ Failed to increment quota:', updateError);
+        // Continue anyway - don't block the user
+      } else {
+        console.log('✅ Quota incremented successfully:', updateData);
+      }
+    }
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
