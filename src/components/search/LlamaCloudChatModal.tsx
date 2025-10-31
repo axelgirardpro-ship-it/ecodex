@@ -97,6 +97,12 @@ const useSimpleChat = (
     setError(null);
 
     try {
+      // Garder les 2 derniers échanges (4 messages max) pour le contexte
+      const conversationHistory = messages.slice(-4).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/llamacloud-chat-proxy`, {
         method: 'POST',
         headers: {
@@ -108,6 +114,7 @@ const useSimpleChat = (
           source_name: sourceName,
           product_context: productName,
           language,
+          history: conversationHistory,
         }),
       });
 
