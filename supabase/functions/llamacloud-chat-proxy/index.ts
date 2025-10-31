@@ -135,20 +135,22 @@ serve(async (req) => {
     // Normaliser la source demandée pour le filtre
     const normalizedSource = normalizeSourceName(source_name);
     
-    // ✅ Essayer la syntaxe objet simple (comme l'ancienne version)
-    // LlamaCloud pourrait interpréter les filtres différemment
-    const llamaCloudFilters = {
-      source_normalized: normalizedSource
-    };
+    // ⚠️ DÉSACTIVER le filtre LlamaCloud car l'API REST ne le supporte pas correctement
+    // On fera le filtrage côté backend après récupération
+    const llamaCloudFilters = null; // Pas de filtre LlamaCloud
     
     // 🔍 DEBUG: Afficher la requête complète envoyée à LlamaCloud
-    const llamaCloudRequestBody = {
+    const llamaCloudRequestBody: any = {
       query: message,
       similarity_top_k: 8,
       retrieval_mode: 'chunks',
-      retrieve_mode: 'text_and_images',
-      filters: llamaCloudFilters
+      retrieve_mode: 'text_and_images'
     };
+    
+    // N'ajouter filters que s'il n'est pas null
+    if (llamaCloudFilters !== null) {
+      llamaCloudRequestBody.filters = llamaCloudFilters;
+    }
     
     console.log('🔍 LlamaCloud retrieval config:', {
       similarity_top_k: 8,
@@ -224,38 +226,56 @@ serve(async (req) => {
       console.log('  Has source_normalized in metadata?', 'source_normalized' in metadata);
     }
     
+    // ✅ FILTRAGE BACKEND avec source_normalized
+    // Puisque l'API REST LlamaCloud ne supporte pas les filtres correctement,
+    // on filtre côté backend en utilisant source_normalized des métadonnées
+    console.log(`🔍 Filtering ${nodes.length} nodes by source_normalized="${normalizedSource}"`);
+    
+    const filteredNodes = nodes.filter((node: any) => {
+      const info = node.node.extra_info || {};
+      const nodeSourceNormalized = info.source_normalized || '';
+      
+      const matches = nodeSourceNormalized === normalizedSource;
+      
+      if (!matches && nodes.length < 20) {
+        console.log(`⚠️ Node filtered out: source_normalized="${nodeSourceNormalized}" (expected: "${normalizedSource}")`);
+      }
+      
+      return matches;
+    });
+    
+    console.log(`✅ Filtered: ${filteredNodes.length}/${nodes.length} nodes match source_normalized="${normalizedSource}"`);
+    
     // ✅ Détecter la version réelle utilisée (pour mentionner si différente de celle demandée)
     let actualSourceVersionUsed: string | null = null;
     
-    if (nodes.length > 0) {
-      const info = nodes[0].node.extra_info || {};
+    if (filteredNodes.length > 0) {
+      const info = filteredNodes[0].node.extra_info || {};
       const firstNodeSource = info.source || info.Source || '';
       if (firstNodeSource) {
         actualSourceVersionUsed = firstNodeSource;
       }
     }
     
-    // ✅ LlamaCloud a déjà filtré avec source_normalized, donc tous les nodes retournés sont valides
-    console.log(`✅ Retrieved ${nodes.length} nodes from LlamaCloud (already filtered by source_normalized)`);
     if (actualSourceVersionUsed && actualSourceVersionUsed !== source_name) {
       console.log(`ℹ️ Using actual source version: "${actualSourceVersionUsed}" (requested: "${source_name}")`);
     }
     
-    // 🔍 DEBUG: Log scores des nodes retournés
-    if (nodes.length > 0) {
-      const nodesScores = nodes.map((node: any, idx: number) => {
+    // 🔍 DEBUG: Log scores des nodes filtrés
+    if (filteredNodes.length > 0) {
+      const nodesScores = filteredNodes.map((node: any, idx: number) => {
         const info = node.node.extra_info || {};
         const score = node.score || 0;
         const nodeSource = info.source || info.Source || 'UNKNOWN';
         return `Node ${idx + 1}: score=${score.toFixed(4)}, source=${nodeSource}`;
       }).join('\n  ');
       
-      const bestScore = Math.max(...nodes.map((n: any) => n.score || 0));
-      console.log(`📊 SCORES DEBUG - Nodes from LlamaCloud:\n  ${nodesScores}\n📊 BEST SCORE: ${bestScore.toFixed(4)}`);
+      const bestScore = Math.max(...filteredNodes.map((n: any) => n.score || 0));
+      console.log(`📊 SCORES DEBUG - Filtered nodes:\n  ${nodesScores}\n📊 BEST SCORE: ${bestScore.toFixed(4)}`);
     }
     
     // ⚡ Limiter à 5 sources maximum (augmenté de 3 pour améliorer la précision)
-    const nodesToUse = nodes.slice(0, 5);
+    const nodesToUse = filteredNodes.slice(0, 5);
     
     console.log(`📊 FINAL nodesToUse.length: ${nodesToUse.length}`);
     
