@@ -144,6 +144,15 @@ serve(async (req) => {
       }
     ];
     
+    // 🔍 DEBUG: Afficher la requête complète envoyée à LlamaCloud
+    const llamaCloudRequestBody = {
+      query: message,
+      similarity_top_k: 8,
+      retrieval_mode: 'chunks',
+      retrieve_mode: 'text_and_images',
+      filters: llamaCloudFilters
+    };
+    
     console.log('🔍 LlamaCloud retrieval config:', {
       similarity_top_k: 8,
       retrieval_mode: 'chunks',
@@ -152,6 +161,8 @@ serve(async (req) => {
       requested_source: source_name,
       normalized_source: normalizedSource
     });
+    
+    console.log('📤 FULL REQUEST BODY sent to LlamaCloud:', JSON.stringify(llamaCloudRequestBody, null, 2));
 
     // Appel à LlamaCloud avec filtre par source_normalized
     const retrieveResponse = await fetch(
@@ -162,13 +173,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${llamaCloudApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          query: message,
-          similarity_top_k: 8,
-          retrieval_mode: 'chunks',
-          retrieve_mode: 'text_and_images',
-          filters: llamaCloudFilters // ✅ Filtre par source_normalized
-        }),
+        body: JSON.stringify(llamaCloudRequestBody),
       }
     );
 
@@ -209,6 +214,19 @@ serve(async (req) => {
     const normalizedSourceRequested = normalizedSource;
     console.log('🔍 Normalized source requested:', normalizedSourceRequested, 'from:', source_name);
 
+    // 🔍 DEBUG: Afficher TOUTES les métadonnées du premier node pour vérifier si source_normalized existe
+    if (nodes.length > 0) {
+      const firstNode = nodes[0];
+      const info = firstNode.node.extra_info || {};
+      const metadata = firstNode.node.metadata || {};
+      
+      console.log('🔍 FIRST NODE METADATA DEBUG:');
+      console.log('  extra_info:', JSON.stringify(info, null, 2));
+      console.log('  metadata:', JSON.stringify(metadata, null, 2));
+      console.log('  Has source_normalized in extra_info?', 'source_normalized' in info);
+      console.log('  Has source_normalized in metadata?', 'source_normalized' in metadata);
+    }
+    
     // ✅ Détecter la version réelle utilisée (pour mentionner si différente de celle demandée)
     let actualSourceVersionUsed: string | null = null;
     
