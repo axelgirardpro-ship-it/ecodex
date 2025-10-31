@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
 import { useChatbotTabs } from '@/contexts/ChatbotTabsContext';
+import { cleanMarkdownLinks } from '@/utils/cleanMarkdownLinks';
 
 interface FavorisSearchResultsProps {
   selectedItems: Set<string>;
@@ -127,10 +128,14 @@ export const FavorisSearchResults: React.FC<FavorisSearchResultsProps> = ({
     for (const attribute of candidates) {
       const highlighted = highlight[attribute];
       if (highlighted?.value) {
-        return highlighted.value as string;
+        // Nettoyer les balises de highlighting dans les URLs markdown
+        return cleanMarkdownLinks(highlighted.value as string);
       }
       const raw = hit[attribute];
-      if (raw) return String(raw);
+      if (raw) {
+        // Nettoyer les URLs même sans highlighting
+        return cleanMarkdownLinks(String(raw));
+      }
     }
     return '';
   }, [currentLang]);

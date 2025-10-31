@@ -19,6 +19,7 @@ import { useSafeLanguage } from '@/hooks/useSafeLanguage';
 import { useTranslation } from 'react-i18next';
 import { LlamaCloudChatModal } from '@/components/search/LlamaCloudChatModal';
 import { useChatbotTabs } from '@/contexts/ChatbotTabsContext';
+import { cleanMarkdownLinks } from '@/utils/cleanMarkdownLinks';
 
 interface AlgoliaHit {
   objectID: string;
@@ -343,7 +344,9 @@ export const SearchResults: React.FC = () => {
         const text = String(h.value)
           .replace(/&lt;em&gt;|&amp;lt;em&amp;gt;/g, '<em>')
           .replace(/&lt;\/em&gt;|&amp;lt;\/em&amp;gt;/g, '</em>');
-        return { __html: text };
+        // Nettoyer les balises de highlighting dans les URLs markdown
+        const cleaned = cleanMarkdownLinks(text);
+        return { __html: cleaned };
       }
     }
     
@@ -359,9 +362,13 @@ export const SearchResults: React.FC = () => {
           const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const regex = new RegExp(`(${escapedTerm})`, 'gi');
           const highlighted = text.replace(regex, '<em>$1</em>');
-          return { __html: highlighted };
+          // Nettoyer les balises de highlighting dans les URLs markdown
+          const cleaned = cleanMarkdownLinks(highlighted);
+          return { __html: cleaned };
         }
-        return { __html: text };
+        // Même sans highlighting, nettoyer les URLs au cas où
+        const cleaned = cleanMarkdownLinks(text);
+        return { __html: cleaned };
       }
     }
     return { __html: '' };
